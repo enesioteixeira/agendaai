@@ -22,6 +22,7 @@ Carro-chefe: **agendamento + atendimento omnichannel** (WhatsApp primeiro), oper
 | [`docs/07-infra-free-tier.md`](docs/07-infra-free-tier.md) | Infra gratuita: limites, gatilhos de migração, custos |
 | [`docs/08-reuso-ev-tracker.md`](docs/08-reuso-ev-tracker.md) | Mapa de reuso do projeto ev-tracker (origem → destino) |
 | [`docs/09-estrutura-monorepo.md`](docs/09-estrutura-monorepo.md) | Árvore do monorepo, convenções, template de AGENTS.md |
+| [`docs/10-setup-contas.md`](docs/10-setup-contas.md) | Passo a passo dos cadastros externos (Neon, Cloudflare, OCI, Meta, Asaas...) |
 
 ## Arquitetura em uma linha
 
