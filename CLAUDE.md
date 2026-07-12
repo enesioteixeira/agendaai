@@ -2,7 +2,7 @@
 
 SaaS **multi-tenant** de agendamento e gestão para negócios de horário marcado (salões, barbearias, clínicas, escritórios), com carro-chefe em **atendimento omnichannel** (WhatsApp primeiro) operado por dois motores combináveis: **árvore de decisão** determinística e **IA conversacional**, com handoff humano.
 
-Status: **Fase 1 — planejamento**. Os documentos em `docs/` são a fonte de verdade das decisões. Nenhum código de produto foi escrito ainda; a Fase 2 (protótipo) depende de validação do dono do projeto.
+Status: **Fase 1 concluída e verificada** (docs em `docs/` são a fonte de verdade das decisões) · **Bloco 0 do MVP em andamento** (fundações do monorepo: tenancy, schema identidade, CI). Antes de editar um módulo, leia o `AGENTS.md` dele.
 
 ## Mapa de documentação (ler antes de qualquer tarefa)
 

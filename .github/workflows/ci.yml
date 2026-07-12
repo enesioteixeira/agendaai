@@ -1,0 +1,58 @@
+# CI (doc 09 §6): install → typecheck → test (inclui isolamento de tenant
+# com Postgres efêmero do runner). Deploys entram quando web (Wrangler) e
+# worker (GHCR + watchtower) forem provisionados — fim do Bloco 0.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: atende_teste
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/atende_teste
+      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/atende_teste
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: Gerar Prisma Client
+        run: pnpm db:generate
+
+      - name: Aplicar migrations no Postgres efêmero
+        run: pnpm --filter @atende/db exec prisma migrate deploy
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Testes (inclui isolamento de tenant)
+        run: pnpm test

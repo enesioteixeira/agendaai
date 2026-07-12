@@ -1,0 +1,170 @@
+// atende-ai — schema Prisma
+// Fonte de verdade do desenho: docs/02-modelo-de-dados.md
+// Convenções (doc 02 §1): ids cuid; empresaId em toda tabela de tenant;
+// unicidade composta @@unique([empresaId, ...]) (exceções: Usuario.email e models de plataforma);
+// centavos Int; timestamps UTC; soft-delete deletedAt em dados de titular.
+// prisma migrate SEMPRE — db push é banido (regra inviolável 13).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Domínio identidade (doc 02 §2) — Bloco 1 do MVP
+// Usuario é GLOBAL (email único no sistema); a pertença a um tenant
+// é o VinculoUsuarioEmpresa, que materializa o payload JWT
+// {usuarioId, empresaId, unidadeId, papelId, escopos[]}.
+// ─────────────────────────────────────────────────────────────
+
+enum VerticalEmpresa {
+  salao
+  barbearia
+  clinica_estetica
+  clinica_medica
+  advocacia
+  outro
+}
+
+enum StatusConvite {
+  pendente
+  aceito
+  expirado
+  revogado
+}
+
+model Empresa {
+  id       String          @id @default(cuid())
+  slug     String          @unique // ÚNICO GLOBAL — resolve a booking page {slug}.atende-ai.com.br
+  nome     String
+  cnpj     String?
+  vertical VerticalEmpresa
+  // FK lógica para PlanoLicenca (doc 02 §10) — a relation entra com o domínio plataforma no Bloco 1
+  planoId  String?
+  ativa    Boolean         @default(true)
+  criadaEm DateTime        @default(now())
+
+  unidades Unidade[]
+  vinculos VinculoUsuarioEmpresa[]
+  papeis   Papel[]
+  apiKeys  ApiKey[]
+  convites ConviteUsuario[]
+}
+
+model Unidade {
+  id                    String  @id @default(cuid())
+  empresaId             String
+  nome                  String
+  fusoHorario           String  @default("America/Sao_Paulo") // IANA
+  endereco              Json?
+  horariosFuncionamento Json? // por dia da semana
+  ativa                 Boolean @default(true)
+
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+
+  @@unique([empresaId, nome])
+  @@index([empresaId])
+}
+
+model Usuario {
+  id        String    @id @default(cuid())
+  email     String    @unique // ÚNICO GLOBAL — exceção explícita à convenção de tenancy (doc 02 §2)
+  senhaHash String // argon2id
+  nome      String
+  telefone  String?
+  deletedAt DateTime? // soft-delete (regra inviolável 9)
+
+  vinculos VinculoUsuarioEmpresa[]
+}
+
+model VinculoUsuarioEmpresa {
+  id                 String  @id @default(cuid())
+  empresaId          String
+  usuarioId          String
+  papelId            String
+  unidadesPermitidas Json    @default("[]") // lista de unidadeId — vazia = todas (decisão doc 02 §2)
+  ativo              Boolean @default(true)
+
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  papel   Papel   @relation(fields: [papelId], references: [id])
+
+  @@unique([empresaId, usuarioId]) // um papel por usuário por tenant; troca de papel é update auditado
+  @@index([empresaId])
+  @@index([usuarioId])
+}
+
+model Papel {
+  id        String  @id @default(cuid())
+  empresaId String
+  nome      String
+  sistema   Boolean @default(false) // criado no onboarding (doc 02 §12) — editável, recriável
+
+  empresa  Empresa                 @relation(fields: [empresaId], references: [id])
+  escopos  PapelEscopo[]
+  vinculos VinculoUsuarioEmpresa[]
+  convites ConviteUsuario[]
+
+  @@unique([empresaId, nome])
+  @@index([empresaId])
+}
+
+// Catálogo GLOBAL de plataforma (sem empresaId): o produto define os
+// escopos, o tenant compõe papéis (decisão doc 02 §2).
+model Escopo {
+  chave     String @id // ex.: "agenda:criar", "contratos:enviar"
+  modulo    String
+  descricao String
+
+  papeis PapelEscopo[]
+}
+
+model PapelEscopo {
+  id         String @id @default(cuid())
+  empresaId  String
+  papelId    String
+  escopoChave String
+
+  papel  Papel  @relation(fields: [papelId], references: [id])
+  escopo Escopo @relation(fields: [escopoChave], references: [chave])
+
+  @@unique([empresaId, papelId, escopoChave])
+  @@index([empresaId])
+}
+
+model ApiKey {
+  id           String    @id @default(cuid())
+  empresaId    String
+  nome         String
+  hashChave    String // sha-256 do segredo; chave emitida: ak_live_<id>_<segredo> (decisão doc 02 §2)
+  escopos      Json      @default("[]") // subconjunto dos escopos do tenant
+  rateLimitRpm Int // teto vem do PlanoLicenca; tenant só configura MENOR; estouro = HTTP 429 + Retry-After
+  ultimoUsoEm  DateTime?
+  expiraEm     DateTime?
+  ativa        Boolean   @default(true)
+
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+
+  @@index([empresaId])
+}
+
+model ConviteUsuario {
+  id                 String        @id @default(cuid())
+  empresaId          String
+  email              String
+  papelId            String
+  unidadesPermitidas Json          @default("[]")
+  tokenHash          String
+  status             StatusConvite @default(pendente)
+  expiraEm           DateTime
+
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+  papel   Papel   @relation(fields: [papelId], references: [id])
+
+  // Unicidade parcial (status pendente) vai em migration SQL manual — reenvio revoga o anterior (doc 02 §2)
+  @@index([empresaId, email])
+}

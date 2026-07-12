@@ -1,0 +1,12 @@
+import type { z } from "zod";
+import type {
+  sessaoPayloadSchema,
+  criarEmpresaSchema,
+  convidarUsuarioSchema,
+  verticalEmpresaSchema,
+} from "./schemas";
+
+export type SessaoPayload = z.infer<typeof sessaoPayloadSchema>;
+export type CriarEmpresaInput = z.infer<typeof criarEmpresaSchema>;
+export type ConvidarUsuarioInput = z.infer<typeof convidarUsuarioSchema>;
+export type VerticalEmpresa = z.infer<typeof verticalEmpresaSchema>;

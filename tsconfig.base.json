@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUncheckedIndexedAccess": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "baseUrl": ".",
+    "paths": {
+      "@atende/core": ["packages/core/src"],
+      "@atende/core/*": ["packages/core/src/*"],
+      "@atende/db": ["packages/db/src"],
+      "@atende/db/*": ["packages/db/src/*"],
+      "@atende/canais": ["packages/canais/src"],
+      "@atende/canais/*": ["packages/canais/src/*"]
+    }
+  }
+}
