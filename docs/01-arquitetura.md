@@ -153,7 +153,7 @@ Leitura do diagrama: **webhooks entram exclusivamente pelo domínio Cloudflare e
 | Contexto | Responsabilidade |
 |---|---|
 | `identidade` | Empresas (tenants), unidades, usuários, papéis/RBAC, escopos, sessão JWT, onboarding e aceite de DPA |
-| `agenda` | Serviços, profissionais, **salas/recursos físicos**, **bloqueios de horário** (por profissional, sala ou unidade), horários de funcionamento por unidade, agendamentos (com exclusion constraint anti-sobreposição cobrindo profissional e recurso), booking pública, sincronização Google Calendar |
+| `agenda` | Serviços, profissionais, **salas/recursos físicos** (com capacidade), **bloqueios de horário** (férias, almoço, manutenção — por profissional, sala ou unidade), horários de funcionamento por unidade, agendamentos (com **exclusion constraint anti-sobreposição por profissional e por sala**), booking pública, sincronização Google Calendar |
 | `clientes` | Cadastro de clientes finais dos tenants, `IdentidadeCanal` (resolução inbound → cliente), merge de identidades, histórico |
 | `atendimento` | Conversas omnichannel, conectores de canal, máquina de estados (árvore ⇄ IA → humano), `PropostaAcao` (propose-confirm), fila de atendimento, SSE |
 | `financeiro` | Cobranças (Pix/boleto/cartão via Asaas), baixa automática por webhook, régua de cobrança com escalonamento, split, assinaturas recorrentes (cartão/Pix Automático), provisionamentos a pagar/receber + fluxo de caixa com projeções (Fase 2), DRE por empresa/período + controle de impostos (Fase 3) |
