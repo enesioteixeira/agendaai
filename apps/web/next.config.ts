@@ -5,6 +5,8 @@ import type { NextConfig } from "next";
 // deploy for configurado — o app roda igual em node até lá.
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Packages do monorepo são TS crus (sem build) — o Next transpila em runtime.
+  transpilePackages: ["@atende/core", "@atende/db"],
 };
 
 export default nextConfig;

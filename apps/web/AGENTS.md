@@ -35,6 +35,8 @@ pnpm --filter @atende/web build
 ## Estado atual
 
 - [x] Skeleton App Router (layout + landing)
+- [x] Auth: `/cadastro` (onboarding cria empresa+admin), `/login`, cookie de sessão (`lib/sessao.ts` — wrapper de next/headers sobre o JWT puro do core), Server Actions em `modules/identidade/actions.ts`
+- [x] `(painel)/` protegido: layout checa sessão e redireciona; `/agenda` placeholder mostra tenant+escopos ativos
 - [ ] OpenNext/wrangler (deploy Cloudflare — fim do Bloco 0)
-- [ ] Auth JWT + `(painel)/` (Bloco 1: onboarding, RBAC, convites)
+- [ ] Seletor de empresa no login (quando houver usuário com 2+ vínculos); telas de RBAC/convites (config:usuarios)
 - [ ] `(publico)/[slug]/` booking (Bloco 2), `api/webhooks/{meta,asaas}` (Blocos 3/5), `api/v1/` (Fase 2)

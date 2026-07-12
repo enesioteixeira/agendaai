@@ -17,7 +17,11 @@ export function runWithTenant<T>(ctx: ContextoTenant, fn: () => Promise<T>): Pro
   if (!ctx.empresaId) {
     throw new Error("runWithTenant exige empresaId (regra inviolável 1)");
   }
-  return storage.run(ctx, fn);
+  // O `await fn()` DENTRO do run é essencial: a PrismaPromise é lazy — a query
+  // (e a extension de tenancy que lê este contexto) só dispara no `.then()`.
+  // Se retornássemos `storage.run(ctx, fn)` cru, o `.then()` ocorreria fora do
+  // contexto e o empresaId se perderia. Aguardar aqui prende a execução ao store.
+  return storage.run(ctx, async () => await fn());
 }
 
 export function contextoTenantAtual(): ContextoTenant {

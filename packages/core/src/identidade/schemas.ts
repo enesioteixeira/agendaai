@@ -37,3 +37,25 @@ export const convidarUsuarioSchema = z.object({
   papelId: z.string().min(1),
   unidadesPermitidas: z.array(z.string()).default([]),
 });
+
+// Cadastro que cria a empresa + o usuário administrador de uma vez (onboarding).
+export const cadastroInicialSchema = z.object({
+  // dados do dono
+  nome: z.string().min(2).max(120),
+  email: z.string().email(),
+  senha: z.string().min(8, "Senha deve ter ao menos 8 caracteres").max(200),
+  // dados da empresa
+  empresaNome: z.string().min(2).max(120),
+  empresaSlug: z
+    .string()
+    .regex(/^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])?$/, "Endereço inválido (minúsculas, números e hífen)"),
+  vertical: verticalEmpresaSchema,
+  // primeira unidade
+  unidadeNome: z.string().min(2).max(120).default("Matriz"),
+  fusoHorario: z.string().default("America/Sao_Paulo"),
+});
+
+export const loginSchema = z.object({
+  email: z.string().email(),
+  senha: z.string().min(1),
+});

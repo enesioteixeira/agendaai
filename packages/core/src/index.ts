@@ -1,2 +1,2 @@
-export * from "./identidade/schemas";
-export * from "./identidade/types";
+export * from "./identidade/index";
+export * as crypto from "./crypto/index";

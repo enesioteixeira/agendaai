@@ -38,11 +38,15 @@ pnpm --filter @atende/db test        # vitest (isolamento exige DATABASE_URL_TES
 pnpm --filter @atende/db typecheck
 ```
 
+## Armadilha crítica — AsyncLocalStorage + PrismaPromise lazy
+
+`runWithTenant` faz `await fn()` DENTRO do `storage.run` de propósito: a PrismaPromise é lazy (a query e a extension só disparam no `.then()`). Se o `.then()` acontecer fora do `run`, o `empresaId` se perde e a query vaza entre tenants. **Nunca** simplifique `runWithTenant` para `return storage.run(ctx, fn)` cru — o teste de isolamento pega, mas o custo é um vazamento de tenant. Fluxos pré-tenant (onboarding, login) usam `prismaSemTenant` e carimbam `empresaId` à mão.
+
 ## Estado atual
 
-- [x] Extension de tenancy (`client.ts`), `runWithTenant`, `unsafe.ts`, `resolver-slug.ts`
-- [x] Schema: domínio `identidade` (doc 02 §2)
-- [x] Teste de isolamento de tenant (roda com `DATABASE_URL_TEST`)
-- [ ] Migration inicial (exige Neon provisionado — `DATABASE_URL`)
+- [x] Extension de tenancy (`client.ts`), `runWithTenant` (com fix do AsyncLocalStorage), `unsafe.ts`, `resolver-slug.ts`
+- [x] Schema + **migration inicial aplicada no Neon**: domínio `identidade` (doc 02 §2)
+- [x] Serviços de identidade: `onboarding.ts` (cadastro transacional empresa+admin+papéis+escopos), `autenticacao.ts` (login + montar sessão com escopos)
+- [x] Teste de isolamento + E2E de identidade **passando contra o Neon real** (5/5)
 - [ ] Unique parcial de `ConviteUsuario` (migration SQL manual)
 - [ ] Domínios `agenda`/`clientes` (Bloco 2), `atendimento` (Blocos 3–4), `financeiro` (Bloco 5), LGPD (Bloco 6)

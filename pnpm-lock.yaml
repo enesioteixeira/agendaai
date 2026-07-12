@@ -84,6 +84,12 @@ importers:
 
   packages/core:
     dependencies:
+      hash-wasm:
+        specifier: ^4.12.0
+        version: 4.12.0
+      jose:
+        specifier: ^5.9.0
+        version: 5.10.0
       zod:
         specifier: ^3.25.0
         version: 3.25.76
@@ -97,6 +103,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@atende/core':
+        specifier: workspace:*
+        version: link:../core
       '@prisma/adapter-pg':
         specifier: ^6.11.0
         version: 6.19.3
@@ -826,9 +835,15 @@ packages:
     resolution: {integrity: sha512-L5bGsVkxJbJgdnwyuheIunkGatUF/zssUoxxjACCseZYAVbaqdh9Tsmmlkl8vYan09H7sbvKt4pS8GqKLBrEzA==}
     hasBin: true
 
+  hash-wasm@4.12.0:
+    resolution: {integrity: sha512-+/2B2rYLb48I/evdOIhP+K/DD2ca2fgBjp6O+GBEnCDk2e4rpeXIK8GvIyRPjTezgmWn9gmKwkQjjx6BtqDHVQ==}
+
   jiti@2.7.0:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
     hasBin: true
+
+  jose@5.10.0:
+    resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
 
   js-tokens@9.0.1:
     resolution: {integrity: sha512-mxa9E9ITFOt0ban3j6L5MpjwegGz6lBQmM1IJkWeBZGcMxto50+eWdjC/52xDbS2vy0k7vIMK0Fe2wfL9OQSpQ==}
@@ -1726,7 +1741,11 @@ snapshots:
       nypm: 0.6.8
       pathe: 2.0.3
 
+  hash-wasm@4.12.0: {}
+
   jiti@2.7.0: {}
+
+  jose@5.10.0: {}
 
   js-tokens@9.0.1: {}
 

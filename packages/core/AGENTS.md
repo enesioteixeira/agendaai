@@ -32,7 +32,12 @@ pnpm --filter @atende/core typecheck
 pnpm --filter @atende/core test
 ```
 
+## Nota de dependências
+
+`identidade/senha.ts` usa **hash-wasm** (argon2id em WebAssembly) em vez de bindings nativos, porque `apps/web` roda em Cloudflare Workers (sem binários nativos). `sessao.ts` usa `jose`. Ambos são CPU puro (sem I/O de rede/banco), então cabem no core.
+
 ## Estado atual
 
-- [x] `identidade/`: schemas de sessão JWT, criação de empresa, convite
-- [ ] `agenda/` (Bloco 2), `clientes/` (Bloco 2), `atendimento/` + `ia/` + `arvore/` (Blocos 3–4), `financeiro/` + `payment-provider/` (Bloco 5), `lgpd/` (Bloco 6), `crypto/` e `email/` (ports do ev-tracker — doc 08)
+- [x] `identidade/`: schemas (sessão, cadastro, login, convite), sessão JWT pura (assinar/verificar/guard de escopo), senha argon2id, catálogo de 24 escopos, papéis padrão por vertical (matriz doc 02 §13, testado)
+- [x] `crypto/`: AES-256-GCM hard-fail (port do ev-tracker, doc 08 — passthrough banido, testado)
+- [ ] `agenda/` (Bloco 2), `clientes/` (Bloco 2), `atendimento/` + `ia/` + `arvore/` (Blocos 3–4), `financeiro/` + `payment-provider/` (Bloco 5), `lgpd/` (Bloco 6), `email/` (port do ev-tracker — doc 08)
