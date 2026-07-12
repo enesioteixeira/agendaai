@@ -27,7 +27,7 @@ Status: **Fase 1 — planejamento**. Os documentos em `docs/` são a fonte de ve
 Estas regras valem para TODO código deste repositório. Nenhuma "otimização" ou refatoração pode violá-las.
 
 ### Tenancy
-1. **Toda query passa pelo Prisma Client com extension de tenant** (injeta `where { empresaId }` via AsyncLocalStorage). O client cru (`prismaSemTenant`, em `packages/db/src/unsafe.ts`) só pode ser usado em jobs de plataforma explicitamente auditados — uso fora disso é bug de segurança.
+1. **Toda query passa pelo Prisma Client com extension de tenant** (injeta `where { empresaId }` via AsyncLocalStorage). O client cru (`prismaSemTenant`, em `packages/db/src/unsafe.ts`) só pode ser usado **dentro de `packages/db`** (migração/seed e o resolver `slug → empresaId` da booking) e nos **jobs de plataforma auditados do worker** (`apps/worker/src/consumers/plataforma.ts`) — uso fora disso é bug de segurança (allowlist idêntica: doc 01 §5.2, doc 02 §15.2, doc 09 §3.2).
 2. Toda unicidade é **composta com o tenant**: `@@unique([empresaId, ...])`. Nunca `@unique` global em dado de tenant (exceção: `Usuario.email` e models de plataforma).
 3. A identidade do tenant vem **sempre da sessão JWT** (`empresaId`/`unidadeId`/`papelId`) — nunca de input do cliente, de parâmetro de URL sem validação, ou de saída de modelo de IA.
 

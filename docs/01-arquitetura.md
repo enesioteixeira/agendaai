@@ -177,7 +177,7 @@ Todas as tabelas de dados de tenant carregam `empresaId`, e toda unicidade é co
 ### 5.2 Enforcement em camadas
 
 1. **Prisma Client Extension (camada 1, desde o dia 1):** um `AsyncLocalStorage` carrega o contexto do tenant da requisição; a extension **injeta `where { empresaId }` em toda query e `empresaId` em toda escrita** automaticamente. É impossível esquecer o filtro porque ele não é escrito à mão.
-2. **Client cru confinado:** o Prisma sem extension (`prismaSemTenant`) existe **apenas em `packages/db/src/unsafe.ts`**, com regra de lint que proíbe importá-lo fora de jobs de plataforma explicitamente auditados. Uso fora disso é tratado como bug de segurança, não como estilo.
+2. **Client cru confinado:** o Prisma sem extension (`prismaSemTenant`) existe **apenas em `packages/db/src/unsafe.ts`**, com regra de lint que proíbe importá-lo fora da allowlist: interno a `packages/db` (migração/seed e o resolver `slug → empresaId` da booking) e os jobs de plataforma auditados do worker (`apps/worker/src/consumers/plataforma.ts`). Uso fora disso é tratado como bug de segurança, não como estilo (allowlist idêntica: doc 02 §15.2, doc 09 §3.2).
 3. **RLS Postgres (camada 2, Fase 2):** políticas Row-Level Security como defesa em profundidade — cada transação executa `SET LOCAL app.empresa_id = ...` e o banco recusa linhas de outro tenant **mesmo se a aplicação tiver um bug**. Fica para a Fase 2 porque exige disciplina de transação em todo acesso; a camada 1 já cobre o MVP com teste automatizado de isolamento (critério de pronto do MVP: 3 tenants beta sem vazamento).
 
 ### 5.3 Resolução de tenant

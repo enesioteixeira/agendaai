@@ -66,6 +66,7 @@ atende-ai/
 │   │       │   │   ├── contratos/
 │   │       │   │   ├── fiscal/
 │   │       │   │   ├── loja/
+│   │       │   │   ├── lgpd/            #   Painel LGPD self-service do tenant (doc 04, Bloco 6)
 │   │       │   │   └── configuracoes/   #   identidade: usuários, papéis, unidades, canais
 │   │       │   ├── (publico)/
 │   │       │   │   └── [slug]/      # Booking white-label {slug}.atende-ai.com.br — ÚNICA superfície host→tenant
@@ -83,7 +84,8 @@ atende-ai/
 │   │       │   ├── financeiro/
 │   │       │   ├── contratos/
 │   │       │   ├── fiscal/
-│   │       │   └── loja/
+│   │       │   ├── loja/
+│   │       │   └── lgpd/            #   UI do painel LGPD: consentimentos, solicitações, export, config
 │   │       └── lib/                 # Helpers DE BORDA apenas: sessao.ts (JWT com jose), kv.ts (cache edge)
 │   │
 │   └── worker/                      # Node sempre-ativo — VM Ampere A1 (OCI), Docker Compose (doc 01, 1.3)
@@ -101,6 +103,9 @@ atende-ai/
 │           │   ├── regua.ts         #   régua de cobrança com escalonamento
 │           │   ├── email.ts         #   cascata Brevo → Resend → SMTP do tenant
 │           │   ├── ia.ts            #   turnos de IA assíncronos (dual-provider, propose-confirm)
+│           │   ├── retencao-lgpd.ts #   cron pg-boss de retenção: itera tenants com os prazos de cada um
+│           │   ├── plataforma.ts    #   jobs de plataforma AUDITADOS (billing, uso mensal) — único consumer
+│           │   │                    #   autorizado a usar prismaSemTenant (seção 3.2)
 │           │   └── outbox.ts        #   eventos entre domínios (agenda/financeiro → atendimento reage aqui)
 │           └── sse/                 # Hub SSE do painel — a ÚNICA conexão de entrada que a VM aceita
 │
@@ -117,7 +122,9 @@ atende-ai/
 │   │       ├── client.ts            # prisma com Client Extension: injeta where/data { empresaId } lendo
 │   │       │                        #   o AsyncLocalStorage — o filtro não é escrito à mão (regra 1)
 │   │       ├── tenancy.ts           # runWithTenant(ctx, fn) — todo acesso a dado de tenant roda dentro dele
-│   │       └── unsafe.ts            # prismaSemTenant — lint-gated; SÓ jobs de plataforma auditados
+│   │       ├── resolver-slug.ts     # resolverEmpresaPorSlug(slug) — a ÚNICA consulta pré-tenant da booking,
+│   │       │                        #   interna ao package (usa prismaSemTenant sem exportá-lo)
+│   │       └── unsafe.ts            # prismaSemTenant — lint-gated; allowlist na seção 3.2
 │   │
 │   ├── core/                        # Domínio puro: contratos Zod + serviços SEM I/O — o coração testável
 │   │   ├── AGENTS.md
@@ -141,7 +148,9 @@ atende-ai/
 │   │       ├── contratos/           # Motor de assinatura: hash SHA-256, OTP, trilha de evidências, manifesto
 │   │       ├── fiscal/              # Organização do dado p/ NFS-e manual (MVP); driver Focus NFe (Fase 2)
 │   │       ├── loja/                # Catálogo, carrinho, pedidos (reusa payment-provider)
-│   │       ├── plataforma/          # Billing do SaaS, planos/limites, feature flags, jobs auditados
+│   │       ├── lgpd/                # Auditoria, consentimento insert-only, anonimização, export (regras 4-9)
+│   │       ├── plataforma/          # Regras de planos/limites e feature flags — PURO como o resto do core;
+│   │       │                        #   os jobs que acessam banco vivem em apps/worker/consumers/plataforma.ts
 │   │       ├── crypto/              # AES-256-GCM p/ segredos em repouso (regra 15) — herdado do ev-tracker
 │   │       └── email/               # Motor de cascata (drivers brevo, resend, smtp) — herdado do ev-tracker
 │   │
@@ -166,7 +175,8 @@ atende-ai/
 │       ├── tsconfig/                # Bases (base, next, node) estendidas por cada workspace
 │       └── eslint/                  # Config compartilhada + regra no-restricted-imports:
 │                                    #   import de packages/db/src/unsafe.ts é PROIBIDO fora de
-│                                    #   packages/db e de packages/core/src/plataforma (jobs auditados)
+│                                    #   packages/db (interno: migração/seed, resolver-slug.ts) e de
+│                                    #   apps/worker/src/consumers/plataforma.ts (jobs auditados)
 ```
 
 Duas escolhas da árvore merecem registro explícito:
@@ -221,7 +231,7 @@ flowchart TD
 | `apps/worker` importa `@atende/core`, `@atende/db` e `@atende/canais` | — |
 | `packages/canais` importa **apenas** `@atende/core` (tipos/schemas das mensagens canônicas). Nunca importa `web`, `worker` nem `db` | ESLint |
 | `packages/core` **não importa nada do repositório** (só libs). Serviços são puros: sem Prisma, sem fetch — quem orquestra I/O são os apps | ESLint |
-| `packages/db/src/unsafe.ts` (`prismaSemTenant`) só é importável **dentro de `packages/db`** e nos **jobs de plataforma auditados** (`core/plataforma`) | ESLint `no-restricted-imports` em `packages/config/eslint` — violação quebra o CI |
+| `packages/db/src/unsafe.ts` (`prismaSemTenant`) só é importável **dentro de `packages/db`** (migração/seed e `resolver-slug.ts` — a consulta pré-tenant da booking fica interna ao package) e em **`apps/worker/src/consumers/plataforma.ts`** (jobs de plataforma auditados: billing, uso mensal). `packages/core` permanece 100% puro — allowlist idêntica no CLAUDE.md regra 1, doc 01 §5.2 e doc 02 §15.2 | ESLint `no-restricted-imports` em `packages/config/eslint` — violação quebra o CI |
 | Nenhum package importa `apps/*`; UI de um módulo nunca importa UI de outro módulo | ESLint + revisão |
 | **Eventos entre domínios via outbox pg-boss**: `atendimento` e `financeiro` chamam `agenda`/`clientes` por função do core; **ninguém chama `atendimento` de volta** — publica evento e o consumer `outbox.ts` do atendimento reage (doc 01, seção 4) | Revisão + AGENTS.md de cada módulo |
 
@@ -494,7 +504,7 @@ Migration antes do deploy + disciplina expand/contract (seção 3.7) mantém com
 | `GITHUB_TOKEN` | deploy-worker | Nativo do Actions — push de imagem no GHCR (sem secret extra) |
 | `SENTRY_AUTH_TOKEN` | deploy-web / deploy-worker | Upload de source maps (opcional, recomendado) |
 
-O teste de isolamento **não usa secret nenhum** — Postgres efêmero do próprio runner. Segredos de runtime (chaves Meta, Asaas, IA, `JWT_SECRET`, chave AES) **não vivem no CI**: ficam nos secrets do Wrangler (web) e no `.env` da VM (worker), fora do escopo deste workflow.
+O teste de isolamento **não usa secret nenhum** — Postgres efêmero do próprio runner. Segredos de runtime (chaves Meta, Asaas, IA, `SESSION_SECRET`, chave AES) **não vivem no CI**: ficam nos secrets do Wrangler (web) e no `.env` da VM (worker), fora do escopo deste workflow.
 
 ---
 

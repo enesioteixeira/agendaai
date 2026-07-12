@@ -79,7 +79,7 @@ flowchart LR
 
 ### 2.4 Bloco 3 — Canais (2–3 semanas)
 
-**Escopo.** `packages/canais` com a interface `Conector` e o formato canônico (doc 05 §1); conector **WhatsApp oficial** (Meta Cloud API — extração de `whatsapp.ts` do ev-tracker: parse, retry, HMAC); conector **Baileys multi-tenant** — a refatoração de maior esforço do MVP: socket global do ev-tracker vira `Map<canalId, socket>` no worker, auth-state no Postgres, reconexão com backoff; **webhooks que só validam assinatura e enfileiram** (pg-boss), com dedup por `@@unique([canalId, idExterno])`; **painel de atendimento com SSE** servido pelo worker (fallback polling 5s); handoff humano básico (`fila_humano` → assumir → responder).
+**Escopo.** `packages/canais` com a interface `Conector` e o formato canônico (doc 05 §1); conector **WhatsApp oficial** (Meta Cloud API — extração de `whatsapp.ts` do ev-tracker: parse, retry, HMAC); conector **Baileys multi-tenant** — a refatoração de maior esforço do MVP: socket global do ev-tracker vira `Map<canalId, socket>` no worker, auth-state no Postgres, reconexão com backoff; **webhooks que só validam assinatura e enfileiram** (pg-boss), com dedup por `@@unique([empresaId, canalId, idExterno])` (unique canônico no doc 02); **painel de atendimento com SSE** servido pelo worker (fallback polling 5s); handoff humano básico (`fila_humano` → assumir → responder).
 
 **Dependências.** Bloco 1 (canais pertencem a tenants). A aprovação da app Meta (iniciada no Bloco 0) precisa chegar até aqui; se atrasar, o bloco inteiro roda em Baileys + sandbox Meta (seção 6).
 
@@ -93,7 +93,7 @@ flowchart LR
 
 ### 2.5 Bloco 4 — Motores (2–2,5 semanas)
 
-**Escopo.** Motor de **árvore de decisão por templates de vertical** (salão, clínica, advocacia — instanciados no onboarding, editáveis por formulário; **sem construtor visual no MVP**, decisão do doc 05 §3.4); motor de **IA com propose-confirm** (adaptação de `esteira/` do ev-tracker: Gemini 2.5 Flash default + Claude Haiku escalação, tools de agendar/remarcar/cancelar criando `PropostaAcao` PENDENTE com TTL 15 min, execução determinística auditada — regras invioláveis 10 e 11); **transições completas** árvore⇄IA→humano com resumo de handoff; **lembretes automáticos** via pg-boss em outbox transacional, enviados **exclusivamente pela API oficial** com template `utility` aprovado (regra inviolável 12).
+**Escopo.** Motor de **árvore de decisão por templates de vertical** (salão, clínica, advocacia — instanciados no onboarding, editáveis por formulário; **sem construtor visual no MVP**, decisão do doc 05 §3.4); motor de **IA com propose-confirm** (adaptação de `esteira/` do ev-tracker: Gemini 2.5 Flash default + Claude Haiku escalação, tools de agendar/remarcar/cancelar criando `PropostaAcao` PENDENTE com TTL 15 min, execução determinística auditada — regras invioláveis 10 e 11); **transições completas** árvore⇄IA→humano com resumo de handoff; **lembretes automáticos** via pg-boss em outbox transacional — por WhatsApp, **exclusivamente pela API oficial** com template `utility` aprovado (regra inviolável 12); por **e-mail** (cascata Brevo/Resend) quando o único canal do tenant é Baileys (doc 06 §4 — é o cenário base do Basic na precificação).
 
 **Dependências.** Blocos 2 (agenda: disponibilidade e escrita de agendamento) e 3 (canais: formato canônico, envio).
 
@@ -101,12 +101,12 @@ flowchart LR
 - Template de salão completa um agendamento inteiro por conversa (menu → serviço → profissional → horário → proposta → confirmação → agendamento no banco) sem humano, nos dois conectores — teste E2E gravado no CI com conector fake.
 - Proposta expirada (TTL 15 min) **nunca** executa; confirmação vinda de outra conversa/identidade **nunca** executa; só existe uma proposta PENDENTE por conversa (testes unitários das três regras do doc 05 §4.3).
 - Outbox: teste prova que agendamento gravado e job de lembrete nascem na mesma transação (rollback de um desfaz o outro).
-- Envio proativo por canal Baileys é **estruturalmente impossível** (a interface do conector não expõe o método — teste de tipo + teste de runtime); tenant só-Baileys vê no painel o aviso "lembretes exigem canal oficial".
+- Envio proativo por canal Baileys é **estruturalmente impossível** (a interface do conector não expõe o método — teste de tipo + teste de runtime); tenant só-Baileys recebe o lembrete por e-mail (teste E2E da cascata) e vê no painel o aviso "lembretes por WhatsApp exigem canal oficial; por e-mail permanecem disponíveis".
 - Duas falhas de compreensão consecutivas → `fila_humano` com resumo de IA + transcrição anexada (teste da máquina de estados).
 
 ### 2.6 Bloco 5 — Financeiro mínimo (1–1,5 semanas)
 
-**Escopo.** Camada `PaymentProvider` em `packages/core/financeiro` com driver Asaas; **subconta white-label por tenant** criada via API no onboarding financeiro; **cobrança Pix/boleto vinculada a agendamento** (gerada pelo painel ou pelo nó `cobrar`/tool de IA via propose-confirm); **webhook de baixa automática idempotente** (dedup por id de evento Asaas); recibo por WhatsApp (template utility, canal oficial) e e-mail.
+**Escopo.** Camada `PaymentProvider` em `packages/core/financeiro` com driver Asaas; **subconta white-label por tenant** criada via API no onboarding financeiro; **cobrança Pix/boleto vinculada a agendamento** (gerada pelo painel ou pelo nó `cobrar`/tool de IA via propose-confirm), entregue na conversa como **Pix copia-e-cola + QR Code** (`Cobranca.pixCopiaECola`, imagem on-demand — doc 02 §6) ou link de boleto; **webhook de baixa automática idempotente** (dedup por id de evento Asaas); recibo por WhatsApp (template utility, canal oficial) e e-mail.
 
 **Dependências.** Blocos 2 (agendamento) e 4 (propose-confirm para cobrança iniciada em conversa; eventos via outbox — `financeiro` nunca chama `atendimento` de volta, regra de dependência do doc 01 §4).
 
@@ -176,7 +176,7 @@ Tema: **autonomia do tenant e motores de receita**. Soma linear 13–17,5 semana
 
 ### 3.5 Bloco 11 — Cartão, recorrência e régua completa (2–2,5 semanas)
 
-**Escopo.** Cartão de crédito via Asaas no `PaymentProvider`; **assinaturas recorrentes** por cartão e **Pix Automático** (nativos do Asaas — o motivo da escolha do gateway, doc 03); **régua de cobrança completa** D-3/D0/D+3 com escalonamento (templates utility pela API oficial — regra 12); **negativação Serasa opcional** via Asaas, com opt-in explícito do tenant.
+**Escopo.** Cartão de crédito via Asaas no `PaymentProvider`; **assinaturas recorrentes** por cartão e **Pix Automático** (nativos do Asaas — o motivo da escolha do gateway, doc 03); **régua de cobrança completa** D-3/D0/D+3 com escalonamento (templates utility pela API oficial — regra 12; por e-mail quando o único canal do tenant é Baileys, doc 06 §4); **negativação Serasa opcional** via Asaas, com opt-in explícito do tenant.
 
 **Dependências.** Bloco 10 (contrato pode preceder cobrança recorrente no mesmo fluxo comercial).
 
@@ -192,19 +192,19 @@ Tema: **autonomia do tenant e motores de receita**. Soma linear 13–17,5 semana
 
 ### 3.7 Bloco 13 — API pública v1 + Google Calendar bidirecional (1,5–2 semanas)
 
-**Escopo.** **API pública `/api/v1`** com OpenAPI gerado dos schemas Zod de `packages/core`; **API keys por tenant com escopos**; **rate limit por plano** com resposta 429 + headers padrão; **GCal bidirecional** via watch channels (push da Google substitui o pull do MVP; renovação automática de canal).
+**Escopo.** **API pública `/api/v1`** com OpenAPI gerado dos schemas Zod de `packages/core`; **API keys por tenant com escopos**; **rate limit por plano** com resposta 429 + headers padrão; **GCal bidirecional** via watch channels (push da Google substitui o pull do MVP; renovação automática de canal) — incluindo o **sync outbound**: agendamento criado/remarcado/cancelado no atende-ai cria/atualiza/remove o evento correspondente no Google Calendar do profissional conectado.
 
 **Dependências.** Bloco 7 (RLS ativo antes de abrir API externa — deliberado).
 
-**Critério de pronto.** Spec OpenAPI validada no CI contra os handlers (drift quebra o build); key sem escopo recebe 403, key estourando o plano recebe 429 com `Retry-After` (testes); evento criado direto no GCal vira bloqueio no atende-ai em <1 min via watch channel; expiração de canal renova sozinha (teste com relógio).
+**Critério de pronto.** Spec OpenAPI validada no CI contra os handlers (drift quebra o build); key sem escopo recebe 403, key estourando o plano recebe 429 com `Retry-After` (testes); evento criado direto no GCal vira bloqueio no atende-ai em <1 min via watch channel; agendamento criado no painel aparece no GCal do profissional conectado em <1 min e cancelamento remove o evento (teste E2E do sync outbound); expiração de canal renova sozinha (teste com relógio).
 
 ### 3.8 Bloco 14 — NFS-e automática + relatórios operacionais (1–1,5 semanas)
 
-**Escopo.** **Focus NFe** como add-on com custo repassado (emissão automática de NFS-e pós-baixa de pagamento, padrão nacional LC 214/2025); relatórios operacionais por tenant: ocupação por profissional/sala, no-show, receita por serviço/unidade, motivos de handoff (fechando o ciclo do doc 05 §6).
+**Escopo.** **Focus NFe** — incluso no Premium (doc 06, P10); add-on com custo repassado nos demais planos (emissão automática de NFS-e pós-baixa de pagamento, padrão nacional LC 214/2025); relatórios operacionais por tenant: ocupação por profissional/sala, no-show, receita por serviço/unidade, motivos de handoff (fechando o ciclo do doc 05 §6).
 
 **Dependências.** Blocos 11–12 (baixa e dados financeiros).
 
-**Critério de pronto.** Pagamento baixado em tenant com add-on ativo emite NFS-e no sandbox Focus sem intervenção (E2E); tenant sem add-on segue no fluxo manual do MVP sem regressão; relatórios batem com queries de verificação independentes no CI (mesmo número por dois caminhos).
+**Critério de pronto.** Pagamento baixado em tenant Premium ou com add-on ativo emite NFS-e no sandbox Focus sem intervenção (E2E); tenant sem NFS-e automática segue no fluxo manual do MVP sem regressão; relatórios batem com queries de verificação independentes no CI (mesmo número por dois caminhos).
 
 ### 3.9 Gate de saída da Fase 2
 

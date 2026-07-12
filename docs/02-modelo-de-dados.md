@@ -229,6 +229,7 @@ erDiagram
         string observacoes
         datetime canceladoEm
         string motivoCancelamento
+        string eventoGcalId "opcional - id do evento espelho no GCal"
     }
     SincronizacaoGcal {
         string id PK
@@ -305,6 +306,8 @@ Pontos de projeto:
 
 **Decisão registrada — Google Calendar pull no MVP.** `SincronizacaoGcal` já carrega `canalWatchId`/`canalExpiraEm` para os watch channels da Fase 2, mas o MVP opera **pull** via cron pg-boss com `syncTokenGcal` incremental. Custo: eco de até alguns minutos entre Google e atende-ai; benefício: zero infraestrutura de renovação de canal no MVP. O schema não muda na Fase 2 — só o modo de operação.
 
+**Regra anti-eco do sync bidirecional (Fase 2, doc 04 Bloco 13).** `Agendamento.eventoGcalId` guarda o id do evento espelho criado no calendário do profissional pelo sync outbound (criar/remarcar/cancelar no atende-ai → criar/atualizar/remover no GCal). No pull e nos watch channels, eventos cujo id conste em `eventoGcalId` de algum agendamento são **ignorados** — sem isso, o evento criado pelo próprio atende-ai voltaria como bloqueio e ocuparia o horário duas vezes.
+
 ---
 
 ## 4. Domínio `clientes`
@@ -373,6 +376,7 @@ erDiagram
 |---|---|
 | `TipoIdentidade` | `whatsapp`, `instagram`, `messenger`, `telegram`, `email`, `webchat` |
 | `IdentidadeCanal` | **`@@unique([empresaId, tipo, valor])`** — a linha-mestra do inbound: um telefone pertence a exatamente um cliente **por tenant** (a mesma pessoa é dois registros em dois salões distintos — correto: cada tenant é controlador dos próprios dados) |
+| Mapeamento doc 05 §1.2 | O doc 05 nomeia o identificador pelo **tipo de valor** (`telefone`, `instagram_id`, `messenger_id`, `telegram_id`, `email`, `webchat_visitor`); este schema tipifica pelo **canal**. Tabela canônica: `telefone → whatsapp`, `instagram_id → instagram`, `messenger_id → messenger`, `telegram_id → telegram`, `email → email`, `webchat_visitor → webchat`. O merge automático casa pelo **valor** verificado (E.164/e-mail), independente do `tipo` — é o que permite fundir o cliente do Instagram que comprova o telefone com o registro WhatsApp |
 | `Cliente` | `@@unique([empresaId, cpf])` (quando informado) |
 | `Tag` | `@@unique([empresaId, nome])` |
 | `TagCliente` | `@@unique([empresaId, tagId, clienteId])` |
@@ -583,6 +587,7 @@ erDiagram
         datetime vencimento
         string idExterno "id da cobranca no Asaas"
         string urlPagamento
+        string pixCopiaECola "opcional - payload Pix copia-e-cola"
         string reguaId FK "opcional - regua aplicada"
         datetime pagaEm
     }
@@ -682,7 +687,9 @@ erDiagram
 | `ConfigFinanceira` | `@@unique([empresaId])` | 1 por empresa |
 | `EtapaReguaCobranca` | `@@unique([empresaId, reguaId, ordem])` | Régua padrão do onboarding: lembrete D-3, cobrança D0, cobrança D+3, escalonamento humano D+7 |
 
-**Decisão registrada — envio da régua só pela API oficial.** As etapas da régua são envio **proativo** — logo `canalEnvio` só aceita `whatsapp_oficial` (template Meta aprovado) ou `email`. Baileys não aparece nem como opção do enum de envio da régua: a restrição é estrutural, não configurável (regra inviolável 12). Tenant só-Baileys vê a régua desabilitada com aviso claro no painel.
+**Decisão registrada — envio da régua só pela API oficial.** As etapas da régua são envio **proativo** — logo `canalEnvio` só aceita `whatsapp_oficial` (template Meta aprovado) ou `email`. Baileys não aparece nem como opção do enum de envio da régua: a restrição é estrutural, não configurável (regra inviolável 12). Tenant só-Baileys vê as etapas de WhatsApp da régua desabilitadas com aviso claro no painel; a régua opera por e-mail (doc 06 §4).
+
+**Decisão registrada — Pix QR: copia-e-cola persistido, imagem on-demand.** O requisito pede Pix com QR Code. `Cobranca.pixCopiaECola` guarda o payload EMV retornado pelo Asaas na criação da cobrança — é o que se entrega em conversa (WhatsApp/Telegram: texto copiável) e no checkout. A **imagem** do QR não é persistida: é obtida on-demand via `PaymentProvider` (endpoint de QR do Asaas) ou renderizada no cliente a partir do copia-e-cola. Racional: a imagem é derivável do payload, e persistir binário por cobrança consumiria R2 sem valor durável.
 
 ---
 
@@ -766,6 +773,7 @@ erDiagram
     Cobranca |o--o{ NotaFiscal : lastreia
     Cliente |o--o{ NotaFiscal : toma
     Empresa ||--o| ConfigFiscal : configura
+    Empresa ||--o{ ApuracaoFiscal : apura
 
     Cobranca {
         string id PK "dominio financeiro"
@@ -799,6 +807,17 @@ erDiagram
         int aliquotaIssBp "basis points"
         string tokenFocusNfeCifrado "Fase 2"
     }
+    ApuracaoFiscal {
+        string id PK
+        string empresaId FK
+        string periodo "AAAA-MM"
+        string regimeTributario "enum RegimeTributario - vigente na apuracao"
+        int baseCalculoCentavos
+        int valorImpostoCentavos
+        json detalhamento "por tributo - ISS DAS etc"
+        int versao "reprocessar cria nova versao"
+        datetime apuradaEm
+    }
 ```
 
 | Item | Definição |
@@ -808,6 +827,9 @@ erDiagram
 | `RegimeTributario` | `mei`, `simples_nacional`, `lucro_presumido`, `lucro_real` |
 | `ConfigFiscal` | `@@unique([empresaId])` |
 | `NotaFiscal` | `@@unique([empresaId, numero])` (quando emitida) |
+| `ApuracaoFiscal` | `@@unique([empresaId, periodo, versao])` | 
+
+**`ApuracaoFiscal` (Fase 3, doc 04 Bloco 16) — insert-only.** A apuração mensal de impostos gera registro **imutável**: nunca update — reprocessar o período cria nova linha com `versao + 1`, preservando o histórico exigido pelo critério de pronto do Bloco 16 (a versão mais alta é a vigente; as anteriores são trilha de auditoria fiscal). O `detalhamento` Json abre por tributo, e o DRE por empresa/período lê deste model + `LancamentoCaixa` — o fechamento contábil nunca depende de recalcular o passado com regras de hoje.
 
 ---
 
@@ -1144,7 +1166,7 @@ Propriedades que o modelo de dados garante a essa camada: como **toda** tabela d
 
 ### 15.2 Client cru confinado — `prismaSemTenant`
 
-`packages/db/src/unsafe.ts` exporta o client sem extension, para exatamente três usos: jobs de plataforma (fechamento de `UsoMensal`, cron de expiração de propostas, cron de retenção LGPD multi-tenant), migração/seed e o resolver `slug → empresaId` da booking (que por definição roda antes de existir contexto). **Regra de lint** proíbe `import ... from ".../unsafe"` fora dos caminhos allowlistados; uso fora disso é tratado como bug de segurança em code review, não como estilo (regra inviolável 1). Todo consumidor allowlistado tem comentário-justificativa e auditoria via `AuditLog` quando muta dado.
+`packages/db/src/unsafe.ts` exporta o client sem extension, para exatamente três usos: jobs de plataforma (fechamento de `UsoMensal`, cron de expiração de propostas, e a listagem de tenants para crons multi-tenant como a retenção LGPD — o purge em si roda sob `runWithTenant` de cada tenant), migração/seed e o resolver `slug → empresaId` da booking (que por definição roda antes de existir contexto). Os pontos de import físico permitidos são dois: interno a `packages/db` (migração/seed e `resolver-slug.ts`) e `apps/worker/src/consumers/plataforma.ts` (doc 09 §3.2). **Regra de lint** proíbe `import ... from ".../unsafe"` fora dos caminhos allowlistados; uso fora disso é tratado como bug de segurança em code review, não como estilo (regra inviolável 1). Todo consumidor allowlistado tem comentário-justificativa e auditoria via `AuditLog` quando muta dado.
 
 ### 15.3 Camada 2 — RLS Postgres (Fase 2, defesa em profundidade)
 

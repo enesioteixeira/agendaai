@@ -18,11 +18,12 @@
 | Régua de cobrança | Sim (mesma regra de canal acima) | Sim | Sim |
 | Contratos + assinatura eletrônica própria | — | Sim | Sim |
 | Recorrência (assinaturas, Pix Automático) | — | Sim | Sim |
+| Provisionamentos + fluxo de caixa com projeções (Fase 2) | — | Sim | Sim |
 | API pública `/api/v1` | — | Sim | Sim |
 | Loja virtual na booking page | — | — | Sim |
 | NFS-e automática (Fase 2, Focus NFe incluso) | — | — | Sim |
 | White-label da booking page | — | — | Sim |
-| DRE por empresa/período | — | — | Sim |
+| DRE por empresa/período + controle de impostos (Fase 3) | — | — | Sim |
 | SLA prioritário de suporte | — | — | Sim |
 | SMTP próprio (e-mail sai do domínio do tenant) | — | — | Sim |
 | **Excedente de IA** | R$ 0,49/conversa | R$ 0,49/conversa | R$ 0,49/conversa |
@@ -31,7 +32,7 @@ Regras transversais dos planos:
 
 - **Excedente de IA (todos os planos):** R$ 0,49 por conversa adicional, **cobrado no ciclo seguinte**, com **teto configurável pelo tenant** (anti-surpresa na fatura). Default do teto: 50% da mensalidade do plano. Aviso automático a 80% da franquia e a 80% do teto; atingido o teto, o atendimento **não para** — a IA degrada para árvore de decisão + fila humana (corta-se o motor caro, nunca o atendimento). Unit economics na seção 3.4.
 - **Fair-use do Premium:** "ilimitado" cobre a operação normal de uma rede local (referência interna: até ~10 unidades / ~50 profissionais sem conversa comercial). Templates WhatsApp acima de 5.000/mês no ciclo são repassados ao custo (R$ 0,044/msg, seção 2). Fair-use existe para proteger a margem de abuso estrutural, não para punir crescimento — acima da referência, negocia-se plano enterprise caso a caso.
-- **Funcionalidades de fase futura** (canais Fase 2, NFS-e automática, loja, DRE) entram no plano correspondente **quando lançadas**, sem reprecificação — o preço já as contempla (é por isso que a margem do Premium é a mais apertada das três).
+- **Funcionalidades de fase futura** (canais Fase 2, provisionamentos/fluxo de caixa, NFS-e automática, loja, DRE, impostos) entram no plano correspondente **quando lançadas**, sem reprecificação — o preço já as contempla (é por isso que a margem do Premium é a mais apertada das três).
 
 ---
 
@@ -115,7 +116,7 @@ Provisão de proativo: **2.000 templates utility/mês** (~1.500 lembretes + ~500
 | Suporte SLA prioritário rateado | Provisão P8 | R$ 20,00 |
 | **Total custo variável** | 280 + 88 + 0 + 22 + 40 + 20 | **R$ 450,00** |
 
-**Margem bruta:** (749,00 − 450,00) / 749,00 = 299,00 / 749,00 = **39,92% → declarada 40%** (arredondamento para cima de 0,08 p.p., explicitado). É deliberadamente a margem mais apertada: o Premium carrega as promessas de fase futura (NFS-e, loja, DRE) já pagas no preço, e é o plano onde o split Asaas (seção 5) — que **não** está nesta conta — mais compensa.
+**Margem bruta:** (749,00 − 450,00) / 749,00 = 299,00 / 749,00 = **39,92% → declarada 40%** (arredondamento para cima de 0,08 p.p., explicitado). É deliberadamente a margem mais apertada: o Premium carrega as promessas de fase futura (NFS-e, loja, DRE, impostos) já pagas no preço, e é o plano onde o split Asaas (seção 5) — que **não** está nesta conta — mais compensa.
 
 ### 3.4 Unit economics do excedente de IA
 

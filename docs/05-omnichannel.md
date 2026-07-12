@@ -45,7 +45,7 @@ interface MensagemInboundNormalizada {
   tipo: 'texto' | 'imagem' | 'audio' | 'video' | 'documento' | 'localizacao' | 'interativo'; // 'interativo' = clique em botão/lista
   texto?: string;                    // corpo textual ou payload do botão clicado
   midia: MidiaInbound[];             // { url, mimeType, tamanhoBytes, nomeArquivo? } — já baixada para R2
-  idExterno: string;                 // id da mensagem no provedor (dedup por @@unique([canalId, idExterno]))
+  idExterno: string;                 // id da mensagem no provedor (dedup por @@unique([empresaId, canalId, idExterno]) — schema no doc 02)
   respostaA?: string;                // idExterno da mensagem citada (reply) — essencial p/ propose-confirm
   timestamp: Date;                   // do provedor, em UTC
 }
@@ -54,7 +54,7 @@ interface MensagemInboundNormalizada {
 Regras da borda:
 
 - **`empresaId` e `canalId` vêm da rota/registro do webhook**, jamais do corpo do payload — regra inviolável nº 3 do CLAUDE.md aplicada ao inbound.
-- **Dedup obrigatória** por `(canalId, idExterno)`: provedores reenviam webhooks; a segunda entrega é descartada silenciosamente.
+- **Dedup obrigatória** por `(empresaId, canalId, idExterno)` (unique canônico no doc 02): provedores reenviam webhooks; a segunda entrega é descartada silenciosamente.
 - Webhook em `apps/web` **só valida assinatura (HMAC/token) e enfileira** no pg-boss; a normalização e o processamento rodam no `apps/worker`. Timeout de webhook nunca derruba processamento.
 - Mídia é baixada e persistida no R2 no ato da normalização (URLs de provedores expiram — a da Meta em minutos).
 
