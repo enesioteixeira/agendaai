@@ -50,3 +50,8 @@ pnpm --filter @atende/db typecheck
 - [x] Unique parcial de `ConviteUsuario` (migration SQL manual `convite_unique_parcial`)
 - [x] Teste de isolamento + E2E de identidade e convites **passando contra o Neon real** (7/7)
 - [ ] Domínios `agenda`/`clientes` (Bloco 2), `atendimento` (Blocos 3–4), `financeiro` (Bloco 5), LGPD (Bloco 6)
+
+## Pendências conscientes (revisão adversarial do Bloco 1)
+
+- **Invalidação de JWT (7 dias)**: vínculo desativado/papel trocado só surte efeito no próximo login. Estratégia documentada (doc 02 §13: versão de vínculo força refresh) — implementar junto com o middleware de sessão do Bloco 2.
+- **Posse do e-mail em convite de conta NOVA**: sem módulo de e-mail, o link é entregue ao convidador — quem aceita define a senha. Conta EXISTENTE já exige a senha do dono (corrigido). A prova de posse do e-mail chega com o envio automático (Fase D).

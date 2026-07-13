@@ -21,6 +21,7 @@ const OPS_COM_WHERE = new Set<string>([
   "findUniqueOrThrow",
   "update",
   "updateMany",
+  "updateManyAndReturn",
   "delete",
   "deleteMany",
   "count",
@@ -30,6 +31,8 @@ const OPS_COM_WHERE = new Set<string>([
 ]);
 
 const OPS_COM_CREATE = new Set<string>(["create", "createMany", "createManyAndReturn"]);
+
+const OPS_UPDATE_COM_DATA = new Set<string>(["update", "updateMany", "updateManyAndReturn"]);
 
 type ArgsGenericos = {
   where?: Record<string, unknown>;
@@ -70,9 +73,17 @@ function injetarEmpresa(args: ArgsGenericos, operation: string, empresaId: strin
   }
   if (operation === "upsert") {
     if (resultado.create) resultado.create = carimbar(resultado.create);
-    // update do upsert não precisa de carimbo: o where já confinou a linha ao tenant
+    // o where do upsert já confinou a linha ao tenant, mas o UPDATE dele
+    // poderia SETAR empresaId e transferir a linha para outro tenant — bloquear
+    if (
+      resultado.update &&
+      "empresaId" in resultado.update &&
+      resultado.update["empresaId"] !== empresaId
+    ) {
+      throw new Error("Upsert tentando trocar empresaId de uma linha — regra inviolável 1");
+    }
   }
-  if ((operation === "update" || operation === "updateMany") && resultado.data && !Array.isArray(resultado.data)) {
+  if (OPS_UPDATE_COM_DATA.has(operation) && resultado.data && !Array.isArray(resultado.data)) {
     // impedir "transferência" de linha entre tenants via update de empresaId
     if ("empresaId" in resultado.data && resultado.data["empresaId"] !== empresaId) {
       throw new Error("Update tentando trocar empresaId de uma linha — regra inviolável 1");
@@ -89,6 +100,15 @@ export const prisma = prismaSemTenant.$extends({
       async $allOperations({ model, operation, args, query }) {
         if (MODELS_GLOBAIS.has(model)) {
           return query(args);
+        }
+        // FAIL-CLOSED: operação desconhecida NÃO passa sem filtro de tenant.
+        // Se o Prisma ganhar operação nova (como updateManyAndReturn ganhou),
+        // ela precisa ser classificada aqui antes de poder ser usada.
+        if (!OPS_COM_WHERE.has(operation) && !OPS_COM_CREATE.has(operation)) {
+          throw new Error(
+            `Operação "${operation}" em ${model} não é coberta pela extension de tenancy — ` +
+              "classifique-a em OPS_COM_WHERE/OPS_COM_CREATE (packages/db/src/client.ts) antes de usar (regra inviolável 1).",
+          );
         }
         const { empresaId } = contextoTenantAtual();
         return query(injetarEmpresa(args as ArgsGenericos, operation, empresaId) as typeof args);

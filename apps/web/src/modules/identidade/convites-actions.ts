@@ -53,27 +53,37 @@ export async function convidarAction(
 
 export interface EstadoAceite {
   erro?: string;
+  // valores devolvidos em erro p/ o form não resetar (React 19); senha NUNCA volta
+  valores?: { nome?: string };
 }
 
 export async function aceitarConviteAction(
   _prev: EstadoAceite,
   formData: FormData,
 ): Promise<EstadoAceite> {
+  const valores = { nome: String(formData.get("nome") ?? "") };
   const parsed = aceitarConviteSchema.safeParse({
     token: formData.get("token"),
     nome: formData.get("nome") || undefined,
     senha: formData.get("senha") || undefined,
   });
-  if (!parsed.success) return { erro: "Dados inválidos — confira nome e senha (mín. 8)." };
+  if (!parsed.success) return { erro: "Dados inválidos — confira nome e senha (mín. 8).", valores };
 
   const r = await aceitarConvite(parsed.data.token, {
     nome: parsed.data.nome,
     senha: parsed.data.senha,
   });
-  if (!r) return { erro: "Convite inválido, expirado ou já utilizado." };
+  if (!r.ok) {
+    const mensagens = {
+      invalido: "Convite inválido, expirado ou já utilizado.",
+      senha_incorreta: "Senha incorreta — use a senha da sua conta atende-ai existente.",
+      dados_incompletos: "Preencha todos os campos (senha com mín. 8 caracteres).",
+    } as const;
+    return { erro: mensagens[r.motivo], valores };
+  }
 
   const sessao = await montarSessao(r.usuarioId, r.empresaId);
-  if (!sessao) return { erro: "Vínculo criado, mas falhou ao iniciar sessão — use o login." };
+  if (!sessao) return { erro: "Vínculo criado, mas falhou ao iniciar sessão — use o login.", valores };
   await criarCookieSessao(sessao);
   redirect("/agenda");
 }

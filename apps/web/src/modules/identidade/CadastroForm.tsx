@@ -21,11 +21,11 @@ export function CadastroForm() {
         <legend style={lg}>Seus dados</legend>
         <label style={lb}>
           Nome
-          <input name="nome" required style={ip} autoComplete="name" />
+          <input name="nome" required style={ip} autoComplete="name" defaultValue={estado.valores?.nome} />
         </label>
         <label style={lb}>
           E-mail
-          <input name="email" type="email" required style={ip} autoComplete="email" />
+          <input name="email" type="email" required style={ip} autoComplete="email" defaultValue={estado.valores?.email} />
         </label>
         <label style={lb}>
           Senha (mín. 8 caracteres)
@@ -37,7 +37,7 @@ export function CadastroForm() {
         <legend style={lg}>Sua empresa</legend>
         <label style={lb}>
           Nome da empresa
-          <input name="empresaNome" required style={ip} />
+          <input name="empresaNome" required style={ip} defaultValue={estado.valores?.empresaNome} />
         </label>
         <label style={lb}>
           Endereço da página de agendamento
@@ -48,13 +48,14 @@ export function CadastroForm() {
               pattern="[a-z0-9\-]+"
               placeholder="minha-empresa"
               style={{ ...ip, flex: 1 }}
+              defaultValue={estado.valores?.empresaSlug}
             />
             <span style={{ color: "#888", fontSize: 13 }}>.atende-ai.com.br</span>
           </span>
         </label>
         <label style={lb}>
           Ramo
-          <select name="vertical" required style={ip} defaultValue="salao">
+          <select name="vertical" required style={ip} defaultValue={estado.valores?.vertical || "salao"}>
             {VERTICAIS.map((v) => (
               <option key={v.valor} value={v.valor}>{v.rotulo}</option>
             ))}

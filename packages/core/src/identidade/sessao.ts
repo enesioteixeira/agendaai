@@ -8,15 +8,18 @@ import { sessaoPayloadSchema } from "./schemas";
 import type { SessaoPayload } from "./types";
 
 // Chave avaliada em runtime (não no import) para não quebrar build.
-// Em produção, falha se SESSION_SECRET faltar — evita sessões forjáveis
-// com segredo de desenvolvimento (regra herdada do ev-tracker).
+// FAIL-CLOSED: o fallback de desenvolvimento só existe quando o ambiente se
+// declara explicitamente development/test — NODE_ENV ausente ou qualquer outro
+// valor lança. (Endurecido vs. ev-tracker, que só checava === "production":
+// deploy com NODE_ENV esquecido ganharia sessões forjáveis.)
 export function obterSessionSecret(): Uint8Array {
   const s = process.env.SESSION_SECRET;
   if (s) return new TextEncoder().encode(s);
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("SESSION_SECRET não configurado em produção.");
+  const env = process.env.NODE_ENV;
+  if (env === "development" || env === "test" || process.env.VITEST) {
+    return new TextEncoder().encode("fallback-dev-secret-trocar-em-prod");
   }
-  return new TextEncoder().encode("fallback-dev-secret-trocar-em-prod");
+  throw new Error("SESSION_SECRET não configurado — obrigatório fora de development/test.");
 }
 
 const DURACAO = "7d";

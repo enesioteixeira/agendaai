@@ -10,7 +10,7 @@ export function LoginForm() {
     <form action={action} style={{ display: "grid", gap: "0.85rem" }}>
       <label style={lb}>
         E-mail
-        <input name="email" type="email" required style={ip} autoComplete="email" />
+        <input name="email" type="email" required style={ip} autoComplete="email" defaultValue={estado.valores?.email} />
       </label>
       <label style={lb}>
         Senha

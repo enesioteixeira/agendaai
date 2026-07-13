@@ -18,6 +18,6 @@ export {
   listarEquipe,
   type ConviteCriado,
   type ConvitePublico,
-  type ResultadoAceite,
+  type AceiteResultado,
   type MembroEquipe,
 } from "./identidade/convites";
