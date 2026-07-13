@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "atende-ai-web",
+  "main": ".open-next/worker.js",
+  "account_id": "c158973636514615cb24b9ff908147b1",
+  // nodejs_compat: habilita node:async_hooks (AsyncLocalStorage da tenancy),
+  // node:crypto (AES/argon salt) e o driver pg sobre TCP. Data >= 2025-04-01
+  // melhora o preenchimento de process.env no runtime (secrets/vars).
+  "compatibility_date": "2025-04-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  // Cache incremental do OpenNext (ISR/data cache). KV reutiliza o namespace
+  // que também guardará config de tenant por slug (doc 09).
+  "kv_namespaces": [
+    { "binding": "CONFIG_KV", "id": "e1860ad085fe4e21ab85e1fa8c84530f" }
+  ],
+  "r2_buckets": [
+    { "binding": "MIDIA", "bucket_name": "atende-ai-midia" }
+  ]
+  // Secrets (DATABASE_URL, SESSION_SECRET, ENCRYPTION_KEY, APP_BASE_URL) NÃO
+  // ficam aqui — são injetados via `wrangler secret` / CI (nunca no repo).
+}

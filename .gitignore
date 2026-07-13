@@ -30,9 +30,10 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Cloudflare
+# Cloudflare / OpenNext
 .wrangler/
 .dev.vars
+.open-next/
 
 # Testes
 coverage/

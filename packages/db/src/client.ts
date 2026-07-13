@@ -93,29 +93,50 @@ function injetarEmpresa(args: ArgsGenericos, operation: string, empresaId: strin
   return resultado;
 }
 
-export const prisma = prismaSemTenant.$extends({
-  name: "tenancy",
-  query: {
-    $allModels: {
-      async $allOperations({ model, operation, args, query }) {
-        if (MODELS_GLOBAIS.has(model)) {
-          return query(args);
-        }
-        // FAIL-CLOSED: operação desconhecida NÃO passa sem filtro de tenant.
-        // Se o Prisma ganhar operação nova (como updateManyAndReturn ganhou),
-        // ela precisa ser classificada aqui antes de poder ser usada.
-        if (!OPS_COM_WHERE.has(operation) && !OPS_COM_CREATE.has(operation)) {
-          throw new Error(
-            `Operação "${operation}" em ${model} não é coberta pela extension de tenancy — ` +
-              "classifique-a em OPS_COM_WHERE/OPS_COM_CREATE (packages/db/src/client.ts) antes de usar (regra inviolável 1).",
-          );
-        }
-        const { empresaId } = contextoTenantAtual();
-        return query(injetarEmpresa(args as ArgsGenericos, operation, empresaId) as typeof args);
+function criarPrismaEstendido() {
+  return prismaSemTenant.$extends({
+    name: "tenancy",
+    query: {
+      $allModels: {
+        async $allOperations({ model, operation, args, query }) {
+          if (MODELS_GLOBAIS.has(model)) {
+            return query(args);
+          }
+          // FAIL-CLOSED: operação desconhecida NÃO passa sem filtro de tenant.
+          // Se o Prisma ganhar operação nova (como updateManyAndReturn ganhou),
+          // ela precisa ser classificada aqui antes de poder ser usada.
+          if (!OPS_COM_WHERE.has(operation) && !OPS_COM_CREATE.has(operation)) {
+            throw new Error(
+              `Operação "${operation}" em ${model} não é coberta pela extension de tenancy — ` +
+                "classifique-a em OPS_COM_WHERE/OPS_COM_CREATE (packages/db/src/client.ts) antes de usar (regra inviolável 1).",
+            );
+          }
+          const { empresaId } = contextoTenantAtual();
+          return query(injetarEmpresa(args as ArgsGenericos, operation, empresaId) as typeof args);
+        },
       },
     },
+  });
+}
+
+type PrismaEstendido = ReturnType<typeof criarPrismaEstendido>;
+
+let estendidoReal: PrismaEstendido | null = null;
+function obterEstendido(): PrismaEstendido {
+  if (!estendidoReal) estendidoReal = criarPrismaEstendido();
+  return estendidoReal;
+}
+
+// LAZY (mesmo motivo do prismaSemTenant): estender só na primeira query, para
+// que import/bundle não exija DATABASE_URL. A extension em si é barata; o custo
+// diferido é a conexão do client base.
+export const prisma: PrismaEstendido = new Proxy({} as PrismaEstendido, {
+  get(_alvo, prop, receiver) {
+    const c = obterEstendido();
+    const valor = Reflect.get(c as object, prop, receiver);
+    return typeof valor === "function" ? valor.bind(c) : valor;
   },
 });
 
-export type PrismaTenant = typeof prisma;
+export type PrismaTenant = PrismaEstendido;
 export { Prisma };
