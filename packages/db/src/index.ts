@@ -11,3 +11,13 @@ export {
   type ResultadoLogin,
   type VinculoDisponivel,
 } from "./identidade/autenticacao";
+export {
+  criarConvite,
+  consultarConvite,
+  aceitarConvite,
+  listarEquipe,
+  type ConviteCriado,
+  type ConvitePublico,
+  type ResultadoAceite,
+  type MembroEquipe,
+} from "./identidade/convites";

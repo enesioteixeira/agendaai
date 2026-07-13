@@ -37,6 +37,7 @@ pnpm --filter @atende/web build
 - [x] Skeleton App Router (layout + landing)
 - [x] Auth: `/cadastro` (onboarding cria empresa+admin), `/login`, cookie de sessão (`lib/sessao.ts` — wrapper de next/headers sobre o JWT puro do core), Server Actions em `modules/identidade/actions.ts`
 - [x] `(painel)/` protegido: layout checa sessão e redireciona; `/agenda` placeholder mostra tenant+escopos ativos
+- [x] Convites: `/configuracoes` (equipe + convites pendentes + gerar link, guard `config:usuarios`), `/convite/[token]` público (aceite cria conta/vínculo + sessão). Envio por e-mail pendente do módulo de e-mail (Fase D) — por ora o link é copiado manualmente
 - [ ] OpenNext/wrangler (deploy Cloudflare — fim do Bloco 0)
-- [ ] Seletor de empresa no login (quando houver usuário com 2+ vínculos); telas de RBAC/convites (config:usuarios)
+- [ ] Seletor de empresa no login (quando houver usuário com 2+ vínculos); edição de papéis/vínculos existentes
 - [ ] `(publico)/[slug]/` booking (Bloco 2), `api/webhooks/{meta,asaas}` (Blocos 3/5), `api/v1/` (Fase 2)

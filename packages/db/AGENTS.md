@@ -46,7 +46,7 @@ pnpm --filter @atende/db typecheck
 
 - [x] Extension de tenancy (`client.ts`), `runWithTenant` (com fix do AsyncLocalStorage), `unsafe.ts`, `resolver-slug.ts`
 - [x] Schema + **migration inicial aplicada no Neon**: domínio `identidade` (doc 02 §2)
-- [x] Serviços de identidade: `onboarding.ts` (cadastro transacional empresa+admin+papéis+escopos), `autenticacao.ts` (login + montar sessão com escopos)
-- [x] Teste de isolamento + E2E de identidade **passando contra o Neon real** (5/5)
-- [ ] Unique parcial de `ConviteUsuario` (migration SQL manual)
+- [x] Serviços de identidade: `onboarding.ts` (cadastro transacional empresa+admin+papéis+escopos), `autenticacao.ts` (login + montar sessão com escopos), `convites.ts` (token 32 bytes com SHA-256 no banco, aceite transacional idempotente, reenvio revoga anterior)
+- [x] Unique parcial de `ConviteUsuario` (migration SQL manual `convite_unique_parcial`)
+- [x] Teste de isolamento + E2E de identidade e convites **passando contra o Neon real** (7/7)
 - [ ] Domínios `agenda`/`clientes` (Bloco 2), `atendimento` (Blocos 3–4), `financeiro` (Bloco 5), LGPD (Bloco 6)

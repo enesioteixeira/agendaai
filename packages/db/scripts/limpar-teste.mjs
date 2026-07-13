@@ -21,6 +21,7 @@ if (ids.length === 0) {
   console.log("Nenhuma empresa de teste encontrada.");
 } else {
   // ordem de dependência (sem cascade no schema)
+  await prisma.conviteUsuario.deleteMany({ where: { empresaId: { in: ids } } });
   await prisma.papelEscopo.deleteMany({ where: { empresaId: { in: ids } } });
   await prisma.vinculoUsuarioEmpresa.deleteMany({ where: { empresaId: { in: ids } } });
   await prisma.papel.deleteMany({ where: { empresaId: { in: ids } } });

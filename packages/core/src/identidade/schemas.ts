@@ -59,3 +59,10 @@ export const loginSchema = z.object({
   email: z.string().email(),
   senha: z.string().min(1),
 });
+
+// Aceite de convite: nome+senha só quando o e-mail ainda não tem conta.
+export const aceitarConviteSchema = z.object({
+  token: z.string().min(32),
+  nome: z.string().min(2).max(120).optional(),
+  senha: z.string().min(8).max(200).optional(),
+});
