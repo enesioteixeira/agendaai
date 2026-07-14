@@ -19,10 +19,10 @@
   // que também guardará config de tenant por slug (doc 09).
   "kv_namespaces": [
     { "binding": "CONFIG_KV", "id": "e1860ad085fe4e21ab85e1fa8c84530f" }
-  ],
-  "r2_buckets": [
-    { "binding": "MIDIA", "bucket_name": "atende-ai-midia" }
   ]
+  // R2 (bucket atende-ai-midia) só é usado a partir do Bloco 3 (mídia). Binding
+  // reativado lá — mantê-lo aqui exigiria permissão R2 no token já no 1º deploy.
+  //
   // Secrets (DATABASE_URL, SESSION_SECRET, ENCRYPTION_KEY, APP_BASE_URL) NÃO
   // ficam aqui — são injetados via `wrangler secret` / CI (nunca no repo).
 }
