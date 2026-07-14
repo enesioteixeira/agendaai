@@ -5,8 +5,15 @@
 // centavos Int; timestamps UTC; soft-delete deletedAt em dados de titular.
 // prisma migrate SEMPRE — db push é banido (regra inviolável 13).
 
+// Receita OpenNext Cloudflare (howtos/db): generator LEGADO prisma-client-js +
+// driverAdapters, SEM `output` (o OpenNext precisa fazer o patch do client no
+// local padrão para trocar o engine nativo pela variante workerd/WASM). O
+// pareamento com `serverExternalPackages: ["@prisma/client", ".prisma/client"]`
+// no next.config é o que faz o Worker usar o entrypoint correto. Em Node
+// (testes/worker) o mesmo client usa o engine de biblioteca normalmente.
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {

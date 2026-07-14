@@ -6,8 +6,11 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Packages do monorepo são TS crus (sem build) — o Next transpila em runtime.
   transpilePackages: ["@atende/core", "@atende/db"],
-  // pg, Prisma e Baileys usam APIs de Node — externalizar do bundle do server.
-  serverExternalPackages: ["@prisma/client", "@prisma/adapter-pg", "pg"],
+  // Receita OpenNext Cloudflare (howtos/db): marcar o Prisma como externo faz o
+  // OpenNext fazer o patch do client para o entrypoint workerd/WASM em vez de o
+  // webpack tentar bundlar o engine nativo (que importa node:os) ou o WASM
+  // `?module` (que o webpack não parseia). pg também externo pelo mesmo motivo.
+  serverExternalPackages: ["@prisma/client", ".prisma/client", "@prisma/adapter-pg", "pg"],
 };
 
 // Expõe os bindings do Cloudflare (KV/R2/secrets) durante `next dev` local.

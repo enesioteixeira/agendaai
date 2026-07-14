@@ -18,6 +18,7 @@ build/
 # Prisma
 *.db
 *.db-journal
+packages/db/src/generated/
 
 # Logs e temporários
 *.log
