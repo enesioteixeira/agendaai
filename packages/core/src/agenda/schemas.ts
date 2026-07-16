@@ -82,6 +82,38 @@ export const horariosFuncionamentoSchema = z.object({
   intervalos: z.array(intervaloTrabalhoSchema).max(28),
 });
 
+// Novo agendamento pelo painel (B3). Cliente: um existente (clienteId) OU um
+// novo (nome obrigatório; telefone recomendado — vira o pivô do omnichannel).
+export const agendamentoCriarSchema = z
+  .object({
+    profissionalId: id,
+    servicoId: id,
+    data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
+    hora: horaHHmm,
+    clienteId: id.optional(),
+    clienteNome: z.string().min(2).max(120).optional(),
+    clienteTelefone: z
+      .string()
+      .regex(/^\+?\d{10,15}$/, "Telefone inválido (só dígitos, com DDD)")
+      .optional(),
+    observacoes: z.string().max(500).optional(),
+  })
+  .refine((a) => a.clienteId || a.clienteNome, {
+    message: "Escolha um cliente ou informe o nome de um novo.",
+  });
+
+export const clienteCriarSchema = z.object({
+  nome: z.string().min(2).max(120),
+  telefone: z
+    .string()
+    .regex(/^\+?\d{10,15}$/, "Telefone inválido (só dígitos, com DDD)")
+    .optional(),
+  email: z.string().email("E-mail inválido").optional(),
+  observacoes: z.string().max(500).optional(),
+});
+
+export type AgendamentoCriarInput = z.infer<typeof agendamentoCriarSchema>;
+export type ClienteCriarInput = z.infer<typeof clienteCriarSchema>;
 export type ServicoInput = z.infer<typeof servicoSchema>;
 export type ProfissionalInput = z.infer<typeof profissionalSchema>;
 export type RecursoInput = z.infer<typeof recursoSchema>;

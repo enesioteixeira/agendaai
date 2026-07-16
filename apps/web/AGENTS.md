@@ -40,7 +40,8 @@ pnpm --filter @atende/web build
 - [x] Convites: `/configuracoes` (equipe + convites pendentes + gerar link, guard `config:usuarios`), `/convite/[token]` público (aceite cria conta/vínculo + sessão). Envio por e-mail pendente do módulo de e-mail (Fase D) — por ora o link é copiado manualmente
 - [x] Deploy Cloudflare Workers via OpenNext (Workers Builds a cada push na main — `atende-ai-web.atende-ai.workers.dev`)
 - [x] **Bloco 2 — CRUD da agenda** (`/agenda/*` com abas): serviços (preço em reais no form → centavos na action), profissionais + grade semanal (replace-all), salas/recursos, bloqueios (alvo único validado no Zod), horário de funcionamento por unidade (Json). Actions em `modules/agenda/actions.ts` — padrão sessão → `agenda:configurar` → Zod → `runWithTenant` → `revalidatePath`
-- [ ] Grade visual da agenda (B3), `(publico)` booking por path `/agendar/[slug]` (B4 — sem domínio ainda), GCal pull via Cron Trigger (B5)
+- [x] **Bloco 2 — grade da agenda (B3)**: `/agenda` com visões dia (colunas por profissional) e semana (um profissional × 7 dias), slots de 30 min 07–21h no fuso da unidade; criação de agendamento pelo painel (cliente existente ou novo inline) com conflito arbitrado pelo banco (23P01 → mensagem de negócio) e revalidação transacional de bloqueio; concluir/cancelar na própria grade; `/clientes` mínimo (lista + cadastro). Conversão de parede⇄UTC SEMPRE via `paraUtc`/`horaNoFuso` de `@atende/core` — `new Date("YYYY-MM-DDTHH:mm")` cru no workerd interpreta como UTC e desloca -3h (bug corrigido no bloqueio)
+- [ ] Booking pública `(publico)` por path `/agendar/[slug]` (B4 — sem domínio ainda), GCal pull via Cron Trigger (B5)
 - [ ] Seletor de empresa no login (quando houver usuário com 2+ vínculos); edição de papéis/vínculos existentes
 - [ ] `api/webhooks/{meta,asaas}` (Blocos 3/5), `api/v1/` (Fase 2)
 

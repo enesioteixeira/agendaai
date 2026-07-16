@@ -34,6 +34,8 @@ export default async function RecursosPage() {
   );
   const podeConfigurar = temEscopo(sessao, "agenda:configurar");
   const opcoesUnidade = unidades.map((u) => ({ id: u.id, nome: u.nome }));
+  // Datas em UTC no banco; apresentação no fuso da unidade (regra 16)
+  const fuso = unidades[0]?.fusoHorario ?? "America/Sao_Paulo";
 
   const alvos = [
     ...profissionais.map((p) => ({ valor: `profissional:${p.id}`, rotulo: `Profissional — ${p.nome}` })),
@@ -123,9 +125,9 @@ export default async function RecursosPage() {
                 </td>
                 <td style={td}>{TIPO_BLOQUEIO[b.tipo] ?? b.tipo}</td>
                 <td style={td}>
-                  {b.inicio.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                  {b.inicio.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: fuso })}
                   {" → "}
-                  {b.fim.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                  {b.fim.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: fuso })}
                 </td>
                 <td style={td}>{b.motivo ?? "—"}</td>
                 {podeConfigurar && (
