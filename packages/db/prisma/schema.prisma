@@ -60,6 +60,16 @@ model Empresa {
   papeis   Papel[]
   apiKeys  ApiKey[]
   convites ConviteUsuario[]
+
+  // Bloco 2 — agenda + clientes
+  clientes          Cliente[]
+  profissionais     Profissional[]
+  servicos          Servico[]
+  recursos          Recurso[]
+  horariosTrabalho  HorarioTrabalho[]
+  bloqueios         Bloqueio[]
+  agendamentos      Agendamento[]
+  sincronizacoesGcal SincronizacaoGcal[]
 }
 
 model Unidade {
@@ -73,6 +83,13 @@ model Unidade {
 
   empresa Empresa @relation(fields: [empresaId], references: [id])
 
+  // Bloco 2 — agenda
+  profissionais    Profissional[]
+  recursos         Recurso[]
+  horariosTrabalho HorarioTrabalho[]
+  bloqueios        Bloqueio[]
+  agendamentos     Agendamento[]
+
   @@unique([empresaId, nome])
   @@index([empresaId])
 }
@@ -85,7 +102,8 @@ model Usuario {
   telefone  String?
   deletedAt DateTime? // soft-delete (regra inviolável 9)
 
-  vinculos VinculoUsuarioEmpresa[]
+  vinculos      VinculoUsuarioEmpresa[]
+  profissionais Profissional[] // opcional — nem todo profissional loga (doc 02 §3)
 }
 
 model VinculoUsuarioEmpresa {
@@ -174,4 +192,314 @@ model ConviteUsuario {
 
   // Unicidade parcial (status pendente) vai em migration SQL manual — reenvio revoga o anterior (doc 02 §2)
   @@index([empresaId, email])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Domínio clientes (doc 02 §4) — mínimo do Bloco 2: o Agendamento
+// referencia Cliente. IdentidadeCanal/Nota/Tag chegam no Bloco 3
+// (pivô do omnichannel).
+// ─────────────────────────────────────────────────────────────
+
+model Cliente {
+  id             String    @id @default(cuid())
+  empresaId      String
+  nome           String
+  telefone       String? // E.164
+  email          String?
+  cpf            String?
+  dataNascimento DateTime?
+  endereco       Json?
+  observacoes    String?
+  provisorio     Boolean   @default(false) // criado por inbound/booking sem cadastro completo
+  deletedAt      DateTime? // soft-delete LGPD (regra inviolável 9)
+
+  empresa      Empresa       @relation(fields: [empresaId], references: [id])
+  agendamentos Agendamento[]
+
+  // Postgres não iguala NULLs em unique — clientes sem CPF coexistem (doc 02 §4)
+  @@unique([empresaId, cpf])
+  // Índice de busca do painel (empresaId, nome) é PARCIAL (deletedAt IS NULL,
+  // doc 02 §14.1) — vive em migration SQL manual.
+  @@index([empresaId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Domínio agenda (doc 02 §3) — Bloco 2 do MVP
+// Regra de ouro: disponibilidade é calculada no banco; a escrita
+// concorrente é arbitrada pela EXCLUSION CONSTRAINT (§3.1, migration
+// SQL manual) — cache nunca é juiz de horário.
+// ─────────────────────────────────────────────────────────────
+
+enum StatusAgendamento {
+  agendado
+  confirmado
+  em_atendimento
+  concluido
+  cancelado
+  nao_compareceu
+}
+
+enum OrigemAgendamento {
+  painel
+  booking
+  ia
+  arvore
+}
+
+enum TipoRecurso {
+  sala
+  cadeira
+  equipamento
+}
+
+enum TipoBloqueio {
+  ferias
+  almoco
+  manutencao
+  outro
+}
+
+enum EstadoSyncGcal {
+  desconectado
+  ativo
+  erro_token
+  pausado
+}
+
+// Entidade própria, OPCIONALMENTE ligada a Usuario: o manicure que não
+// acessa o painel existe na agenda mesmo sem login (doc 02 §3).
+model Profissional {
+  id        String    @id @default(cuid())
+  empresaId String
+  unidadeId String
+  usuarioId String? // nem todo profissional loga
+  nome      String
+  cor       String? // cor na grade da agenda
+  ativo     Boolean   @default(true)
+  deletedAt DateTime? // soft-delete (dado de titular — regra inviolável 9)
+
+  empresa       Empresa            @relation(fields: [empresaId], references: [id])
+  unidade       Unidade            @relation(fields: [unidadeId], references: [id])
+  usuario       Usuario?           @relation(fields: [usuarioId], references: [id])
+  horarios      HorarioTrabalho[]
+  bloqueios     Bloqueio[]
+  agendamentos  Agendamento[]
+  sincronizacao SincronizacaoGcal?
+
+  @@index([empresaId, unidadeId])
+}
+
+model Servico {
+  id                String  @id @default(cuid())
+  empresaId         String
+  nome              String
+  duracaoMin        Int
+  precoCentavos     Int // centavos SEMPRE (regra inviolável 16)
+  exigeContrato     Boolean @default(false)
+  exigeSinal        Boolean @default(false)
+  percentualSinalBp Int? // basis points (10000 = 100%)
+  visivelNaBooking  Boolean @default(true)
+  ativo             Boolean @default(true)
+
+  empresa      Empresa       @relation(fields: [empresaId], references: [id])
+  agendamentos Agendamento[]
+
+  @@unique([empresaId, nome])
+}
+
+model Recurso {
+  id         String      @id @default(cuid())
+  empresaId  String
+  unidadeId  String
+  nome       String
+  tipo       TipoRecurso
+  capacidade Int         @default(1) // MVP trata como 1 na constraint (decisão doc 02 §3.1)
+  ativo      Boolean     @default(true)
+
+  empresa      Empresa       @relation(fields: [empresaId], references: [id])
+  unidade      Unidade       @relation(fields: [unidadeId], references: [id])
+  bloqueios    Bloqueio[]
+  agendamentos Agendamento[]
+
+  @@unique([empresaId, unidadeId, nome])
+}
+
+model HorarioTrabalho {
+  id             String @id @default(cuid())
+  empresaId      String
+  profissionalId String
+  unidadeId      String
+  diaSemana      Int // 0 (domingo) – 6 (sábado)
+  horaInicio     String // "HH:mm" no fuso da Unidade
+  horaFim        String
+
+  empresa      Empresa      @relation(fields: [empresaId], references: [id])
+  profissional Profissional @relation(fields: [profissionalId], references: [id])
+  unidade      Unidade      @relation(fields: [unidadeId], references: [id])
+
+  // Permite grade quebrada (manhã + tarde) — doc 02 §3
+  @@unique([empresaId, profissionalId, unidadeId, diaSemana, horaInicio])
+}
+
+// Exatamente UM alvo entre profissional/recurso/unidade — validado em código
+// (packages/core), não em constraint (doc 02 §3). Bloqueio filtra a LISTAGEM
+// de slots; a corrida residual é resolvida por revalidação transacional na
+// escrita do agendamento (doc 02 §3.1).
+model Bloqueio {
+  id             String       @id @default(cuid())
+  empresaId      String
+  tipo           TipoBloqueio
+  profissionalId String?
+  recursoId      String?
+  unidadeId      String?
+  inicio         DateTime     @db.Timestamptz(3)
+  fim            DateTime     @db.Timestamptz(3)
+  motivo         String?
+
+  empresa      Empresa       @relation(fields: [empresaId], references: [id])
+  profissional Profissional? @relation(fields: [profissionalId], references: [id])
+  recurso      Recurso?      @relation(fields: [recursoId], references: [id])
+  unidade      Unidade?      @relation(fields: [unidadeId], references: [id])
+
+  @@index([empresaId, inicio])
+}
+
+model Agendamento {
+  id                 String             @id @default(cuid())
+  empresaId          String
+  unidadeId          String
+  clienteId          String
+  profissionalId     String
+  servicoId          String
+  recursoId          String?
+  // Timestamptz: a exclusion constraint usa tstzrange(inicio, fim) (doc 02 §3.1)
+  inicio             DateTime           @db.Timestamptz(3)
+  fim                DateTime           @db.Timestamptz(3)
+  status             StatusAgendamento  @default(agendado)
+  origem             OrigemAgendamento
+  observacoes        String?
+  canceladoEm        DateTime?
+  motivoCancelamento String?
+  eventoGcalId       String? // evento espelho no GCal — regra anti-eco do sync (doc 02 §3.1)
+
+  empresa      Empresa      @relation(fields: [empresaId], references: [id])
+  unidade      Unidade      @relation(fields: [unidadeId], references: [id])
+  cliente      Cliente      @relation(fields: [clienteId], references: [id])
+  profissional Profissional @relation(fields: [profissionalId], references: [id])
+  servico      Servico      @relation(fields: [servicoId], references: [id])
+  recurso      Recurso?     @relation(fields: [recursoId], references: [id])
+
+  // Exclusion constraints anti-sobreposição (profissional e recurso) vivem em
+  // migration SQL manual — Prisma não expressa EXCLUDE (doc 02 §3.1).
+  // Índices quentes (doc 02 §14.1):
+  @@index([empresaId, unidadeId, inicio]) // grade do dia por unidade
+  @@index([empresaId, profissionalId, inicio]) // agenda do profissional / slots
+  @@index([empresaId, clienteId, inicio]) // histórico do cliente
+}
+
+model SincronizacaoGcal {
+  id             String         @id @default(cuid())
+  empresaId      String
+  profissionalId String         @unique // 1:1 com Profissional (cuid já é tenant-scoped)
+  tokensCifrados String // OAuth AES-256-GCM (regra inviolável 15)
+  estadoSync     EstadoSyncGcal @default(desconectado)
+  syncTokenGcal  String? // sync incremental do pull
+  canalWatchId   String? // watch channels — preparado p/ Fase 2
+  canalExpiraEm  DateTime?
+  ultimaSyncEm   DateTime?
+
+  empresa      Empresa      @relation(fields: [empresaId], references: [id])
+  profissional Profissional @relation(fields: [profissionalId], references: [id])
+
+  @@unique([empresaId, profissionalId]) // um Google Calendar por profissional
+}
+
+// ─────────────────────────────────────────────────────────────
+// Domínio LGPD (doc 02 §11) — trilha inviolável, devida desde o
+// Bloco 0 (doc 04 §2.1). SEM @relation de propósito (regra
+// inviolável 6): cascade delete não pode apagar trilha —
+// usuarioId/clienteId/empresaId são Strings puras.
+// ─────────────────────────────────────────────────────────────
+
+enum TipoSolicitacaoLGPD {
+  acesso
+  correcao
+  exclusao
+  portabilidade
+  revogacao_consentimento
+}
+
+enum StatusSolicitacaoLGPD {
+  aberta
+  em_andamento
+  concluida
+  recusada
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  empresaId  String
+  usuarioId  String? // String pura — SEM relation (regra inviolável 6)
+  acao       String
+  entidade   String
+  entidadeId String?
+  dadosAntes Json?
+  dadosDepois Json?
+  ip         String?
+  criadoEm   DateTime @default(now())
+
+  @@index([empresaId, criadoEm]) // painel LGPD e cron de retenção (doc 02 §14.1)
+}
+
+model AccessLog {
+  id        String   @id @default(cuid())
+  empresaId String
+  usuarioId String? // String pura — SEM relation
+  rota      String
+  metodo    String
+  ip        String?
+  userAgent String?
+  criadoEm  DateTime @default(now())
+
+  @@index([empresaId, criadoEm])
+}
+
+// INSERT-ONLY (regra inviolável 7): revogação é um NOVO registro com
+// concedido=false — nunca update/upsert.
+model ConsentimentoLGPD {
+  id          String   @id @default(cuid())
+  empresaId   String
+  clienteId   String? // String pura — SEM relation
+  tipo        String // finalidade do tratamento
+  concedido   Boolean
+  textoVersao String
+  origem      String // conversa | booking | painel
+  criadoEm    DateTime @default(now())
+
+  @@index([empresaId, clienteId])
+}
+
+model SolicitacaoLGPD {
+  id          String                @id @default(cuid())
+  empresaId   String
+  clienteId   String? // String pura — SEM relation
+  tipo        TipoSolicitacaoLGPD
+  status      StatusSolicitacaoLGPD @default(aberta)
+  protocolo   String
+  abertaEm    DateTime              @default(now())
+  concluidaEm DateTime?
+  respostaR2  String? // ponteiro do export gerado (R2)
+
+  @@unique([empresaId, protocolo])
+}
+
+model ConfigLgpd {
+  id                    String  @id @default(cuid())
+  empresaId             String  @unique // 1 por empresa (doc 02 §11)
+  // Defaults de partida — o tenant ajusta no painel LGPD (Bloco 6)
+  retencaoMensagensDias Int     @default(365)
+  retencaoLogsDias      Int     @default(365)
+  textoConsentimento    String?
+  dpoNome               String?
+  dpoEmail              String?
 }

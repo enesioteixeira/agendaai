@@ -21,6 +21,21 @@ if (ids.length === 0) {
   console.log("Nenhuma empresa de teste encontrada.");
 } else {
   // ordem de dependência (sem cascade no schema)
+  // Bloco 2 — agenda/clientes/LGPD (folhas primeiro)
+  await prisma.agendamento.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.sincronizacaoGcal.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.horarioTrabalho.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.bloqueio.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.profissional.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.servico.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.recurso.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.cliente.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.auditLog.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.accessLog.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.consentimentoLGPD.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.solicitacaoLGPD.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.configLgpd.deleteMany({ where: { empresaId: { in: ids } } });
+  // Bloco 1 — identidade
   await prisma.conviteUsuario.deleteMany({ where: { empresaId: { in: ids } } });
   await prisma.papelEscopo.deleteMany({ where: { empresaId: { in: ids } } });
   await prisma.vinculoUsuarioEmpresa.deleteMany({ where: { empresaId: { in: ids } } });

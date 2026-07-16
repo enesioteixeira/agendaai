@@ -49,7 +49,12 @@ pnpm --filter @atende/db typecheck
 - [x] Serviços de identidade: `onboarding.ts` (cadastro transacional empresa+admin+papéis+escopos), `autenticacao.ts` (login + montar sessão com escopos), `convites.ts` (token 32 bytes com SHA-256 no banco, aceite transacional idempotente, reenvio revoga anterior)
 - [x] Unique parcial de `ConviteUsuario` (migration SQL manual `convite_unique_parcial`)
 - [x] Teste de isolamento + E2E de identidade e convites **passando contra o Neon real** (7/7)
-- [ ] Domínios `agenda`/`clientes` (Bloco 2), `atendimento` (Blocos 3–4), `financeiro` (Bloco 5), LGPD (Bloco 6)
+- [x] **Bloco 2 (schema)**: domínio `agenda` completo (doc 02 §3), `Cliente` mínimo (§4) e os **5 models LGPD** (§11 — devidos desde o Bloco 0). Migration `agenda_clientes_lgpd` com SQL manual: `btree_gist` + 2 exclusion constraints anti-sobreposição (profissional e recurso, predicado por status) + índice parcial de busca de clientes. E2E `src/agenda/agenda.e2e.test.ts`: isolamento da cadeia, corrida de double-booking (23P01 do banco) e encaixe `[)` — passando contra o Neon real.
+- [ ] `IdentidadeCanal`/`NotaCliente`/`Tag` (Bloco 3), `atendimento` (Blocos 3–4), `financeiro` (Bloco 5), superfície LGPD self-service (Bloco 6)
+
+## Armadilha — `prisma migrate dev` desfaz o patch workerd
+
+O `generate` do package roda `prisma generate` **e** `scripts/patch-prisma-workerd.mjs` (reordena as condições de exports/imports do client gerado — sem isso o bundle do OpenNext pega o entry Node e quebra no Worker com `fs.readFileSync is not implemented`). O `prisma migrate dev` regenera o client por conta própria **sem o patch** — depois de qualquer migrate, rode `pnpm generate` (ou o script do patch) antes de `cf:build`. O build do Workers Builds sempre roda `pnpm -w db:generate`, então o deploy nunca sai sem o patch.
 
 ## Pendências conscientes (revisão adversarial do Bloco 1)
 
