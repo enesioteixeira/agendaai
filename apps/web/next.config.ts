@@ -6,11 +6,22 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Packages do monorepo são TS crus (sem build) — o Next transpila em runtime.
   transpilePackages: ["@atende/core", "@atende/db"],
-  // Receita OpenNext Cloudflare (howtos/db): marcar o Prisma como externo faz o
-  // OpenNext fazer o patch do client para o entrypoint workerd/WASM em vez de o
-  // webpack tentar bundlar o engine nativo (que importa node:os) ou o WASM
-  // `?module` (que o webpack não parseia). pg também externo pelo mesmo motivo.
+  // Receita OpenNext Cloudflare (howtos/db): Prisma externo ao webpack — quem
+  // resolve o entrypoint é o esbuild do OpenNext, com a condição "workerd"
+  // ativa, escolhendo a variante WASM do client (ver o patch de reordenação em
+  // packages/db/scripts/patch-prisma-workerd.mjs). pg externo pelo mesmo motivo.
   serverExternalPackages: ["@prisma/client", ".prisma/client", "@prisma/adapter-pg", "pg"],
+  // O file-tracing do Next roda com condições Node e só copia os arquivos do
+  // caminho Node do client — a variante workerd (wasm.js, loaders e o
+  // query_compiler_bg.wasm) ficaria de fora e o bundle do OpenNext quebraria
+  // com "Could not resolve". Inclui o diretório gerado inteiro (é pequeno).
+  outputFileTracingIncludes: {
+    "*": [
+      "../../node_modules/.prisma/client/**/*",
+      // Runtime da variante workerd (wasm.js requer wasm-compiler-edge).
+      "../../node_modules/@prisma/client/runtime/wasm-*",
+    ],
+  },
 };
 
 // Expõe os bindings do Cloudflare (KV/R2/secrets) durante `next dev` local.

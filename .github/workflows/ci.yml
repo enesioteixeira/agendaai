@@ -1,6 +1,11 @@
 # CI (doc 09 §6): install → typecheck → test (inclui isolamento de tenant
-# com Postgres efêmero do runner). Em push na main, após verde, faz o deploy
-# do painel (apps/web) no Cloudflare Workers via OpenNext.
+# com Postgres efêmero do runner).
+#
+# DEPLOY NÃO É AQUI: o painel (apps/web) é publicado pelo Cloudflare Workers
+# Builds (Git integration no dashboard), que builda e deploya a cada push na
+# main — independente do GitHub Actions (conta estava billing-locked em
+# 2026-07-16). Este workflow fica como portão de qualidade quando o Actions
+# voltar a rodar.
 
 name: ci
 
@@ -57,52 +62,3 @@ jobs:
       - name: Testes (inclui isolamento de tenant)
         run: pnpm test
 
-  deploy-web:
-    # Deploy do painel só em push na main e só depois de verde.
-    needs: verificar
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Instalar dependências
-        run: pnpm install --frozen-lockfile
-
-      - name: Gerar Prisma Client
-        run: pnpm db:generate
-
-      - name: Build OpenNext (Cloudflare)
-        working-directory: apps/web
-        run: pnpm cf:build
-
-      - name: Deploy no Cloudflare Workers
-        working-directory: apps/web
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm cf:deploy
-
-      - name: Injetar secrets de runtime no Worker
-        working-directory: apps/web
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
-        # Idempotente: aplica os segredos ao Worker recém-publicado (persistem
-        # entre deploys; rodar sempre garante que não haja drift). O Worker já
-        # existe após o passo anterior, então `secret put` funciona.
-        run: |
-          printf '%s' "$DATABASE_URL"   | pnpm exec wrangler secret put DATABASE_URL
-          printf '%s' "$SESSION_SECRET" | pnpm exec wrangler secret put SESSION_SECRET
-          printf '%s' "$ENCRYPTION_KEY" | pnpm exec wrangler secret put ENCRYPTION_KEY

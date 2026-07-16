@@ -8,7 +8,7 @@
     "./unsafe": "./src/unsafe.ts"
   },
   "scripts": {
-    "generate": "prisma generate",
+    "generate": "prisma generate && node scripts/patch-prisma-workerd.mjs",
     "migrate": "prisma migrate dev",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
