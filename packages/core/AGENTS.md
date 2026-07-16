@@ -34,7 +34,7 @@ pnpm --filter @atende/core test
 
 ## Nota de dependências
 
-`identidade/senha.ts` usa **hash-wasm** (argon2id em WebAssembly) em vez de bindings nativos, porque `apps/web` roda em Cloudflare Workers (sem binários nativos). `sessao.ts` usa `jose`. Ambos são CPU puro (sem I/O de rede/banco), então cabem no core.
+`identidade/senha.ts` usa **PBKDF2-SHA256 via WebCrypto** (`crypto.subtle`, nativo em Workers e Node). A 1ª versão usava argon2id via hash-wasm, mas o Workers proíbe `WebAssembly.compile()` dinâmico em produção e o plano gratuito tem teto de 10 ms de CPU — PBKDF2 nativo é a via documentada pela Cloudflare. Formato do hash é versionado (`$pbkdf2-sha256$i=...`): quando houver runtime sem teto, migra-se p/ argon2id com re-hash no login. `sessao.ts` usa `jose`. Ambos são CPU puro (sem I/O de rede/banco), então cabem no core.
 
 ## Estado atual
 
