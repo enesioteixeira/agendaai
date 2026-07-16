@@ -21,3 +21,10 @@ export {
   type AceiteResultado,
   type MembroEquipe,
 } from "./identidade/convites";
+export {
+  catalogoBooking,
+  slotsBooking,
+  criarAgendamentoBooking,
+  type CatalogoBooking,
+  type BookingCriada,
+} from "./agenda/booking";

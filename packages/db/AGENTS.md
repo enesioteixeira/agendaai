@@ -50,6 +50,7 @@ pnpm --filter @atende/db typecheck
 - [x] Unique parcial de `ConviteUsuario` (migration SQL manual `convite_unique_parcial`)
 - [x] Teste de isolamento + E2E de identidade e convites **passando contra o Neon real** (7/7)
 - [x] **Bloco 2 (schema)**: domínio `agenda` completo (doc 02 §3), `Cliente` mínimo (§4) e os **5 models LGPD** (§11 — devidos desde o Bloco 0). Migration `agenda_clientes_lgpd` com SQL manual: `btree_gist` + 2 exclusion constraints anti-sobreposição (profissional e recurso, predicado por status) + índice parcial de busca de clientes. E2E `src/agenda/agenda.e2e.test.ts`: isolamento da cadeia, corrida de double-booking (23P01 do banco) e encaixe `[)` — passando contra o Neon real.
+- [x] **B4 (booking)**: `src/agenda/booking.ts` — `catalogoBooking`/`slotsBooking`/`criarAgendamentoBooking`, todos partindo de `resolverEmpresaPorSlug` e rodando sob `runWithTenant`. E2E `booking.e2e.test.ts` (isolamento entre slugs, fluxo completo com dedup de cliente provisório, corrida 23P01) contra o Neon real.
 - [ ] `IdentidadeCanal`/`NotaCliente`/`Tag` (Bloco 3), `atendimento` (Blocos 3–4), `financeiro` (Bloco 5), superfície LGPD self-service (Bloco 6)
 
 ## Armadilha — `prisma migrate dev` desfaz o patch workerd
