@@ -6,7 +6,7 @@ Camada **anticorrupção de canal**: cada canal (WhatsApp oficial, Baileys, Tele
 
 ## Contratos
 
-`src/tipos.ts` (interface `Conector`, formatos canônicos, capacidades) e `src/degradacao.ts` (botões → lista numerada + parser tolerante). Os schemas Zod das mensagens canônicas viverão em `core/atendimento` (contrato web↔worker); `tipos.ts` deriva e reexporta.
+`src/tipos.ts` (interface `Conector`, capacidades) e `src/degradacao.ts` (botões → lista numerada + parser tolerante). Os schemas Zod das mensagens canônicas vivem em **`@atende/core/atendimento`** (contrato web↔worker: `mensagemInboundSchema`, `mensagemOutboundSchema`, `jobInboundSchema`, `jobEnviarSchema`) — `tipos.ts` deriva e reexporta os tipos (Bloco 3.2).
 
 ## Invariantes
 
