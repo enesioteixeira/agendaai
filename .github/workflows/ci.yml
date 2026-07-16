@@ -1,11 +1,15 @@
 # CI (doc 09 §6): install → typecheck → test (inclui isolamento de tenant
 # com Postgres efêmero do runner).
 #
-# DEPLOY NÃO É AQUI: o painel (apps/web) é publicado pelo Cloudflare Workers
-# Builds (Git integration no dashboard), que builda e deploya a cada push na
-# main — independente do GitHub Actions (conta estava billing-locked em
-# 2026-07-16). Este workflow fica como portão de qualidade quando o Actions
-# voltar a rodar.
+# WORKFLOW DESATIVADO (gh workflow disable, 2026-07-16): a conta GitHub está
+# billing-locked e o dono optou por NÃO usar o Actions. O portão de qualidade
+# roda no build command do Cloudflare Workers Builds (typecheck + testes antes
+# do cf:build — se falhar, não deploya). Os testes E2E de isolamento de tenant
+# rodam manualmente contra o Neon (DATABASE_URL_TEST) antes de mudanças de
+# schema/tenancy. Para reativar este workflow: `gh workflow enable ci`.
+#
+# DEPLOY NÃO É AQUI: o painel (apps/web) é publicado pelo Workers Builds
+# (Git integration no dashboard) a cada push na main.
 
 name: ci
 
