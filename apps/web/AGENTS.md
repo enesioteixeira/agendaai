@@ -38,6 +38,15 @@ pnpm --filter @atende/web build
 - [x] Auth: `/cadastro` (onboarding cria empresa+admin), `/login`, cookie de sessão (`lib/sessao.ts` — wrapper de next/headers sobre o JWT puro do core), Server Actions em `modules/identidade/actions.ts`
 - [x] `(painel)/` protegido: layout checa sessão e redireciona; `/agenda` placeholder mostra tenant+escopos ativos
 - [x] Convites: `/configuracoes` (equipe + convites pendentes + gerar link, guard `config:usuarios`), `/convite/[token]` público (aceite cria conta/vínculo + sessão). Envio por e-mail pendente do módulo de e-mail (Fase D) — por ora o link é copiado manualmente
-- [ ] OpenNext/wrangler (deploy Cloudflare — fim do Bloco 0)
+- [x] Deploy Cloudflare Workers via OpenNext (Workers Builds a cada push na main — `atende-ai-web.atende-ai.workers.dev`)
+- [x] **Bloco 2 — CRUD da agenda** (`/agenda/*` com abas): serviços (preço em reais no form → centavos na action), profissionais + grade semanal (replace-all), salas/recursos, bloqueios (alvo único validado no Zod), horário de funcionamento por unidade (Json). Actions em `modules/agenda/actions.ts` — padrão sessão → `agenda:configurar` → Zod → `runWithTenant` → `revalidatePath`
+- [ ] Grade visual da agenda (B3), `(publico)` booking por path `/agendar/[slug]` (B4 — sem domínio ainda), GCal pull via Cron Trigger (B5)
 - [ ] Seletor de empresa no login (quando houver usuário com 2+ vínculos); edição de papéis/vínculos existentes
-- [ ] `(publico)/[slug]/` booking (Bloco 2), `api/webhooks/{meta,asaas}` (Blocos 3/5), `api/v1/` (Fase 2)
+- [ ] `api/webhooks/{meta,asaas}` (Blocos 3/5), `api/v1/` (Fase 2)
+
+## Armadilha — Workers proíbe I/O entre requests
+
+O pool `pg` global não pode reusar socket criado em outra request ("Worker's
+code had hung..."). O fix vive em `packages/db/src/unsafe.ts`: `maxUses: 1`
+no PrismaPg quando `navigator.userAgent === "Cloudflare-Workers"` (receita
+OpenNext howtos/db). Em Node o pool reusa normalmente. Não "otimizar" isso.

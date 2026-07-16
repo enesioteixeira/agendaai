@@ -13,11 +13,21 @@
 // permite `next build`/bundling sem DATABASE_URL e é o padrão correto em
 // Cloudflare Workers (um client por isolate, criado sob demanda). O hard-fail
 // sem DATABASE_URL continua valendo — só que na primeira query, não no import.
+//
+// maxUses: 1 NO WORKERS (receita OpenNext howtos/db): o Workers PROÍBE reusar
+// um socket TCP criado em outra request ("Worker's code had hung and would
+// never generate a response" — foi exatamente o bug do CRUD do B2). Com
+// maxUses: 1 o pool descarta a conexão após cada uso e disca de novo dentro
+// da request corrente. Em Node (testes/CI/worker) o pool reusa normalmente.
 
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 let clientReal: PrismaClient | null = null;
+
+const emWorkers =
+  (globalThis as { navigator?: { userAgent?: string } }).navigator?.userAgent ===
+  "Cloudflare-Workers";
 
 function obterClientReal(): PrismaClient {
   if (clientReal) return clientReal;
@@ -25,7 +35,7 @@ function obterClientReal(): PrismaClient {
   if (!connectionString) {
     throw new Error("DATABASE_URL ausente — prismaSemTenant não conecta sem banco (hard-fail)");
   }
-  const adapter = new PrismaPg({ connectionString });
+  const adapter = new PrismaPg({ connectionString, ...(emWorkers ? { maxUses: 1 } : {}) });
   clientReal = new PrismaClient({ adapter });
   return clientReal;
 }
