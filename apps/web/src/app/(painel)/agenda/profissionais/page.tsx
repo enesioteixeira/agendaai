@@ -52,6 +52,8 @@ export default async function ProfissionaisPage({
         <h1 style={{ fontSize: 22, marginBottom: 4 }}>Profissionais</h1>
         <p style={{ color: "#666", margin: 0 }}>
           Quem atende — cada um com sua grade semanal de horários (a booking só oferece horários dentro da grade).
+          Com o Google Calendar conectado, compromissos pessoais bloqueiam a agenda automaticamente
+          (sincroniza a cada 10 minutos; só ocupado/livre é lido, nunca o conteúdo dos eventos).
         </p>
       </div>
 

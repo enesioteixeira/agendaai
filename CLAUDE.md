@@ -2,7 +2,7 @@
 
 SaaS **multi-tenant** de agendamento e gestão para negócios de horário marcado (salões, barbearias, clínicas, escritórios), com carro-chefe em **atendimento omnichannel** (WhatsApp primeiro) operado por dois motores combináveis: **árvore de decisão** determinística e **IA conversacional**, com handoff humano.
 
-Status: **Fase 1 concluída e verificada** (docs em `docs/` são a fonte de verdade das decisões) · **Bloco 0 do MVP em andamento** (fundações do monorepo: tenancy, schema identidade, CI). Antes de editar um módulo, leia o `AGENTS.md` dele.
+Status: **Fase 1 concluída** · **Blocos 0, 1 e 2 do MVP concluídos e em produção** (`atende-ai-web.atende-ai.workers.dev`, deploy automático via Cloudflare Workers Builds a cada push na `main`): tenancy fail-closed, identidade/RBAC/convites, agenda completa (CRUD, grade dia/semana, exclusion constraints, booking pública `/agendar/{slug}`, GCal pull via Cron Trigger). Divergências de implementação vs. desenho: `docs/11-adaptacoes-implementacao.md`. Próximo: Bloco 3 (canais). Antes de editar um módulo, leia o `AGENTS.md` dele.
 
 ## Mapa de documentação (ler antes de qualquer tarefa)
 
@@ -17,6 +17,8 @@ Status: **Fase 1 concluída e verificada** (docs em `docs/` são a fonte de verd
 | `docs/07-infra-free-tier.md` | Infra gratuita: limites, gatilhos de migração, custos |
 | `docs/08-reuso-ev-tracker.md` | Mapa de reuso do projeto ev-tracker (origem → destino) |
 | `docs/09-estrutura-monorepo.md` | Árvore do monorepo, convenções, template de AGENTS.md |
+| `docs/10-setup-contas.md` | Checklist de contas externas (Neon, Cloudflare, Google, Meta, Asaas...) |
+| `docs/11-adaptacoes-implementacao.md` | Onde a implementação divergiu do desenho, por quê e gatilho de reversão |
 
 ## Arquitetura em uma linha
 
