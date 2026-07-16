@@ -422,6 +422,16 @@ export async function clienteCriarAction(
   });
 }
 
+// ── Google Calendar (B5) ─────────────────────────────────────
+
+export async function gcalDesconectarAction(formData: FormData): Promise<void> {
+  const sessao = await exigirConfigurador();
+  const profissionalId = String(formData.get("profissionalId") ?? "");
+  const { desconectarGcal } = await import("@atende/db");
+  await desconectarGcal(sessao.empresaId, profissionalId);
+  revalidatePath("/agenda/profissionais");
+}
+
 // ── Horários de funcionamento da unidade ─────────────────────
 
 export async function horariosFuncionamentoSalvarAction(

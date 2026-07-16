@@ -355,6 +355,10 @@ model Bloqueio {
   inicio         DateTime     @db.Timestamptz(3)
   fim            DateTime     @db.Timestamptz(3)
   motivo         String?
+  // Cache do Google Calendar pull (doc 02 §3.1): bloqueios espelhando janelas
+  // ocupadas do GCal do profissional. O cron substitui TODOS os origemGcal do
+  // profissional a cada sync (replace-all idempotente) — nunca editar à mão.
+  origemGcal     Boolean      @default(false)
 
   empresa      Empresa       @relation(fields: [empresaId], references: [id])
   profissional Profissional? @relation(fields: [profissionalId], references: [id])

@@ -7,12 +7,26 @@ import { GradeHorariosForm } from "@/modules/agenda/GradeHorariosForm";
 import {
   profissionalAlternarAtivoAction,
   horariosTrabalhoSalvarAction,
+  gcalDesconectarAction,
 } from "@/modules/agenda/actions";
 import { tb, th, td, btSec, DIAS_SEMANA } from "@/modules/agenda/estilos";
 
-export default async function ProfissionaisPage() {
+const GCAL_AVISO: Record<string, string> = {
+  ok: "Google Calendar conectado — horários ocupados já bloqueiam a agenda.",
+  "erro-state": "A conexão expirou ou foi adulterada — tente conectar de novo.",
+  "erro-config": "Integração Google ainda não configurada no servidor.",
+  "erro-troca": "O Google recusou a autorização — tente de novo.",
+  "erro-sem-refresh": "O Google não devolveu a credencial — remova o acesso em myaccount.google.com/permissions e conecte de novo.",
+};
+
+export default async function ProfissionaisPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ gcal?: string }>;
+}) {
   const sessao = await lerSessao();
   if (!sessao) redirect("/login");
+  const { gcal } = await searchParams;
 
   const { profissionais, unidades } = await runWithTenant(
     { empresaId: sessao.empresaId, usuarioId: sessao.usuarioId },
@@ -20,7 +34,11 @@ export default async function ProfissionaisPage() {
       profissionais: await prisma.profissional.findMany({
         where: { deletedAt: null },
         orderBy: { nome: "asc" },
-        include: { horarios: { orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }] }, unidade: true },
+        include: {
+          horarios: { orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }] },
+          unidade: true,
+          sincronizacao: true,
+        },
       }),
       unidades: await prisma.unidade.findMany({ orderBy: { nome: "asc" } }),
     }),
@@ -37,6 +55,12 @@ export default async function ProfissionaisPage() {
         </p>
       </div>
 
+      {gcal && (
+        <p style={{ margin: 0, padding: "0.6rem 0.9rem", borderRadius: 8, fontSize: 14, background: gcal === "ok" ? "#e8f0e8" : "#fdecea", color: gcal === "ok" ? "#2c7a2c" : "#c0362c" }}>
+          {GCAL_AVISO[gcal] ?? "Falha ao conectar o Google Calendar."}
+        </p>
+      )}
+
       {podeConfigurar && (
         <section>
           <h2 style={{ fontSize: 16, marginBottom: 8 }}>Novo profissional</h2>
@@ -51,13 +75,14 @@ export default async function ProfissionaisPage() {
               <th style={th}>Profissional</th>
               <th style={th}>Unidade</th>
               <th style={th}>Grade semanal</th>
+              <th style={th}>Google Calendar</th>
               <th style={th}>Status</th>
               {podeConfigurar && <th style={th} />}
             </tr>
           </thead>
           <tbody>
             {profissionais.length === 0 && (
-              <tr><td style={td} colSpan={5}>Nenhum profissional ainda — cadastre o primeiro acima.</td></tr>
+              <tr><td style={td} colSpan={6}>Nenhum profissional ainda — cadastre o primeiro acima.</td></tr>
             )}
             {profissionais.map((p) => (
               <tr key={p.id} style={p.ativo ? undefined : { opacity: 0.5 }}>
@@ -70,6 +95,40 @@ export default async function ProfissionaisPage() {
                   {p.horarios.length === 0
                     ? "Sem grade definida"
                     : p.horarios.map((h) => `${DIAS_SEMANA[h.diaSemana]} ${h.horaInicio}–${h.horaFim}`).join(" · ")}
+                </td>
+                <td style={td}>
+                  {(() => {
+                    const s = p.sincronizacao;
+                    if (!s || s.estadoSync === "desconectado") {
+                      return podeConfigurar ? (
+                        <a href={`/api/gcal/conectar?profissionalId=${p.id}`} style={{ color: "#4f7cff", fontSize: 13 }}>Conectar</a>
+                      ) : (
+                        "—"
+                      );
+                    }
+                    if (s.estadoSync === "erro_token") {
+                      return (
+                        <span style={{ color: "#c0362c", fontSize: 13 }}>
+                          Acesso expirou{" "}
+                          {podeConfigurar && <a href={`/api/gcal/conectar?profissionalId=${p.id}`} style={{ color: "#4f7cff" }}>reconectar</a>}
+                        </span>
+                      );
+                    }
+                    return (
+                      <span style={{ fontSize: 13 }}>
+                        ✓ Conectado
+                        {s.ultimaSyncEm && ` · sync ${s.ultimaSyncEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
+                        {podeConfigurar && (
+                          <form action={gcalDesconectarAction} style={{ display: "inline", marginLeft: 6 }}>
+                            <input type="hidden" name="profissionalId" value={p.id} />
+                            <button type="submit" style={{ background: "none", border: "none", color: "#c0362c", cursor: "pointer", fontSize: 12, padding: 0 }}>
+                              desconectar
+                            </button>
+                          </form>
+                        )}
+                      </span>
+                    );
+                  })()}
                 </td>
                 <td style={td}>{p.ativo ? "Ativo" : "Inativo"}</td>
                 {podeConfigurar && (

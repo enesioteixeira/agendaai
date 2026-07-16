@@ -28,3 +28,10 @@ export {
   type CatalogoBooking,
   type BookingCriada,
 } from "./agenda/booking";
+export {
+  salvarConexaoGcal,
+  desconectarGcal,
+  aplicarJanelasGcal,
+  executarSyncGcal,
+  type ResultadoSyncGcal,
+} from "./agenda/gcal-sync";

@@ -1,7 +1,13 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "atende-ai-web",
-  "main": ".open-next/worker.js",
+  // Entry customizado: embrulha .open-next/worker.js e adiciona `scheduled`
+  // (GCal pull). O cf:build continua gerando o worker do OpenNext normalmente.
+  "main": "worker.ts",
+  // Cron do GCal pull — a cada 10 min (critério doc 04 §2.3: eco ≤ 15 min)
+  "triggers": { "crons": ["*/10 * * * *"] },
+  // URL pública do app (redirect_uri do OAuth Google). Não é segredo.
+  "vars": { "APP_BASE_URL": "https://atende-ai-web.atende-ai.workers.dev" },
   "account_id": "c158973636514615cb24b9ff908147b1",
   // nodejs_compat: habilita node:async_hooks (AsyncLocalStorage da tenancy),
   // node:crypto (AES/argon salt) e o driver pg sobre TCP. Data >= 2025-04-01
