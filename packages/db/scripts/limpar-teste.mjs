@@ -10,9 +10,18 @@ if (!url) throw new Error("DATABASE_URL não encontrada no .env");
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
 
-// Empresas de teste: slug com "-teste-" ou "emp-a-"/"emp-b-"
+// Empresas de teste: slug com "-teste-", "emp-a-"/"emp-b-" (E2E identidade)
+// ou "iso-a-"/"iso-b-" (isolamento.test.ts)
 const empresas = await prisma.empresa.findMany({
-  where: { OR: [{ slug: { contains: "-teste-" } }, { slug: { startsWith: "emp-a-" } }, { slug: { startsWith: "emp-b-" } }] },
+  where: {
+    OR: [
+      { slug: { contains: "-teste-" } },
+      { slug: { startsWith: "emp-a-" } },
+      { slug: { startsWith: "emp-b-" } },
+      { slug: { startsWith: "iso-a-" } },
+      { slug: { startsWith: "iso-b-" } },
+    ],
+  },
   select: { id: true, slug: true },
 });
 const ids = empresas.map((e) => e.id);
