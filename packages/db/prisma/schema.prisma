@@ -70,6 +70,16 @@ model Empresa {
   bloqueios         Bloqueio[]
   agendamentos      Agendamento[]
   sincronizacoesGcal SincronizacaoGcal[]
+
+  // Bloco 3 — atendimento + clientes completo
+  identidadesCanal IdentidadeCanal[]
+  notasCliente     NotaCliente[]
+  tags             Tag[]
+  tagsCliente      TagCliente[]
+  canais           Canal[]
+  conversas        Conversa[]
+  mensagens        Mensagem[]
+  authStatesBaileys AuthStateBaileys[]
 }
 
 model Unidade {
@@ -90,6 +100,9 @@ model Unidade {
   bloqueios        Bloqueio[]
   agendamentos     Agendamento[]
 
+  // Bloco 3 — canais ancorados na unidade (opcional)
+  canais Canal[]
+
   @@unique([empresaId, nome])
   @@index([empresaId])
 }
@@ -104,6 +117,11 @@ model Usuario {
 
   vinculos      VinculoUsuarioEmpresa[]
   profissionais Profissional[] // opcional — nem todo profissional loga (doc 02 §3)
+
+  // Bloco 3 — atendimento
+  notasAutoradas      NotaCliente[]
+  conversasAtendidas  Conversa[]
+  mensagensAutoradas  Mensagem[]
 }
 
 model VinculoUsuarioEmpresa {
@@ -215,6 +233,12 @@ model Cliente {
 
   empresa      Empresa       @relation(fields: [empresaId], references: [id])
   agendamentos Agendamento[]
+
+  // Bloco 3 — omnichannel
+  identidades IdentidadeCanal[]
+  notas       NotaCliente[]
+  tags        TagCliente[]
+  conversas   Conversa[]
 
   // Postgres não iguala NULLs em unique — clientes sem CPF coexistem (doc 02 §4)
   @@unique([empresaId, cpf])
@@ -416,6 +440,245 @@ model SincronizacaoGcal {
   profissional Profissional @relation(fields: [profissionalId], references: [id])
 
   @@unique([empresaId, profissionalId]) // um Google Calendar por profissional
+}
+
+// ─────────────────────────────────────────────────────────────
+// Domínio clientes — complemento do Bloco 3 (doc 02 §4).
+// IdentidadeCanal é o pivô do omnichannel: todo inbound resolve
+// (empresaId, tipo, valor) → Cliente; sem cadastro, nasce provisório.
+// Merge automático SÓ por identificador verificado (decisão §4).
+// ─────────────────────────────────────────────────────────────
+
+enum TipoIdentidade {
+  whatsapp
+  instagram
+  messenger
+  telegram
+  email
+  webchat
+}
+
+model IdentidadeCanal {
+  id           String         @id @default(cuid())
+  empresaId    String
+  clienteId    String
+  tipo         TipoIdentidade
+  valor        String // E.164 p/ telefone; id opaco nos demais
+  verificada   Boolean        @default(false) // posse comprovada por OTP
+  verificadaEm DateTime?
+  deletedAt    DateTime?
+
+  empresa   Empresa    @relation(fields: [empresaId], references: [id])
+  cliente   Cliente    @relation(fields: [clienteId], references: [id])
+  conversas Conversa[]
+
+  // A linha-mestra do inbound: um telefone pertence a UM cliente por tenant
+  @@unique([empresaId, tipo, valor])
+  @@index([empresaId, clienteId])
+}
+
+model NotaCliente {
+  id             String    @id @default(cuid())
+  empresaId      String
+  clienteId      String
+  autorUsuarioId String?
+  texto          String
+  criadoEm       DateTime  @default(now())
+  deletedAt      DateTime?
+
+  empresa Empresa  @relation(fields: [empresaId], references: [id])
+  cliente Cliente  @relation(fields: [clienteId], references: [id])
+  autor   Usuario? @relation(fields: [autorUsuarioId], references: [id])
+
+  @@index([empresaId, clienteId])
+}
+
+model Tag {
+  id        String @id @default(cuid())
+  empresaId String
+  nome      String
+  cor       String?
+
+  empresa Empresa      @relation(fields: [empresaId], references: [id])
+  usos    TagCliente[]
+
+  @@unique([empresaId, nome])
+}
+
+model TagCliente {
+  id        String @id @default(cuid())
+  empresaId String
+  tagId     String
+  clienteId String
+
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+  tag     Tag     @relation(fields: [tagId], references: [id])
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+
+  @@unique([empresaId, tagId, clienteId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Domínio atendimento — Bloco 3 (doc 02 §5, spec doc 05).
+// Materializados aqui: Canal, Conversa, Mensagem, AuthStateBaileys.
+// Os models de motor/IA (PropostaAcao, FluxoArvore, VersaoFluxo,
+// ResumoConversa, FeedbackIA) entram no Bloco 4 — Conversa já carrega
+// fluxoVersaoId/noAtualId como Strings puras até lá.
+// ─────────────────────────────────────────────────────────────
+
+enum TipoCanal {
+  whatsapp_oficial
+  whatsapp_baileys
+  telegram
+  webchat
+  instagram
+  messenger
+  email
+}
+
+enum StatusConexaoCanal {
+  desconectado
+  pareando
+  conectado
+  erro
+}
+
+enum EstadoConversa {
+  bot_arvore
+  bot_ia
+  fila_humano
+  humano
+  encerrada
+}
+
+enum DirecaoMensagem {
+  entrada
+  saida
+}
+
+enum TipoMensagem {
+  texto
+  imagem
+  audio
+  video
+  documento
+  localizacao
+  interativo
+}
+
+enum OrigemMensagem {
+  cliente
+  arvore
+  ia
+  humano
+  sistema
+}
+
+enum StatusEntrega {
+  pendente
+  enviada
+  entregue
+  lida
+  falhou
+}
+
+model Canal {
+  id            String             @id @default(cuid())
+  empresaId     String
+  unidadeId     String?
+  tipo          TipoCanal
+  nome          String // ex.: "WhatsApp Recepção"
+  configCifrada String? // tokens/segredos AES-256-GCM (regra 15)
+  statusConexao StatusConexaoCanal @default(desconectado)
+  fluxoPadraoId String? // FK lógica — FluxoArvore chega no Bloco 4
+  ativo         Boolean            @default(true)
+  criadoEm      DateTime           @default(now())
+
+  empresa    Empresa            @relation(fields: [empresaId], references: [id])
+  unidade    Unidade?           @relation(fields: [unidadeId], references: [id])
+  conversas  Conversa[]
+  mensagens  Mensagem[]
+  authStates AuthStateBaileys[]
+
+  @@unique([empresaId, nome])
+  @@index([empresaId])
+}
+
+model Conversa {
+  id                 String         @id @default(cuid())
+  empresaId          String
+  canalId            String
+  clienteId          String
+  identidadeCanalId  String
+  estado             EstadoConversa
+  atendenteUsuarioId String? // dono atual quando estado=humano
+  fluxoVersaoId      String? // FK lógica — versão congelada (Bloco 4)
+  noAtualId          String? // posição na árvore (Bloco 4)
+  variaveis          Json? // coletadas pela árvore (Bloco 4)
+  contextoJson       Json? // resumo vivo p/ a IA (Bloco 4)
+  criadoEm           DateTime       @default(now())
+  atualizadoEm       DateTime       @updatedAt
+  encerradaEm        DateTime?
+  deletedAt          DateTime?
+
+  empresa    Empresa         @relation(fields: [empresaId], references: [id])
+  canal      Canal           @relation(fields: [canalId], references: [id])
+  cliente    Cliente         @relation(fields: [clienteId], references: [id])
+  identidade IdentidadeCanal @relation(fields: [identidadeCanalId], references: [id])
+  atendente  Usuario?        @relation(fields: [atendenteUsuarioId], references: [id])
+  mensagens  Mensagem[]
+
+  // Fila de atendimento e inbox por estado (doc 02 §14.1)
+  @@index([empresaId, estado, atualizadoEm])
+}
+
+model Mensagem {
+  id             String          @id @default(cuid())
+  empresaId      String
+  canalId        String
+  conversaId     String
+  direcao        DirecaoMensagem
+  tipo           TipoMensagem    @default(texto)
+  origemMotor    OrigemMensagem
+  texto          String?
+  midia          Json? // ponteiros R2 (Bloco 3 mídia chega depois)
+  idExterno      String? // dedupe de webhook — unique composto abaixo
+  respostaA      String? // idExterno citado (propose-confirm, Bloco 4)
+  autorUsuarioId String? // quando origemMotor=humano
+  statusEntrega  StatusEntrega   @default(pendente)
+  criadoEm       DateTime        @default(now())
+  arquivadaEm    DateTime? // arquivamento >90d em R2 (doc 02 §14.2)
+  ponteiroR2     String?
+  deletedAt      DateTime?
+
+  empresa  Empresa  @relation(fields: [empresaId], references: [id])
+  canal    Canal    @relation(fields: [canalId], references: [id])
+  conversa Conversa @relation(fields: [conversaId], references: [id])
+  autor    Usuario? @relation(fields: [autorUsuarioId], references: [id])
+
+  // Dedupe: provedores reentregam webhook; a 2ª entrega morre aqui.
+  // idExterno NULL (mensagens internas) fica fora do unique (semântica
+  // de NULL do Postgres — desejada, doc 02 §5).
+  @@unique([empresaId, canalId, idExterno])
+  // Rolagem do chat — consulta mais frequente do sistema. SEM empresaId de
+  // propósito: conversaId (cuid) já isola; índice enxuto vale mais (exceção
+  // deliberada à convenção de prefixo, doc 02 §14.1).
+  @@index([conversaId, criadoEm])
+}
+
+// Sessão WhatsApp (Baileys) persistida — a máquina do worker é descartável;
+// a credencial vive aqui, cifrada (doc 01: "worker é gado, não estimação").
+model AuthStateBaileys {
+  id          String @id @default(cuid())
+  empresaId   String
+  canalId     String
+  chave       String // nome da credencial Baileys (creds, app-state-sync-key-*, ...)
+  valorCifrado String // AES-256-GCM (regra 15)
+
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+  canal   Canal   @relation(fields: [canalId], references: [id])
+
+  @@unique([empresaId, canalId, chave])
 }
 
 // ─────────────────────────────────────────────────────────────

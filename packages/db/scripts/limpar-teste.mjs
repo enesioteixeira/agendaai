@@ -30,6 +30,15 @@ if (ids.length === 0) {
   console.log("Nenhuma empresa de teste encontrada.");
 } else {
   // ordem de dependência (sem cascade no schema)
+  // Bloco 3 — atendimento/clientes completo (folhas primeiro)
+  await prisma.mensagem.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.conversa.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.authStateBaileys.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.canal.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.identidadeCanal.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.tagCliente.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.tag.deleteMany({ where: { empresaId: { in: ids } } });
+  await prisma.notaCliente.deleteMany({ where: { empresaId: { in: ids } } });
   // Bloco 2 — agenda/clientes/LGPD (folhas primeiro)
   await prisma.agendamento.deleteMany({ where: { empresaId: { in: ids } } });
   await prisma.sincronizacaoGcal.deleteMany({ where: { empresaId: { in: ids } } });
