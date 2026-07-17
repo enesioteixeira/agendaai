@@ -43,7 +43,7 @@ pnpm --filter @atende/worker dev   # local; NÃO subir em produção fora do Doc
 ## Rodar local (Bloco 3)
 
 ```bash
-# na raiz — precisa de DATABASE_URL (Neon) e ENCRYPTION_KEY (a MESMA do Worker web)
-DATABASE_URL=... ENCRYPTION_KEY=... pnpm --filter @atende/worker dev
+pnpm --filter @atende/worker dev
 ```
+O bootstrap carrega `apps/worker/.env` (gitignored) automaticamente — precisa de `DATABASE_URL` (Neon) e `ENCRYPTION_KEY` (a **MESMA** do Worker web: auth-state/QR cifrados aqui são decifrados lá). Variável já definida no ambiente tem precedência sobre o arquivo.
 Criou canal no painel (/configuracoes/canais) → o worker detecta em ≤15s → QR aparece no painel → escanear no WhatsApp (Aparelhos conectados). Mensagens recebidas viram conversas em `fila_humano`; respostas do painel saem pela outbox (≤3s).
