@@ -4,7 +4,7 @@
 // sendo a exclusion constraint — isto aqui é só a vitrine (doc 02 §3.1:
 // "bloqueios filtram a LISTAGEM; o banco é o juiz final").
 
-import { paraUtc, adicionarMinutos, diaDaSemana } from "./tempo.js";
+import { paraUtc, adicionarMinutos, diaDaSemana } from "./tempo";
 
 export interface IntervaloDia {
   diaSemana: number; // 0=Dom..6=Sáb

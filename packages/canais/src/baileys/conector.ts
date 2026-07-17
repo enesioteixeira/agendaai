@@ -4,9 +4,9 @@
 // este conector só responde conversas iniciadas pelo cliente.
 
 import type { MensagemInboundNormalizada, MensagemOutbound } from "@atende/core";
-import type { CapacidadesCanal, Conector } from "../tipos.js";
-import { botoesParaListaNumerada } from "../degradacao.js";
-import type { WAMessage, WASocket } from "./socket.js";
+import type { CapacidadesCanal, Conector } from "../tipos";
+import { botoesParaListaNumerada } from "../degradacao";
+import type { WAMessage, WASocket } from "./socket";
 
 export const capacidadesBaileys: CapacidadesCanal = {
   botoes: false, // reply buttons não são confiáveis fora da API oficial

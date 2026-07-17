@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { cifrarSegredo, decifrarSegredo, chaveConfigurada } from "./index.js";
+import { cifrarSegredo, decifrarSegredo, chaveConfigurada } from "./index";
 
 describe("crypto AES-256-GCM (hard-fail)", () => {
   beforeAll(() => {

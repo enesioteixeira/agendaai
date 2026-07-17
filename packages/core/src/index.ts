@@ -1,4 +1,4 @@
-export * from "./identidade/index.js";
-export * from "./agenda/index.js";
-export * from "./atendimento/index.js";
-export * as crypto from "./crypto/index.js";
+export * from "./identidade/index";
+export * from "./agenda/index";
+export * from "./atendimento/index";
+export * as crypto from "./crypto/index";

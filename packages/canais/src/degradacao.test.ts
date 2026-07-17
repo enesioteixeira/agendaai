@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { botoesParaListaNumerada, parsearRespostaNumerada } from "./degradacao.js";
+import { botoesParaListaNumerada, parsearRespostaNumerada } from "./degradacao";
 
 const botoes = [
   { payload: "confirmar", rotulo: "Confirmar" },

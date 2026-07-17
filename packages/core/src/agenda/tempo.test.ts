@@ -7,7 +7,7 @@ import {
   adicionarDias,
   diaDaSemana,
   linhasDaGrade,
-} from "./tempo.js";
+} from "./tempo";
 
 describe("tempo (fuso da unidade ⇄ UTC)", () => {
   it("paraUtc converte horário de parede de São Paulo (UTC-3) para instante UTC", () => {

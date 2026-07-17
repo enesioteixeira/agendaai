@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { papeisPadrao, nomePapel, ESCOPOS_POR_PAPEL } from "./papeis-padrao.js";
-import { CHAVES_ESCOPO } from "./escopos.js";
+import { papeisPadrao, nomePapel, ESCOPOS_POR_PAPEL } from "./papeis-padrao";
+import { CHAVES_ESCOPO } from "./escopos";
 
 describe("papéis padrão por vertical", () => {
   it("cria 4 papéis canônicos", () => {

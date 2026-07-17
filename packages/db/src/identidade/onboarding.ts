@@ -3,7 +3,7 @@
 // contexto de tenant (a empresa nasce aqui), então usa prismaSemTenant DENTRO
 // de packages/db (allowlist doc 09 §3.2) e carimba empresaId à mão, uma vez.
 
-import { prismaSemTenant } from "../unsafe.js";
+import { prismaSemTenant } from "../unsafe";
 import {
   hashSenha,
   papeisPadrao,

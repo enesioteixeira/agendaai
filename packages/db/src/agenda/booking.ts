@@ -9,9 +9,9 @@ import {
   adicionarMinutos,
   type IntervaloDia,
 } from "@atende/core";
-import { prisma } from "../client.js";
-import { runWithTenant } from "../tenancy.js";
-import { resolverEmpresaPorSlug, type EmpresaResolvida } from "../resolver-slug.js";
+import { prisma } from "../client";
+import { runWithTenant } from "../tenancy";
+import { resolverEmpresaPorSlug, type EmpresaResolvida } from "../resolver-slug";
 
 export interface CatalogoBooking {
   empresa: EmpresaResolvida;

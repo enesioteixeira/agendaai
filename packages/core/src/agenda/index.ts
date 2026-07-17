@@ -1,3 +1,3 @@
-export * from "./schemas.js";
-export * from "./tempo.js";
-export * from "./disponibilidade.js";
+export * from "./schemas";
+export * from "./tempo";
+export * from "./disponibilidade";

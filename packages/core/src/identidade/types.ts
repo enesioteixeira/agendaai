@@ -6,7 +6,7 @@ import type {
   cadastroInicialSchema,
   loginSchema,
   verticalEmpresaSchema,
-} from "./schemas.js";
+} from "./schemas";
 
 export type SessaoPayload = z.infer<typeof sessaoPayloadSchema>;
 export type CriarEmpresaInput = z.infer<typeof criarEmpresaSchema>;

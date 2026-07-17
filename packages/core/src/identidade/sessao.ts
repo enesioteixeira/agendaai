@@ -4,8 +4,8 @@
 // com payload novo de tenancy (doc 08 §3.7 + doc 01 §5.3).
 
 import { SignJWT, jwtVerify } from "jose";
-import { sessaoPayloadSchema } from "./schemas.js";
-import type { SessaoPayload } from "./types.js";
+import { sessaoPayloadSchema } from "./schemas";
+import type { SessaoPayload } from "./types";
 
 // Chave avaliada em runtime (não no import) para não quebrar build.
 // FAIL-CLOSED: o fallback de desenvolvimento só existe quando o ambiente se

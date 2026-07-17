@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { slotsLivres } from "./disponibilidade.js";
-import { paraUtc } from "./tempo.js";
+import { slotsLivres } from "./disponibilidade";
+import { paraUtc } from "./tempo";
 
 const FUSO = "America/Sao_Paulo";
 // 2026-07-16 é quinta-feira (diaSemana 4)

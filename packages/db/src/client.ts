@@ -4,8 +4,8 @@
 // Models globais (sem empresaId) ficam na allowlist MODELS_GLOBAIS.
 
 import { Prisma } from "@prisma/client";
-import { prismaSemTenant } from "./unsafe.js";
-import { contextoTenantAtual } from "./tenancy.js";
+import { prismaSemTenant } from "./unsafe";
+import { contextoTenantAtual } from "./tenancy";
 
 // Models de plataforma / globais — a extension NÃO injeta empresaId neles.
 // Manter em sincronia com o schema (doc 02: Usuario.email global, Escopo é

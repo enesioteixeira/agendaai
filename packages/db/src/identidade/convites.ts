@@ -12,9 +12,9 @@
 // por e-mail entrar (Fase D) — limitação registrada no AGENTS.md.
 
 import { createHash, randomBytes } from "node:crypto";
-import { prisma } from "../client.js";
-import { prismaSemTenant } from "../unsafe.js";
-import { contextoTenantAtual } from "../tenancy.js";
+import { prisma } from "../client";
+import { prismaSemTenant } from "../unsafe";
+import { contextoTenantAtual } from "../tenancy";
 import { hashSenha, verificarSenha } from "@atende/core";
 
 const VALIDADE_DIAS = 7;

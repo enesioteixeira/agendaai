@@ -1,16 +1,16 @@
 // Porta pública do @atende/db. prismaSemTenant NÃO é exportado daqui —
 // quem precisa dele importa ./unsafe explicitamente (e o lint decide se pode).
 
-export { prisma, Prisma, type PrismaTenant } from "./client.js";
-export { runWithTenant, contextoTenantAtual, type ContextoTenant } from "./tenancy.js";
-export { resolverEmpresaPorSlug, type EmpresaResolvida } from "./resolver-slug.js";
-export { cadastroInicial, type ResultadoOnboarding } from "./identidade/onboarding.js";
+export { prisma, Prisma, type PrismaTenant } from "./client";
+export { runWithTenant, contextoTenantAtual, type ContextoTenant } from "./tenancy";
+export { resolverEmpresaPorSlug, type EmpresaResolvida } from "./resolver-slug";
+export { cadastroInicial, type ResultadoOnboarding } from "./identidade/onboarding";
 export {
   autenticar,
   montarSessao,
   type ResultadoLogin,
   type VinculoDisponivel,
-} from "./identidade/autenticacao.js";
+} from "./identidade/autenticacao";
 export {
   criarConvite,
   consultarConvite,
@@ -20,18 +20,18 @@ export {
   type ConvitePublico,
   type AceiteResultado,
   type MembroEquipe,
-} from "./identidade/convites.js";
+} from "./identidade/convites";
 export {
   catalogoBooking,
   slotsBooking,
   criarAgendamentoBooking,
   type CatalogoBooking,
   type BookingCriada,
-} from "./agenda/booking.js";
+} from "./agenda/booking";
 export {
   salvarConexaoGcal,
   desconectarGcal,
   aplicarJanelasGcal,
   executarSyncGcal,
   type ResultadoSyncGcal,
-} from "./agenda/gcal-sync.js";
+} from "./agenda/gcal-sync";

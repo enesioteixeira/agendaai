@@ -2,7 +2,7 @@
 // com nome adaptado à vertical e escopos conforme a matriz. Admin pode
 // editar/clonar depois — isto é ponto de partida, não camisa de força.
 
-import type { VerticalEmpresa } from "./types.js";
+import type { VerticalEmpresa } from "./types";
 
 export type PapelCanonico =
   | "administrador"
