@@ -3,7 +3,7 @@
 // contexto de tenant (doc 02 §15.2). Interna ao package: usa
 // prismaSemTenant sem exportá-lo (doc 09 §3.2).
 
-import { prismaSemTenant } from "./unsafe";
+import { prismaSemTenant } from "./unsafe.js";
 
 export interface EmpresaResolvida {
   empresaId: string;

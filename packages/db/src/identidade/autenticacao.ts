@@ -3,7 +3,7 @@
 // Login também é pré-tenant (o usuário ainda não "escolheu" empresa), então
 // usa prismaSemTenant interno a packages/db (allowlist doc 09 §3.2).
 
-import { prismaSemTenant } from "../unsafe";
+import { prismaSemTenant } from "../unsafe.js";
 import { verificarSenha, hashSenha, type SessaoPayload, type LoginInput } from "@atende/core";
 
 // Hash-isca para e-mail inexistente: sem ele, o login de e-mail desconhecido

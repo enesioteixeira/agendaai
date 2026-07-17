@@ -1,7 +1,7 @@
 // Degradação automática (doc 05 §1.3): o motor produz sempre a forma mais
 // rica; o CONECTOR degrada — o motor nunca se adapta ao canal.
 
-import type { BotaoOutbound } from "./tipos";
+import type { BotaoOutbound } from "./tipos.js";
 
 export interface DegradacaoNumerada {
   texto: string;

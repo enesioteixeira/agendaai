@@ -37,6 +37,13 @@ pnpm --filter @atende/worker dev   # local; NÃO subir em produção fora do Doc
 
 - [x] Bootstrap: health server + pg-boss (inicia quando `DATABASE_URL` existir)
 - [x] Dockerfile multi-stage
-- [ ] `src/sockets/` — gestor Baileys `Map<canalId, socket>` (Bloco 3, port doc 08 §3.2)
-- [ ] `src/consumers/` — inbound, lembretes, regua, email, ia, outbox, retencao-lgpd, plataforma (Blocos 3–6)
-- [ ] `src/sse/` — hub do painel (Bloco 3)
+- [x] **Bloco 3.3**: `src/sockets/` — gestor Baileys `Map<canalId, socket>` com reconciliação a cada 15s (abre canais novos, fecha removidos), reconexão backoff 2s×n (teto 30s), auth-state cifrado no Postgres (`auth-state-pg.ts` — logout limpa e volta a parear), QR cifrado em `Canal.configCifrada` + status `pareando` (o painel decifra e exibe). `src/consumers/`: `plataforma.ts` (leituras cross-tenant allowlistadas: canais ativos + saídas pendentes), `inbound.ts` (identidade→cliente provisório→conversa `fila_humano`→mensagem com dedup), `outbox-envio.ts` (varre `Mensagem` `pendente` de saída a cada 3s, claim atômico por tenant, envia pelo conector, `falhou` em erro). **Sem SSE por ora**: worker roda na máquina local (doc 11) — painel usa polling; hub SSE entra quando houver host público.
+- [ ] Consumers dos motores: lembretes, régua, e-mail, IA (pg-boss — Blocos 4–5); retenção LGPD (Bloco 6)
+
+## Rodar local (Bloco 3)
+
+```bash
+# na raiz — precisa de DATABASE_URL (Neon) e ENCRYPTION_KEY (a MESMA do Worker web)
+DATABASE_URL=... ENCRYPTION_KEY=... pnpm --filter @atende/worker dev
+```
+Criou canal no painel (/configuracoes/canais) → o worker detecta em ≤15s → QR aparece no painel → escanear no WhatsApp (Aparelhos conectados). Mensagens recebidas viram conversas em `fila_humano`; respostas do painel saem pela outbox (≤3s).

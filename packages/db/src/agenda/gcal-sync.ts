@@ -14,9 +14,9 @@
 import { crypto as cryptoCore } from "@atende/core";
 
 const { cifrarSegredo, decifrarSegredo } = cryptoCore;
-import { prisma } from "../client";
-import { runWithTenant } from "../tenancy";
-import { prismaSemTenant } from "../unsafe";
+import { prisma } from "../client.js";
+import { runWithTenant } from "../tenancy.js";
+import { prismaSemTenant } from "../unsafe.js";
 
 const DIAS_JANELA = 30;
 
