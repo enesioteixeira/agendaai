@@ -13,6 +13,11 @@
 | 7 | Escopo Google | — (doc não especificava escopo) | `calendar.freebusy` (mínimo: só janelas ocupado/livre, nunca conteúdo de evento) | Minimização LGPD | Sync bidirecional (Fase 2, Bloco 13) exigirá `calendar.events` — pedir upgrade de escopo na reconexão |
 | 8 | Sync incremental GCal | `syncTokenGcal` incremental (doc 02 §3) | **free/busy stateless** (janela de 30 dias, replace-all idempotente); campo `syncTokenGcal` permanece no schema | free/busy é ~10× menos código, sem estado p/ corromper (410 GONE etc.); volume do MVP (poucas conexões × 1 chamada/10 min) é desprezível | Se o rate limit do Google apertar (muitos profissionais) → migrar p/ `events.list` incremental usando o campo já existente |
 
+## Notas de resolução de módulos (Bloco 3)
+
+- **Um único regime de resolução no monorepo: `bundler`** (tsconfig.base). O `apps/web` consome `@atende/core`/`@atende/db` como **TS cru** via `transpilePackages`, e o webpack do Next **não** faz o rewrite `.js`→`.ts`. Se um package usar imports com extensão `.js` (exigência do `nodenext`), o build do web quebra com `Module not found: ./x.js`. Portanto: **nenhum package usa `.js` nos imports relativos** e o `apps/worker` **não** usa `nodenext` — herda `bundler` e roda via `tsx` (esbuild resolve extensionless). Um `.js` reintroduzido num package derruba o deploy inteiro (o Workers Builds falha silenciosamente e as rotas novas ficam 404).
+- **Caveat do build de produção do worker**: `pnpm --filter @atende/worker build` (`tsc` emit) com resolução `bundler` **não** injeta `.js` no output — `node dist/index.js` sob ESM do Node falharia. Hoje o worker roda **local via `tsx`** (não usa o output), então não afeta nada. Quando for para a nuvem (Oracle/Docker), trocar o build por `tsup`/`esbuild` (bundle único) em vez de `tsc` emit.
+
 ## Notas de operação (Bloco 2)
 
 - **Janela de eco do GCal**: até 10 minutos (cron `*/10 * * * *`). Documentada na UI da aba Profissionais.
