@@ -1,7 +1,49 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
+
+import { AlternadorDeTema } from "@/componentes/AlternadorDeTema";
+import { NavLateral, type GrupoDeNavegacao } from "@/componentes/NavLateral";
 import { lerSessao } from "@/lib/sessao";
 import { logoutAction } from "@/modules/identidade/actions";
+
+// A navegação do produto. A ordem conta a história do Instant Channel: a conversa
+// primeiro (é o centro de gravidade), depois quem/o que atende (agentes, catálogo),
+// depois o encanamento (canais, integrações, chaves).
+//
+// `ativo: false` marca módulo ainda não entregue. Preferimos mostrá-lo esmaecido a
+// escondê-lo: o painel comunica para onde o produto vai, e um item que aparece só no
+// dia da entrega faz o usuário reaprender a navegação a cada release.
+const GRUPOS: readonly GrupoDeNavegacao[] = [
+  {
+    titulo: "Atender",
+    itens: [
+      { href: "/inbox", rotulo: "Inbox", icone: "conversa" },
+      { href: "/clientes", rotulo: "Contatos", icone: "pessoas" },
+    ],
+  },
+  {
+    titulo: "Vender",
+    itens: [
+      { href: "/catalogo", rotulo: "Catálogo", icone: "etiqueta", ativo: false, selo: "em breve" },
+      { href: "/pedidos", rotulo: "Pedidos", icone: "carrinho", ativo: false, selo: "em breve" },
+    ],
+  },
+  {
+    titulo: "Automatizar",
+    itens: [
+      { href: "/agentes", rotulo: "Agentes de IA", icone: "agente", ativo: false, selo: "em breve" },
+      { href: "/conhecimento", rotulo: "Conhecimento", icone: "livro", ativo: false, selo: "em breve" },
+    ],
+  },
+  {
+    titulo: "Configurar",
+    itens: [
+      { href: "/configuracoes/canais", rotulo: "Canais", icone: "antena" },
+      { href: "/integracoes", rotulo: "Integrações", icone: "plugue", ativo: false, selo: "em breve" },
+      { href: "/configuracoes", rotulo: "Configurações", icone: "engrenagem" },
+    ],
+  },
+];
 
 // Layout do painel — porta de entrada autenticada. Sem sessão válida, redireciona
 // para /login. A identidade do tenant vem SEMPRE daqui (sessão JWT), nunca de
@@ -11,31 +53,36 @@ export default async function PainelLayout({ children }: { children: ReactNode }
   if (!sessao) redirect("/login");
 
   return (
-    <div style={{ fontFamily: "system-ui", display: "grid", gridTemplateColumns: "220px 1fr", minHeight: "100vh" }}>
-      <aside style={{ background: "#141414", color: "#eee", padding: "1.25rem 1rem" }}>
-        <div style={{ fontWeight: 700, fontSize: 18, marginBottom: "1.5rem" }}>atende-ai</div>
-        <nav style={{ display: "grid", gap: 4, fontSize: 15 }}>
-          <NavLink href="/agenda" rotulo="Agenda" />
-          <NavLink href="/clientes" rotulo="Clientes" />
-          <NavLink href="/atendimento" rotulo="Atendimento" />
-          <NavLink href="/financeiro" rotulo="Financeiro" />
-          <NavLink href="/configuracoes" rotulo="Configurações" />
-        </nav>
-        <form action={logoutAction} style={{ marginTop: "2rem" }}>
-          <button type="submit" style={{ background: "none", border: "1px solid #444", color: "#bbb", borderRadius: 6, padding: "0.4rem 0.7rem", cursor: "pointer", fontSize: 14 }}>
-            Sair
-          </button>
-        </form>
-      </aside>
-      <main style={{ padding: "2rem" }}>{children}</main>
-    </div>
-  );
-}
+    <div className="grid h-full min-h-screen grid-cols-[232px_1fr] bg-fundo">
+      <aside className="flex flex-col gap-6 overflow-y-auto border-r border-borda bg-superficie p-4 barra-fina">
+        <div className="flex items-center gap-2.5 px-1">
+          <span
+            aria-hidden
+            className="marca-simbolo grid h-8 w-8 place-items-center rounded-2 text-[15px] font-bold"
+          >
+            IC
+          </span>
+          <span className="text-[15px] font-semibold tracking-tight text-texto">
+            Instant Channel
+          </span>
+        </div>
 
-function NavLink({ href, rotulo }: { href: string; rotulo: string }) {
-  return (
-    <a href={href} style={{ color: "#ddd", textDecoration: "none", padding: "0.4rem 0.6rem", borderRadius: 6 }}>
-      {rotulo}
-    </a>
+        <NavLateral grupos={GRUPOS} />
+
+        <div className="mt-auto flex flex-col gap-3 border-t border-borda pt-3">
+          <AlternadorDeTema />
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="w-full rounded-2 border border-borda px-2.5 py-1.5 text-[13px] text-texto-suave transition-colors hover:border-borda-forte hover:text-texto"
+            >
+              Sair
+            </button>
+          </form>
+        </div>
+      </aside>
+
+      <main className="min-w-0 overflow-auto barra-fina">{children}</main>
+    </div>
   );
 }

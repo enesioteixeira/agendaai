@@ -1,0 +1,316 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ==========================================================================
+   TOKENS VISUAIS DO INSTANT CHANNEL — a identidade do produto mora aqui.
+
+   Este arquivo é o PORTADOR DA MARCA: navy profundo, azul elétrico e roxo.
+
+   A PALETA É COMPARTILHADA COM O INSTANT ERP, DE PROPÓSITO. Os dois são produtos
+   da mesma família ("Instant"): o Channel é a boca — atendimento e venda por
+   conversa —, o ERP é a retaguarda. Um cliente que usa os dois precisa ver dois
+   produtos irmãos, não dois fornecedores. O que se compartilha é a IDENTIDADE
+   (estes tokens e a geometria do chassi); o CÓDIGO é cópia adaptada, nunca
+   dependência — os dois repositórios evoluem em ritmos diferentes, e a origem
+   de cada peça está registrada no cabeçalho de `packages/ui/src/index.ts`.
+
+   POR QUE oklch(), COM O HEX NO COMENTÁRIO
+   A paleta nasce em oklch: é o espaço onde clarear ou escurecer um tom não
+   torce o matiz, o que importa quando o mesmo acento precisa funcionar sobre
+   fundo claro e escuro. O hex de origem fica ao lado de cada linha para que a
+   conferência visual com o resto da família continue sendo uma leitura, e não
+   uma conversão.
+
+   AS VARIANTES FRACAS SÃO DERIVADAS, e não uma segunda cor decorada à mão:
+   `color-mix(in srgb, var(--acento) 10%, transparent)` continua exato no dia em
+   que o acento mudar. Uma cópia literal ficaria dessincronizada em silêncio.
+
+   OS CONTRASTES ANOTADOS SÃO MEDIDOS, NÃO ESTIMADOS. Onde um token diverge da
+   cor "bonita" original, o comentário na linha diz a razão em número (WCAG AA
+   exige 4,5:1 para texto normal). Não subir a luminosidade de volta sem medir
+   de novo — foi assim que `--texto-fraco` e `--atencao` chegaram nestes valores.
+
+   O TEMA ESCURO É O PADRÃO — ver `src/componentes/tema.ts`, que decide `escuro`
+   quando não há preferência gravada. O portador do tema é a classe `.dark` no
+   `<html>`: é o que `@custom-variant dark` (acima) e o `chassi.css` de
+   `@atende/ui` leem. Inverter o par (escuro em `:root`, claro numa classe)
+   exigiria reescrever o chassi para ficar no mesmo lugar visual, sem ganho.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  --fundo: oklch(0.9696 0.0086 264.52); /* #f2f5fb */
+  --fundo-2: oklch(0.9482 0.0145 264.5); /* #e9eef8 */
+  --superficie: oklch(1 0 0); /* #ffffff */
+  --superficie-2: oklch(0.9783 0.0074 260.73); /* #f5f8fd */
+  --superficie-3: oklch(0.9535 0.0149 260.73); /* #eaf0fa */
+  --borda: oklch(0.9136 0.0197 260.17); /* #dbe3f0 */
+  --borda-forte: oklch(0.8519 0.032 261.73); /* #c3cfe4 */
+  --borda-glow: color-mix(in srgb, var(--acento) 28%, transparent);
+
+  --texto: oklch(0.2248 0.0546 266.73); /* #101a35 */
+  --texto-suave: oklch(0.5155 0.05 267.68); /* #5b6785 · 5,64:1 sobre --superficie */
+  /* AQUI O PRODUTO SE AFASTA DO PROTÓTIPO, E A MEDIDA ESTÁ NO COMENTÁRIO.
+     O #8b96b0 do protótipo dá 2,96:1 sobre --superficie e 2,71:1 sobre --fundo — abaixo
+     do mínimo de 4,5:1 da WCAG AA para texto normal. E ele não veste enfeite: são os
+     cabeçalhos de grupo da lateral, os módulos em construção, o texto da busca global e
+     o papel sob o nome da conta. Matiz e croma continuam os do protótipo; só a
+     luminosidade desceu, até 4,62:1 no pior fundo (--fundo). */
+  --texto-fraco: oklch(0.5412 0.0406 267.18); /* #646f87 · 5,04:1 sobre --superficie */
+
+  --acento: oklch(0.5304 0.2158 264.81); /* #2b5ce6 */
+  --acento-2: oklch(0.4488 0.192 264.95); /* #1e46bd */
+  --acento-fraco: color-mix(in srgb, var(--acento) 10%, transparent);
+  --acento-texto: oklch(1 0 0); /* #ffffff */
+
+  --roxo: oklch(0.5413 0.2466 293.01); /* #7c3aed */
+  --roxo-fraco: color-mix(in srgb, var(--roxo) 10%, transparent);
+  --ciano: oklch(0.6089 0.1109 221.72); /* #0891b2 */
+
+  --sucesso: oklch(0.6271 0.1699 149.21); /* #16a34a */
+  --sucesso-fraco: color-mix(in srgb, var(--sucesso) 12%, transparent);
+  --perigo: oklch(0.5771 0.2152 27.33); /* #dc2626 */
+  --perigo-fraco: color-mix(in srgb, var(--perigo) 10%, transparent);
+  /* Âmbar claro sobre fundo claro é o par que mais falha em ERP: o #d97706 do protótipo
+     dá 2,80:1 sobre o PRÓPRIO véu de 12% — e é assim que o selo de onda da lateral e o
+     `Badge tom="atencao"` se desenham. Descido até 4,61:1 sobre o véu (5,46:1 sobre a
+     superfície), mantendo matiz e croma. No tema escuro o âmbar já dava 6,66:1. */
+  --atencao: oklch(0.5338 0.1574 58.32); /* #ac4e00 */
+  --atencao-fraco: color-mix(in srgb, var(--atencao) 12%, transparent);
+  --info: oklch(0.5876 0.1389 241.97); /* #0284c7 */
+  --info-fraco: color-mix(in srgb, var(--info) 12%, transparent);
+  --neutro-fraco: color-mix(in srgb, var(--texto-suave) 10%, transparent);
+
+  --grad-marca: linear-gradient(135deg, var(--acento) 0%, var(--roxo) 100%);
+  --grad-superficie: linear-gradient(
+    160deg,
+    var(--superficie) 0%,
+    oklch(0.9756 0.0086 264.52) 100% /* #f4f7fd */
+  );
+  --grad-topo: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--acento) 6%, transparent),
+    transparent 70%
+  );
+
+  /* A tinta da sombra é o texto: sombra cinza sobre fundo azulado suja o tom. */
+  --sombra-tinta: var(--texto);
+  --sombra-1: 0 1px 2px color-mix(in srgb, var(--sombra-tinta) 6%, transparent);
+  --sombra-2: 0 8px 24px -10px color-mix(in srgb, var(--sombra-tinta) 18%, transparent);
+  --sombra-3: 0 24px 60px -20px color-mix(in srgb, var(--sombra-tinta) 25%, transparent);
+  --glow:
+    0 0 0 1px var(--borda-glow),
+    0 12px 32px -16px color-mix(in srgb, var(--acento) 40%, transparent);
+
+  /* Cortina de modal e de paleta. Existe como token porque `bg-black/40` é cor
+     crua e ninguém define a opacidade certa duas vezes seguidas. */
+  --cortina: color-mix(in srgb, oklch(0.2248 0.0546 266.73) 45%, transparent);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --fundo: oklch(0.1545 0.0329 270.1); /* #070b1a */
+  --fundo-2: oklch(0.1752 0.0401 270.7); /* #0a0f22 */
+  --superficie: oklch(0.2154 0.0558 270.57); /* #101733 */
+  --superficie-2: oklch(0.2482 0.0652 271.02); /* #161e40 */
+  --superficie-3: oklch(0.2878 0.0758 270.69); /* #1d2750 */
+  --borda: oklch(0.3093 0.0798 271.42); /* #222c58 */
+  --borda-forte: oklch(0.3756 0.0968 271.24); /* #2f3c74 */
+  --borda-glow: color-mix(in srgb, var(--acento) 38%, transparent);
+
+  --texto: oklch(0.9472 0.0193 273.23); /* #e9edfb */
+  --texto-suave: oklch(0.6839 0.0614 275.02); /* #8e97c0 · 6,15:1 sobre --superficie */
+  /* Mesmo desvio do tema claro, na direção oposta: o #626d9b do protótipo dá 3,51:1
+     sobre --superficie. Subiu até 4,62:1 no pior fundo (--superficie-2). */
+  --texto-fraco: oklch(0.6305 0.0733 273.42); /* #7b87b6 · 5,02:1 sobre --superficie */
+
+  --acento: oklch(0.5901 0.2227 265.28); /* #3b6eff */
+  --acento-2: oklch(0.6748 0.1712 270.2); /* #6f8dff */
+  --acento-fraco: color-mix(in srgb, var(--acento) 14%, transparent);
+  --acento-texto: oklch(1 0 0); /* #ffffff */
+
+  --roxo: oklch(0.6056 0.2189 292.72); /* #8b5cf6 */
+  --roxo-fraco: color-mix(in srgb, var(--roxo) 16%, transparent);
+  --ciano: oklch(0.7971 0.1339 211.53); /* #22d3ee */
+
+  --sucesso: oklch(0.7227 0.192 149.58); /* #22c55e */
+  --sucesso-fraco: color-mix(in srgb, var(--sucesso) 15%, transparent);
+  --perigo: oklch(0.6633 0.1973 19.85); /* #f4525f */
+  --perigo-fraco: color-mix(in srgb, var(--perigo) 15%, transparent);
+  --atencao: oklch(0.7819 0.1585 72.33); /* #f5a524 */
+  --atencao-fraco: color-mix(in srgb, var(--atencao) 15%, transparent);
+  --info: oklch(0.7535 0.139 232.66); /* #38bdf8 */
+  --info-fraco: color-mix(in srgb, var(--info) 15%, transparent);
+  --neutro-fraco: color-mix(in srgb, var(--texto-suave) 14%, transparent);
+
+  --grad-superficie: linear-gradient(
+    160deg,
+    oklch(0.2336 0.0606 270.27) 0%,
+    /* #131b3a */ oklch(0.2028 0.0564 270.16) 100% /* #0d1430 */
+  );
+  --grad-topo: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--acento) 9%, transparent),
+    transparent 70%
+  );
+
+  --sombra-tinta: oklch(0 0 0);
+  --sombra-1: 0 1px 2px color-mix(in srgb, var(--sombra-tinta) 35%, transparent);
+  --sombra-2: 0 8px 24px -8px color-mix(in srgb, var(--sombra-tinta) 55%, transparent);
+  --sombra-3: 0 24px 60px -18px color-mix(in srgb, var(--sombra-tinta) 70%, transparent);
+  --glow:
+    0 0 0 1px var(--borda-glow),
+    0 12px 32px -14px color-mix(in srgb, var(--acento) 55%, transparent);
+
+  --cortina: color-mix(in srgb, oklch(0.1281 0.0334 271.02) 62%, transparent); /* #040712 */
+}
+
+/* ==========================================================================
+   O que NÃO é cor vale igual nos dois temas: geometria, densidade e tipografia.
+   ========================================================================== */
+:root {
+  --raio-1: 6px;
+  --raio-2: 10px;
+  --raio-3: 14px;
+  --raio-cheio: 999px;
+
+  /* A casca inteira se mede por estes quatro: topo, barra de abas e as duas
+     larguras da lateral (aberta e encolhida). Trocar o número aqui move a
+     interface junto — nenhum componente repete a medida. */
+  --alt-topo: 52px;
+  --alt-abas: 38px;
+  --larg-lateral: 232px;
+  --larg-lateral-min: 60px;
+
+  --trans: 140ms cubic-bezier(0.2, 0, 0.2, 1);
+
+  --fonte:
+    'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system,
+    'Helvetica Neue', Arial, sans-serif;
+  --fonte-mono: ui-monospace, 'Cascadia Mono', 'Consolas', 'Courier New', monospace;
+
+  /* PALETA CATEGÓRICA DOS GRÁFICOS — a MESMA ORDEM nos dois temas, de propósito:
+     a série 3 é sempre o ciano, tanto no claro quanto no escuro. Se a ordem
+     mudasse junto com o tema, o mesmo painel aberto em duas abas com temas
+     diferentes diria coisas diferentes sobre a mesma série — leitura errada, não
+     detalhe estético. Os tons acompanham o tema (é o que mantém o contraste);
+     o que não muda é QUEM é a série N.
+
+     `packages/ui/src/graficos/folha.tsx` lê `--serie-1..8` com fallback: declarar
+     aqui é o que faz o gráfico obedecer ao app sem que uma linha de lá mude. */
+  --serie-1: var(--acento);
+  --serie-2: var(--roxo);
+  --serie-3: var(--ciano);
+  --serie-4: var(--sucesso);
+  --serie-5: var(--atencao);
+  --serie-6: var(--perigo);
+  --serie-7: oklch(0.7253 0.1752 349.76); /* #f472b6 */
+  --serie-8: oklch(0.7107 0.0351 256.79); /* #94a3b8 */
+}
+
+/* ==========================================================================
+   Ponte para o Tailwind: cada token vira chave de tema, e é isso que mantém
+   `bg-superficie-2`, `text-roxo` e `shadow-2` funcionando SEM cor crua. Token
+   que não é mapeado aqui só existe via `var()` — e aí alguém acaba escrevendo
+   a cor à mão, que é exatamente o que a catraca conta.
+   ========================================================================== */
+@theme inline {
+  --color-fundo: var(--fundo);
+  --color-fundo-2: var(--fundo-2);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-superficie-3: var(--superficie-3);
+  --color-borda: var(--borda);
+  --color-borda-forte: var(--borda-forte);
+  --color-borda-glow: var(--borda-glow);
+  --color-texto: var(--texto);
+  --color-texto-suave: var(--texto-suave);
+  --color-texto-fraco: var(--texto-fraco);
+  --color-acento: var(--acento);
+  --color-acento-2: var(--acento-2);
+  --color-acento-fraco: var(--acento-fraco);
+  --color-acento-texto: var(--acento-texto);
+  --color-roxo: var(--roxo);
+  --color-roxo-fraco: var(--roxo-fraco);
+  --color-ciano: var(--ciano);
+  --color-sucesso: var(--sucesso);
+  --color-sucesso-fraco: var(--sucesso-fraco);
+  --color-perigo: var(--perigo);
+  --color-perigo-fraco: var(--perigo-fraco);
+  --color-atencao: var(--atencao);
+  --color-atencao-fraco: var(--atencao-fraco);
+  --color-info: var(--info);
+  --color-info-fraco: var(--info-fraco);
+  --color-neutro-fraco: var(--neutro-fraco);
+  --color-cortina: var(--cortina);
+
+  --radius-1: var(--raio-1);
+  --radius-2: var(--raio-2);
+  --radius-3: var(--raio-3);
+  --radius-cheio: var(--raio-cheio);
+
+  --shadow-1: var(--sombra-1);
+  --shadow-2: var(--sombra-2);
+  --shadow-3: var(--sombra-3);
+  --shadow-glow: var(--glow);
+
+  --font-sans: var(--fonte);
+  --font-mono: var(--fonte-mono);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--fundo);
+  color: var(--texto);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 1px;
+}
+
+.barra-fina {
+  scrollbar-width: thin;
+  scrollbar-color: var(--borda-forte) transparent;
+}
+
+/* A rolagem horizontal da barra de abas não pode ganhar barra: ela roubaria
+   altura da própria aba e a linha do topo passaria a "pular" ao abrir a nona. */
+.sem-barra {
+  scrollbar-width: none;
+}
+
+.sem-barra::-webkit-scrollbar {
+  display: none;
+}
+
+/* A marca no topo da lateral. O gradiente é o `--grad-marca` (acento → roxo), e
+   ele veste o SÍMBOLO, nunca o texto: gradiente em texto exige
+   `background-clip: text` com cor transparente, e o dia em que o navegador não
+   aplica o clip o nome do produto some da tela. Sobre o quadrado ele degrada
+   para uma cor sólida — o pior caso continua legível. */
+.marca-simbolo {
+  background: var(--grad-marca);
+  color: var(--acento-texto);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

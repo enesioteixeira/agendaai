@@ -17,7 +17,11 @@
       "@atende/db": ["packages/db/src"],
       "@atende/db/*": ["packages/db/src/*"],
       "@atende/canais": ["packages/canais/src"],
-      "@atende/canais/*": ["packages/canais/src/*"]
+      "@atende/canais/*": ["packages/canais/src/*"],
+      "@atende/ui": ["packages/ui/src"],
+      "@atende/ui/*": ["packages/ui/src/*"],
+      "@atende/dinheiro": ["packages/dinheiro/src"],
+      "@atende/dinheiro/*": ["packages/dinheiro/src/*"]
     }
   }
 }

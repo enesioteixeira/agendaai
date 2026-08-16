@@ -5,7 +5,7 @@ import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Packages do monorepo são TS crus (sem build) — o Next transpila em runtime.
-  transpilePackages: ["@atende/core", "@atende/db"],
+  transpilePackages: ["@atende/core", "@atende/db", "@atende/ui", "@atende/dinheiro"],
   // Receita OpenNext Cloudflare (howtos/db): Prisma externo ao webpack — quem
   // resolve o entrypoint é o esbuild do OpenNext, com a condição "workerd"
   // ativa, escolhendo a variante WASM do client (ver o patch de reordenação em
