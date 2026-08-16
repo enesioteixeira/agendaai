@@ -1,14 +1,30 @@
 // Envio outbox (doc 01: eventos via outbox): o painel grava a Mensagem de
 // saída como `pendente` NA MESMA transação do que a originou — a tabela
 // Mensagem é a outbox. Este poller varre pendentes de canais Baileys, faz um
-// CLAIM atômico por tenant (updateMany pendente→enviando; count=0 = outro
-// worker levou) e envia pelo conector do socket vivo. Falha → `falhou` (o
-// painel mostra e permite reenviar). pg-boss segue reservado aos jobs dos
-// motores (Bloco 4) — o caminho humano não precisa de fila.
+// CLAIM atômico por tenant e envia pelo conector do socket vivo. pg-boss segue
+// reservado aos jobs dos motores (Bloco 4) — o caminho humano não precisa de fila.
+//
+// ⚠️ LIMITAÇÃO CONHECIDA DO CLAIM. O claim marca `enviada` ANTES do envio, e o
+// enum `StatusEntrega` não tem um estado intermediário. Se o processo morrer
+// entre o claim e o `conector.enviar`, a mensagem fica `enviada` sem ter saído —
+// perda silenciosa, com ✓ na tela do atendente.
+//
+// Consertar exige `enviando` no enum + lease (o padrão do inbox do ev-tracker),
+// ou seja, uma MIGRATION — e o build do Workers Builds NÃO roda `migrate deploy`
+// (as migrations são aplicadas à mão contra o Neon). Subir o código antes da
+// coluna existir quebraria o envio inteiro em produção, então isto fica como
+// dívida coordenada: aplicar a migration primeiro, depois o código.
+//
+// Enquanto isso, o retry abaixo cobre o caso comum de verdade — oscilação de
+// rede durante o envio, que antes matava a mensagem na primeira exceção.
 
 import { prisma, runWithTenant } from "@atende/db";
 import { conectorDoCanal } from "../sockets/gestor.js";
 import { listarMensagensPendentesBaileys } from "./plataforma.js";
+import { MAX_TENTATIVAS, deveTentarDeNovo, esperaDaTentativa } from "./reenvio.js";
+
+const dormir = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 async function enviarUma(m: {
   id: string;
@@ -33,21 +49,37 @@ async function enviarUma(m: {
       });
       return;
     }
-    try {
-      const { idExterno } = await conector.enviar({
-        empresaId: m.empresaId,
-        canalId: m.canalId,
-        conversaId: m.conversaId,
-        texto: m.texto ?? "",
-      });
-      await prisma.mensagem.update({ where: { id: m.id }, data: { idExterno } });
-    } catch (e) {
-      console.error(`[outbox] envio falhou (mensagem ${m.id}):`, e);
-      await prisma.mensagem.update({
-        where: { id: m.id },
-        data: { statusEntrega: "falhou" },
-      });
+    let ultimoErro: unknown;
+    for (let tentativa = 0; tentativa < MAX_TENTATIVAS; tentativa++) {
+      const espera = esperaDaTentativa(tentativa);
+      if (espera > 0) await dormir(espera);
+
+      try {
+        const { idExterno } = await conector.enviar({
+          empresaId: m.empresaId,
+          canalId: m.canalId,
+          conversaId: m.conversaId,
+          texto: m.texto ?? "",
+        });
+        // O idExterno é o que amarra o recibo de entrega (✓✓ / lida) a esta
+        // linha — sem ele a mensagem sai, mas nunca sai do primeiro check.
+        await prisma.mensagem.update({ where: { id: m.id }, data: { idExterno } });
+        return;
+      } catch (e) {
+        ultimoErro = e;
+        if (!deveTentarDeNovo(tentativa, e)) break;
+        console.warn(
+          `[outbox] tentativa ${tentativa + 1}/${MAX_TENTATIVAS} falhou (mensagem ${m.id}):`,
+          e instanceof Error ? e.message : e,
+        );
+      }
     }
+
+    console.error(`[outbox] envio falhou (mensagem ${m.id}):`, ultimoErro);
+    await prisma.mensagem.update({
+      where: { id: m.id },
+      data: { statusEntrega: "falhou" },
+    });
   });
 }
 

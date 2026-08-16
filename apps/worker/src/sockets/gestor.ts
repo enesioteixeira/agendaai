@@ -20,6 +20,7 @@ import { criarArmazenamentoAuthPg, limparAuthState } from "./auth-state-pg.js";
 import { listarCanaisBaileys } from "../consumers/plataforma.js";
 import { processarInbound } from "../consumers/inbound.js";
 import { aplicarRecibos } from "../consumers/recibos.js";
+import { ehZumbi } from "./vigia.js";
 
 const { cifrarSegredo } = cryptoCore;
 
@@ -29,7 +30,25 @@ interface EntradaSocket {
   empresaId: string;
   tentativas: number;
   encerrado: boolean; // remoção intencional — não reconectar
+  conectado: boolean;
+  /**
+   * Último sinal de vida do socket: conexão aberta, QR emitido ou mensagem
+   * recebida. É o que o watchdog usa para separar um socket TRAVADO de um que
+   * está apenas esperando alguém escanear o QR — este emite QR de tempos em
+   * tempos, aquele fica em silêncio total.
+   */
+  ultimoSinal: number;
 }
+
+/**
+ * O caso que o watchdog cobre: o Baileys pode travar sem emitir
+ * `connection.update`, e aí o canal fica no Map, o painel mostra o status
+ * antigo, e nenhuma mensagem entra nem sai — o pior tipo de falha, porque
+ * parece que está funcionando. Como `aoFechar` remove a entrada do Map, um
+ * socket que caiu de verdade nem chega ao watchdog: sobra exatamente o travado.
+ *
+ * A regra em si mora em `vigia.ts` (pura, testada).
+ */
 
 const sockets = new Map<string, EntradaSocket>();
 
@@ -63,17 +82,22 @@ async function abrirSocket(empresaId: string, canalId: string): Promise<void> {
     empresaId,
     tentativas: 0,
     encerrado: false,
+    conectado: false,
+    ultimoSinal: Date.now(),
   };
   sockets.set(canalId, entrada);
 
   const socket = criarSocketBaileys(state, salvarCreds, {
     aoQr(qr) {
+      entrada.ultimoSinal = Date.now();
       void QRCode.toDataURL(qr).then((dataUrl) =>
         atualizarStatusCanal(empresaId, canalId, "pareando", dataUrl),
       );
     },
     aoConectar() {
       entrada.tentativas = 0;
+      entrada.conectado = true;
+      entrada.ultimoSinal = Date.now();
       void atualizarStatusCanal(empresaId, canalId, "conectado");
       console.log(`[gestor] canal ${canalId} conectado`);
     },
@@ -95,6 +119,7 @@ async function abrirSocket(empresaId: string, canalId: string): Promise<void> {
       }, espera);
     },
     aoMensagens(mensagens) {
+      entrada.ultimoSinal = Date.now();
       for (const msg of mensagens) {
         // DIAGNÓSTICO (temporário): registra a chave bruta de cada inbound
         // p/ investigar por que não vira conversa. Arquivo lido pelo dev.
@@ -173,8 +198,32 @@ export function conectorDoCanal(canalId: string): Conector | null {
   return sockets.get(canalId)?.conector ?? null;
 }
 
-/** Reconciliação: abre canais novos, fecha removidos. Chamada em loop. */
+/**
+ * Watchdog: derruba sockets travados para que a reconciliação os reabra.
+ *
+ * Diferente do watchdog do ev-tracker, que mata o PROCESSO (`process.exit(1)`)
+ * e deixa o host reiniciar — lá existe um socket só, aqui existe um por tenant.
+ * Matar o processo por causa de um canal zumbi derrubaria o atendimento de
+ * todos os outros, que estão perfeitamente vivos.
+ *
+ * Reabrir é seguro: `fecharSocket` marca `encerrado` (para o `aoFechar` não
+ * agendar uma reconexão concorrente) e a reconciliação seguinte, em ≤15 s, abre
+ * de novo lendo o auth-state do Postgres. A sessão pareada sobrevive.
+ */
+function derrubarZumbis(agora = Date.now()): void {
+  for (const [canalId, entrada] of sockets) {
+    if (!ehZumbi(entrada, agora)) continue;
+    console.warn(
+      `[gestor] canal ${canalId} sem sinal há ${Math.round((agora - entrada.ultimoSinal) / 1000)}s e sem conectar — derrubando para reabrir`,
+    );
+    fecharSocket(canalId);
+  }
+}
+
+/** Reconciliação: abre canais novos, fecha removidos, derruba travados. */
 export async function reconciliarSockets(): Promise<void> {
+  derrubarZumbis();
+
   const canais = await listarCanaisBaileys();
   const desejados = new Set(canais.map((c) => c.id));
 
