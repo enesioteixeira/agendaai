@@ -1,0 +1,1053 @@
+/* ==========================================================================
+   CHASSI DE UI DO INSTANTERP — folha única
+
+   POR QUE CSS PURO, E NÃO TAILWIND
+   O chassi mora em packages/ui e é consumido por apps/web. As utilitárias do
+   Tailwind v4 nascem de uma varredura do código-fonte que, por padrão, NÃO entra
+   em node_modules — e um pacote do workspace chega lá por symlink. Um chassi que
+   dependesse de `bg-superficie` funcionaria no dia em que a varredura fosse
+   configurada e sumiria em silêncio no dia em que alguém a mexesse: a tela
+   renderiza, sem borda e sem cor, e ninguém vê erro. Classe própria não tem
+   esse acoplamento.
+
+   POR QUE OS VALORES DE COR ESTÃO AQUI
+   Este é o único arquivo do pacote que escreve cor. A regra do projeto é "cor
+   literal só em packages/ui" — a catraca mede `corCrua` justamente fora daqui —,
+   e a razão é que a paleta precisa nascer em ALGUM lugar. Toda cor abaixo é
+   declarada como `var(--token-do-app, valor)`: se apps/web já define o token
+   (--fundo, --acento, --perigo…), o app vence; o literal só entra quando o token
+   não existe. É o que permite ao chassi funcionar sozinho (Storybook, teste
+   visual, outro app) sem nunca sobrescrever a identidade de quem o hospeda.
+
+   --sucesso, --info e --roxo passaram a existir em apps/web/src/app/globals.css
+   quando a identidade do protótipo foi portada para o produto: os literais
+   abaixo deixaram de valer no app sem que uma linha daqui mudasse, que é
+   exatamente o comportamento que a cadeia `var(--token-do-app, literal)`
+   existe para dar. Eles continuam aqui porque o chassi tem de funcionar
+   sozinho — Storybook, teste visual, outro app.
+
+   O RAIO TAMBÉM SEGUE O APP. `--ui-raio` lê `--raio-2` e `--ui-raio-pq` lê
+   `--raio-1`: o canto do cartão de uma tela e o canto da aba do shell são a
+   mesma decisão de identidade, e deixá-los divergir por 2px faz a tela parecer
+   colada de outro produto. Espaçamento e tipografia continuam do chassi — eles
+   são densidade de ERP, não marca.
+   ========================================================================== */
+
+/* O padrão de FORMULÁRIO do InstantERP não veio nesta cópia. Ele depende de
+   `@instanterp/contracts/campos` — CNPJ, NCM, inscrição estadual —, domínio
+   fiscal que o Instant Channel não tem. Quando o produto precisar de formulários
+   ricos (estúdio de agentes, catálogo), portar `formulario/` SEM os campos
+   fiscais e reintroduzir aqui o `@import` que existia nesta linha. A regra do
+   CSS exige que todo `@import` venha antes de qualquer outra regra — ou seja,
+   ele volta AQUI, no topo, e não num segundo import do app. */
+
+:root {
+  /* ── superfícies e texto ─────────────────────────────────────────────── */
+  --ui-fundo: var(--fundo, oklch(0.97 0.004 250));
+  --ui-superficie: var(--superficie, oklch(1 0 0));
+  --ui-superficie-2: var(--superficie-2, oklch(0.955 0.005 250));
+  --ui-borda: var(--borda, oklch(0.885 0.008 250));
+  --ui-texto: var(--texto, oklch(0.24 0.02 255));
+  --ui-texto-suave: var(--texto-suave, oklch(0.52 0.018 255));
+
+  /* ── tons semânticos ─────────────────────────────────────────────────── */
+  --ui-acento: var(--acento, oklch(0.55 0.16 250));
+  --ui-acento-texto: var(--acento-texto, oklch(0.99 0 0));
+  --ui-perigo: var(--perigo, oklch(0.56 0.19 25));
+  --ui-atencao: var(--atencao, oklch(0.72 0.15 75));
+  --ui-sucesso: var(--sucesso, oklch(0.53 0.13 152));
+  --ui-info: var(--info, oklch(0.56 0.11 232));
+  --ui-roxo: var(--roxo, oklch(0.53 0.16 300));
+  --ui-neutro: var(--ui-texto-suave);
+
+  /* ── geometria e densidade (não são cor: valem para os dois temas) ───── */
+  --ui-raio: var(--raio-2, 8px);
+  --ui-raio-pq: var(--raio-1, 5px);
+  --ui-linha: 32px;
+  --ui-espaco-1: 4px;
+  --ui-espaco-2: 8px;
+  --ui-espaco-3: 12px;
+  --ui-espaco-4: 16px;
+  --ui-espaco-5: 24px;
+  --ui-fonte-micro: 11px;
+  --ui-fonte-pq: 12px;
+  --ui-fonte: 13px;
+  --ui-fonte-g: 15px;
+  --ui-fonte-titulo: 19px;
+  --ui-fonte-numero: 22px;
+  --ui-mono: var(--font-mono, ui-monospace, 'Cascadia Mono', 'Consolas', monospace);
+  --ui-camada-modal: 60;
+  --ui-camada-toast: 70;
+}
+
+.dark {
+  --ui-sucesso: var(--sucesso, oklch(0.72 0.14 152));
+  --ui-info: var(--info, oklch(0.71 0.11 232));
+  --ui-roxo: var(--roxo, oklch(0.7 0.14 300));
+}
+
+/* ══════════════════════════════════════════════════════ anatomia da tela ══ */
+
+.ie-tela {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  color: var(--ui-texto);
+  font-size: var(--ui-fonte);
+}
+
+.ie-tela__topo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-espaco-3);
+  padding: var(--ui-espaco-4) var(--ui-espaco-5) var(--ui-espaco-3);
+}
+
+.ie-tela__corpo {
+  flex: 1;
+  min-height: 0;
+  padding: 0 var(--ui-espaco-5);
+}
+
+/* A tabela da lista ocupa o corpo inteiro: é ela que rola, não a página. Cabeçalho de
+   coluna que sai de vista ao rolar torna um grid de mil linhas ilegível. */
+.ie-tela__corpo > .ie-tabela {
+  height: 100%;
+}
+
+.ie-tela__rolagem {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 var(--ui-espaco-5) var(--ui-espaco-5);
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-borda) transparent;
+}
+
+/* ── trilha ──────────────────────────────────────────────────────────── */
+
+.ie-trilha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-espaco-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ui-texto-suave);
+  font-size: var(--ui-fonte-pq);
+}
+
+.ie-trilha__sep {
+  opacity: 0.55;
+}
+
+.ie-trilha__atual {
+  color: var(--ui-texto);
+  font-weight: 500;
+}
+
+/* ── cabeçalho ───────────────────────────────────────────────────────── */
+
+.ie-cab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ui-espaco-4);
+}
+
+.ie-cab__identidade {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-espaco-3);
+  min-width: 0;
+}
+
+.ie-cab__icone {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--ui-raio);
+  background: color-mix(in oklab, var(--ui-acento) 14%, transparent);
+  color: var(--ui-acento);
+  font-size: 18px;
+}
+
+.ie-cab__titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-espaco-2);
+  margin: 0;
+  font-size: var(--ui-fonte-titulo);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.ie-cab__numero {
+  font-family: var(--ui-mono);
+  font-size: var(--ui-fonte-g);
+  font-weight: 600;
+}
+
+.ie-cab__sub {
+  margin: 2px 0 0;
+  color: var(--ui-texto-suave);
+  font-size: var(--ui-fonte-pq);
+}
+
+.ie-cab__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-espaco-2);
+}
+
+/* ══════════════════════════════════════════════════════════════════ KPIs ══ */
+
+.ie-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: var(--ui-espaco-3);
+}
+
+.ie-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--ui-espaco-3);
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio);
+  background: var(--ui-superficie);
+  text-align: left;
+}
+
+button.ie-kpi {
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+button.ie-kpi:hover {
+  border-color: var(--ui-acento);
+}
+
+.ie-kpi__rotulo {
+  color: var(--ui-texto-suave);
+  font-size: var(--ui-fonte-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ie-kpi__valor {
+  font-size: var(--ui-fonte-numero);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.ie-kpi__legenda {
+  color: var(--ui-texto-suave);
+  font-size: var(--ui-fonte-micro);
+}
+
+.ie-kpi__delta {
+  font-size: var(--ui-fonte-micro);
+  font-weight: 600;
+}
+
+.ie-kpi__delta--bom {
+  color: var(--ui-sucesso);
+}
+
+.ie-kpi__delta--ruim {
+  color: var(--ui-perigo);
+}
+
+/* ═══════════════════════════════════════════════ barra de ferramentas ══ */
+
+.ie-ferramentas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-espaco-2);
+}
+
+.ie-ferramentas__fim {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--ui-espaco-2);
+}
+
+.ie-entrada,
+.ie-selecao {
+  height: 30px;
+  padding: 0 var(--ui-espaco-2);
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-pq);
+  background: var(--ui-superficie);
+  color: var(--ui-texto);
+  font: inherit;
+  font-size: var(--ui-fonte);
+  outline: none;
+}
+
+.ie-entrada:focus,
+.ie-selecao:focus {
+  border-color: var(--ui-acento);
+}
+
+.ie-busca {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ie-busca__icone {
+  position: absolute;
+  left: var(--ui-espaco-2);
+  color: var(--ui-texto-suave);
+  pointer-events: none;
+}
+
+.ie-busca .ie-entrada {
+  width: 260px;
+  padding-left: 26px;
+}
+
+.ie-escopo {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-espaco-1);
+}
+
+.ie-escopo__rotulo {
+  color: var(--ui-texto-suave);
+  font-size: var(--ui-fonte-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ═════════════════════════════════════════════════════ botões e chips ══ */
+
+.ie-botao {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-espaco-1);
+  height: 30px;
+  padding: 0 var(--ui-espaco-3);
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-pq);
+  background: var(--ui-superficie);
+  color: var(--ui-texto);
+  font: inherit;
+  font-size: var(--ui-fonte);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ie-botao:hover:not(:disabled) {
+  background: var(--ui-superficie-2);
+}
+
+.ie-botao:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ie-botao--primario {
+  border-color: transparent;
+  background: var(--ui-acento);
+  color: var(--ui-acento-texto);
+}
+
+.ie-botao--primario:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--ui-acento) 88%, var(--ui-texto));
+}
+
+.ie-botao--perigo {
+  border-color: transparent;
+  background: var(--ui-perigo);
+  color: var(--ui-acento-texto);
+}
+
+.ie-botao--perigo:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--ui-perigo) 88%, var(--ui-texto));
+}
+
+.ie-botao--fantasma {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ui-texto-suave);
+}
+
+.ie-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-espaco-1);
+  height: 24px;
+  padding: 0 var(--ui-espaco-2);
+  border: 1px solid var(--ui-borda);
+  border-radius: 999px;
+  background: var(--ui-superficie);
+  color: var(--ui-texto-suave);
+  font: inherit;
+  font-size: var(--ui-fonte-pq);
+  white-space: nowrap;
+}
+
+button.ie-chip {
+  cursor: pointer;
+}
+
+button.ie-chip:hover {
+  border-color: var(--ui-acento);
+  color: var(--ui-texto);
+}
+
+.ie-chip--ativo {
+  border-color: var(--ui-acento);
+  background: color-mix(in oklab, var(--ui-acento) 14%, transparent);
+  color: var(--ui-acento);
+  font-weight: 600;
+}
+
+.ie-chip__qtd {
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in oklab, currentColor 16%, transparent);
+  font-size: var(--ui-fonte-micro);
+  font-variant-numeric: tabular-nums;
+}
+
+.ie-pilulas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-espaco-1);
+}
+
+/* ════════════════════════════════════════════════════════════════ badge ══ */
+
+.ie-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px var(--ui-espaco-2);
+  border: 1px solid color-mix(in oklab, var(--ie-tom) 38%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--ie-tom) 13%, transparent);
+  color: var(--ie-tom);
+  font-size: var(--ui-fonte-micro);
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  --ie-tom: var(--ui-neutro);
+}
+
+.ie-badge::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.ie-badge--sem-ponto::before {
+  display: none;
+}
+
+.ie-badge--neutro {
+  --ie-tom: var(--ui-neutro);
+}
+.ie-badge--sucesso {
+  --ie-tom: var(--ui-sucesso);
+}
+.ie-badge--perigo {
+  --ie-tom: var(--ui-perigo);
+}
+.ie-badge--atencao {
+  --ie-tom: var(--ui-atencao);
+}
+.ie-badge--info {
+  --ie-tom: var(--ui-info);
+}
+.ie-badge--acento {
+  --ie-tom: var(--ui-acento);
+}
+.ie-badge--roxo {
+  --ie-tom: var(--ui-roxo);
+}
+
+/* ═══════════════════════════════════════════ referência (drill-down) ══ */
+
+.ie-ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  color: var(--ui-acento);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ie-ref:hover {
+  text-decoration: underline;
+}
+
+.ie-ref--discreta {
+  color: inherit;
+}
+
+.ie-ref--discreta:hover {
+  color: var(--ui-acento);
+}
+
+.ie-ref__texto {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ie-ref__externo {
+  flex: none;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.ie-ref:hover .ie-ref__externo,
+.ie-ref:focus-visible .ie-ref__externo {
+  opacity: 0.6;
+}
+
+/* Referência sem tela (registro fora do recorte, tipo ainda não registrado). */
+.ie-ref--inerte {
+  color: var(--ui-texto-suave);
+  cursor: default;
+}
+
+/* Link esticado: a linha inteira do grid vira alvo sem deixar de ser um <a>
+   de verdade — Ctrl+clique e clique do meio continuam nascendo do navegador,
+   e o leitor de tela continua anunciando um link, não uma div clicável. */
+.ie-ref--esticado::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+/* ═════════════════════════════════════════════════════════ tabela densa ══ */
+
+.ie-tabela {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio);
+  background: var(--ui-superficie);
+  overflow: hidden;
+}
+
+.ie-tabela__cabecalho {
+  display: grid;
+  align-items: center;
+  border-bottom: 1px solid var(--ui-borda);
+  background: var(--ui-superficie-2);
+  color: var(--ui-texto-suave);
+  font-size: var(--ui-fonte-micro);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ie-tabela__corpo {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-borda) transparent;
+}
+
+.ie-tabela__linha {
+  position: relative;
+  display: grid;
+  align-items: center;
+  border-bottom: 1px solid color-mix(in oklab, var(--ui-borda) 55%, transparent);
+}
+
+.ie-tabela__linha:hover {
+  background: var(--ui-superficie-2);
+}
+
+/* `z-index: 1` põe TODA célula acima do link esticado (que fica em 0), para que um
+   segundo drill-down na mesma linha — o fornecedor, o produto — continue clicável em
+   vez de ser engolido pelo alvo da linha. */
+.ie-tabela__cel {
+  position: relative;
+  z-index: 1;
+  padding: 0 var(--ui-espaco-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A célula que hospeda o link esticado é a exceção: ela precisa ser `static` para que o
+   `::after` do link resolva contra a LINHA, e não contra a própria célula — senão o
+   alvo cobriria só a primeira coluna. */
+.ie-tabela__cel--ancora {
+  position: static;
+  z-index: auto;
+}
+
+.ie-tabela__cel--direita {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ie-tabela__cel--centro {
+  text-align: center;
+}
+
+.ie-tabela__cel--mono {
+  font-family: var(--ui-mono);
+  font-size: var(--ui-fonte-pq);
+}
+
+.ie-tabela__totais {
+  display: grid;
+  align-items: center;
+  border-top: 1px solid var(--ui-borda);
+  background: var(--ui-superficie-2);
+  font-weight: 600;
+}
+
+.ie-tabela__espaco {
+  width: 100%;
+}
+
+.ie-tabela__mais {
+  display: flex;
+  justify-content: center;
+  padding: var(--ui-espaco-3);
+}
+
+/* ══════════════════════════════════════════════════ rodapé de recorte ══ */
+
+.ie-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-espaco-2);
+  padding: var(--ui-espaco-2) var(--ui-espaco-5);
+  border-top: 1px solid var(--ui-borda);
+  color: var(--ui-texto-suave);
+  font-size: var(--ui-fonte-pq);
+}
+
+/* ═══════════════════════════════════════════════ propriedades e vínculos ══ */
+
+.ie-bloco {
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio);
+  background: var(--ui-superficie);
+}
+
+.ie-bloco__titulo {
+  margin: 0;
+  padding: var(--ui-espaco-2) var(--ui-espaco-3);
+  border-bottom: 1px solid var(--ui-borda);
+  color: var(--ui-texto-suave);
+  font-size: var(--ui-fonte-micro);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ═══════════════════════════════════════════════════════════════ painel ══ */
+
+/* A pilha de blocos do `TelaDePainel`. Ela empilha e nada mais: quantas colunas cada
+   faixa tem é composição da tela, e a fábrica não decide isso — ver o comentário de
+   `TelaDePainel.tsx`. */
+.ie-painel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-espaco-4);
+}
+
+/* O aviso vem do padrão de formulário, onde é uma faixa PRESA ao topo do painel de
+   edição — daí a borda só embaixo. Solto no meio da rolagem ele ficaria com um traço
+   órfão numa caixa de canto vivo; arredondar o invólucro (e cortar o que sobra) resolve
+   sem repetir aqui as cores das variantes, que continuam sendo decididas lá. */
+.ie-painel__aviso {
+  margin-bottom: var(--ui-espaco-3);
+  border-radius: var(--ui-raio);
+  overflow: hidden;
+}
+
+.ie-bloco--cartao {
+  display: flex;
+  flex-direction: column;
+}
+
+.ie-bloco__cab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ui-espaco-2);
+  padding: var(--ui-espaco-2) var(--ui-espaco-3);
+  border-bottom: 1px solid var(--ui-borda);
+}
+
+.ie-bloco__nome {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-espaco-2);
+  margin: 0;
+  font-size: var(--ui-fonte-g);
+  font-weight: 600;
+}
+
+.ie-bloco__icone {
+  color: var(--ui-acento);
+}
+
+.ie-bloco__sub {
+  margin: 2px 0 0;
+  color: var(--ui-texto-suave);
+  font-size: var(--ui-fonte-micro);
+}
+
+.ie-bloco__acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-espaco-2);
+}
+
+/* `flex: 1` para que dois cartões lado a lado com conteúdos de alturas diferentes
+   terminem na mesma linha — sem isso o gráfico menor deixa o cartão curto e a grade
+   fica com degrau. */
+.ie-bloco__corpo {
+  flex: 1;
+  padding: var(--ui-espaco-3);
+}
+
+/* ═══════════════════════════════════════════════ propriedades e vínculos ══ */
+
+.ie-props {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--ui-espaco-3) var(--ui-espaco-4);
+  margin: 0;
+  padding: var(--ui-espaco-3);
+}
+
+.ie-props__rotulo {
+  color: var(--ui-texto-suave);
+  font-size: var(--ui-fonte-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ie-props__valor {
+  margin: 2px 0 0;
+  min-height: 18px;
+}
+
+.ie-props__valor--mono {
+  font-family: var(--ui-mono);
+  font-size: var(--ui-fonte-pq);
+}
+
+.ie-vinculos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--ui-espaco-3);
+  padding: var(--ui-espaco-3);
+}
+
+.ie-vinculos__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-espaco-1);
+}
+
+.ie-vinculos__rotulo {
+  color: var(--ui-texto-suave);
+  font-size: var(--ui-fonte-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ie-vinculos__lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-espaco-1) var(--ui-espaco-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ═══════════════════════════════════════════════════════ abas internas ══ */
+
+.ie-abas {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ie-abas__tiras {
+  display: flex;
+  gap: var(--ui-espaco-1);
+  border-bottom: 1px solid var(--ui-borda);
+}
+
+.ie-abas__tira {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-espaco-1);
+  padding: var(--ui-espaco-2) var(--ui-espaco-3);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--ui-texto-suave);
+  font: inherit;
+  font-size: var(--ui-fonte);
+  cursor: pointer;
+}
+
+.ie-abas__tira:hover {
+  color: var(--ui-texto);
+}
+
+.ie-abas__tira[aria-selected='true'] {
+  border-bottom-color: var(--ui-acento);
+  color: var(--ui-texto);
+  font-weight: 600;
+}
+
+.ie-abas__contador {
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--ui-superficie-2);
+  font-size: var(--ui-fonte-micro);
+  font-variant-numeric: tabular-nums;
+}
+
+.ie-abas__painel {
+  flex: 1;
+  min-height: 0;
+  padding-top: var(--ui-espaco-3);
+}
+
+/* ═══════════════════════════════════════════════════ estados da consulta ══ */
+
+.ie-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ui-espaco-2);
+  padding: var(--ui-espaco-5);
+  color: var(--ui-texto-suave);
+  text-align: center;
+}
+
+.ie-vazio__icone {
+  font-size: 28px;
+  opacity: 0.5;
+}
+
+.ie-vazio__titulo {
+  margin: 0;
+  color: var(--ui-texto);
+  font-size: var(--ui-fonte-g);
+  font-weight: 600;
+}
+
+.ie-vazio__texto {
+  margin: 0;
+  max-width: 46ch;
+}
+
+.ie-erro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ui-espaco-2);
+  padding: var(--ui-espaco-5);
+  color: var(--ui-perigo);
+  text-align: center;
+}
+
+.ie-esqueleto {
+  border-radius: var(--ui-raio-pq);
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--ui-borda) 55%, transparent),
+    color-mix(in oklab, var(--ui-borda) 22%, transparent),
+    color-mix(in oklab, var(--ui-borda) 55%, transparent)
+  );
+  background-size: 200% 100%;
+  animation: ie-brilho 1.2s linear infinite;
+}
+
+@keyframes ie-brilho {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ie-esqueleto {
+    animation: none;
+  }
+}
+
+/* ══════════════════════════════════════════════════════ modal e toasts ══ */
+
+.ie-modal__fundo {
+  position: fixed;
+  inset: 0;
+  z-index: var(--ui-camada-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--ui-espaco-4);
+  background: color-mix(in oklab, var(--ui-texto) 45%, transparent);
+}
+
+.ie-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  max-height: 86vh;
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio);
+  background: var(--ui-superficie);
+  color: var(--ui-texto);
+  box-shadow: 0 18px 48px color-mix(in oklab, var(--ui-texto) 28%, transparent);
+}
+
+.ie-modal--g {
+  width: min(820px, 100%);
+}
+
+.ie-modal--gg {
+  width: min(1120px, 100%);
+}
+
+.ie-modal__cab {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ui-espaco-3);
+  padding: var(--ui-espaco-3) var(--ui-espaco-4);
+  border-bottom: 1px solid var(--ui-borda);
+}
+
+.ie-modal__titulo {
+  margin: 0;
+  font-size: var(--ui-fonte-g);
+  font-weight: 600;
+}
+
+.ie-modal__sub {
+  margin: 2px 0 0;
+  color: var(--ui-texto-suave);
+  font-size: var(--ui-fonte-pq);
+}
+
+.ie-modal__corpo {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--ui-espaco-4);
+  scrollbar-width: thin;
+}
+
+.ie-modal__acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--ui-espaco-2);
+  padding: var(--ui-espaco-3) var(--ui-espaco-4);
+  border-top: 1px solid var(--ui-borda);
+}
+
+.ie-toasts {
+  position: fixed;
+  right: var(--ui-espaco-4);
+  bottom: var(--ui-espaco-4);
+  z-index: var(--ui-camada-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-espaco-2);
+  pointer-events: none;
+}
+
+.ie-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-espaco-2);
+  min-width: 240px;
+  max-width: 380px;
+  padding: var(--ui-espaco-2) var(--ui-espaco-3);
+  border: 1px solid color-mix(in oklab, var(--ie-tom) 40%, var(--ui-borda));
+  border-left: 3px solid var(--ie-tom);
+  border-radius: var(--ui-raio-pq);
+  background: var(--ui-superficie);
+  color: var(--ui-texto);
+  box-shadow: 0 8px 24px color-mix(in oklab, var(--ui-texto) 18%, transparent);
+  pointer-events: auto;
+  --ie-tom: var(--ui-acento);
+}
+
+.ie-toast--sucesso {
+  --ie-tom: var(--ui-sucesso);
+}
+.ie-toast--perigo {
+  --ie-tom: var(--ui-perigo);
+}
+.ie-toast--atencao {
+  --ie-tom: var(--ui-atencao);
+}
+.ie-toast--info {
+  --ie-tom: var(--ui-info);
+}
+
+.ie-toast__texto {
+  flex: 1;
+}
+
+.ie-toast__detalhe {
+  margin: 2px 0 0;
+  color: var(--ui-texto-suave);
+  font-size: var(--ui-fonte-pq);
+}
+
+/* ══════════════════════════════════════════════════════════════ miúdos ══ */
+
+.ie-suave {
+  color: var(--ui-texto-suave);
+}
+
+.ie-mono {
+  font-family: var(--ui-mono);
+}
+
+.ie-so-leitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
