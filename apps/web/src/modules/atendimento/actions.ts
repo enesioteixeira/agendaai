@@ -48,6 +48,8 @@ export async function assumirConversaAction(formData: FormData): Promise<void> {
     if (claim.count === 0) throw new Error("Conversa já foi assumida por outra pessoa.");
   });
   revalidatePath("/atendimento");
+  revalidatePath("/inbox");
+  revalidatePath(`/inbox/${conversaId}`);
 }
 
 export async function encerrarConversaAction(formData: FormData): Promise<void> {
@@ -60,6 +62,56 @@ export async function encerrarConversaAction(formData: FormData): Promise<void> 
     });
   });
   revalidatePath("/atendimento");
+  revalidatePath("/inbox");
+  revalidatePath(`/inbox/${conversaId}`);
+}
+
+/**
+ * Devolve à fila: o atendente larga a conversa e ela volta a ficar disponível
+ * para quem estiver livre.
+ *
+ * NÃO é "devolver ao bot". Enquanto o motor de IA não existe (Fase C), devolver
+ * para `bot_ia` deixaria a conversa sem ninguém — nem humano, nem máquina —, e o
+ * cliente ficaria falando sozinho. A transição para os estados de bot entra
+ * junto com o motor que sabe atendê-los.
+ *
+ * O claim é condicionado a `estado: "humano"`: se a conversa já mudou (outro
+ * atendente, encerramento), o `updateMany` casa zero linhas e a ação recusa em
+ * vez de sobrescrever o que aconteceu no meio.
+ */
+export async function devolverConversaAction(formData: FormData): Promise<void> {
+  const sessao = await exigir("atendimento:responder");
+  const conversaId = String(formData.get("id") ?? "");
+  await runWithTenant(contexto(sessao), async () => {
+    const devolvida = await prisma.conversa.updateMany({
+      where: { id: conversaId, estado: "humano" },
+      data: { estado: "fila_humano", atendenteUsuarioId: null },
+    });
+    if (devolvida.count === 0) throw new Error("Esta conversa não está em atendimento.");
+  });
+  revalidatePath("/atendimento");
+  revalidatePath("/inbox");
+  revalidatePath(`/inbox/${conversaId}`);
+}
+
+/**
+ * Reabre uma conversa encerrada, devolvendo-a à fila. O cliente que escreve de
+ * novo depois do encerramento cria uma conversa nova pelo worker; isto aqui é
+ * para o outro caso — encerrar por engano, ou perceber que faltou resolver algo.
+ */
+export async function reabrirConversaAction(formData: FormData): Promise<void> {
+  const sessao = await exigir("atendimento:responder");
+  const conversaId = String(formData.get("id") ?? "");
+  await runWithTenant(contexto(sessao), async () => {
+    const reaberta = await prisma.conversa.updateMany({
+      where: { id: conversaId, estado: "encerrada" },
+      data: { estado: "fila_humano", encerradaEm: null, atendenteUsuarioId: null },
+    });
+    if (reaberta.count === 0) throw new Error("Esta conversa não está encerrada.");
+  });
+  revalidatePath("/atendimento");
+  revalidatePath("/inbox");
+  revalidatePath(`/inbox/${conversaId}`);
 }
 
 const responderSchema = z.object({
@@ -110,6 +162,8 @@ export async function responderConversaAction(
       ]);
     });
     revalidatePath(`/atendimento/${parsed.data.conversaId}`);
+    revalidatePath("/inbox");
+    revalidatePath(`/inbox/${parsed.data.conversaId}`);
   });
 }
 
