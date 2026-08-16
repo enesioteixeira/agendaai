@@ -6,7 +6,7 @@
 import type { MensagemInboundNormalizada, MensagemOutbound } from "@atende/core";
 import type { CapacidadesCanal, Conector } from "../tipos";
 import { botoesParaListaNumerada } from "../degradacao";
-import type { WAMessage, WASocket } from "./socket";
+import { type WAMessage, type WASocket } from "./socket";
 
 export const capacidadesBaileys: CapacidadesCanal = {
   botoes: false, // reply buttons não são confiáveis fora da API oficial
@@ -16,11 +16,76 @@ export const capacidadesBaileys: CapacidadesCanal = {
   typing: true,
 };
 
-/** JID de usuário → E.164 ("+5511999998888"). Grupos/broadcast → null. */
-export function jidParaTelefone(jid: string | null | undefined): string | null {
+/** JID de telefone → E.164 ("+5511999998888"). Só @s.whatsapp.net. */
+function telefoneDeJid(jid: string | null | undefined): string | null {
   if (!jid || !jid.endsWith("@s.whatsapp.net")) return null;
   const numero = jid.split("@")[0]?.split(":")[0] ?? "";
   return /^\d{10,15}$/.test(numero) ? `+${numero}` : null;
+}
+
+/**
+ * O `remoteJid` é o ENDEREÇO DA CONVERSA, e é ele que decide se a mensagem
+ * entra no funil. Só conversa 1:1 entra.
+ *
+ * Isto tem de ser checado ANTES de procurar o telefone do remetente, e a ordem
+ * não é preferência de estilo — é um bug já visto em produção. Uma mensagem de
+ * status vem assim (payload real do log de diagnóstico do worker):
+ *
+ *     remoteJid:    "status@broadcast"
+ *     remoteJidAlt: "5511911128569@s.whatsapp.net"   ← telefone VÁLIDO
+ *     participant:  "276927176822971@lid"
+ *
+ * Quem procura o telefone primeiro encontra um em `remoteJidAlt` e admite a
+ * mensagem: cada story postado por qualquer contato da agenda viraria uma
+ * conversa nova na inbox, com nome e telefone de gente real. O filtro de
+ * `status@broadcast` que existia depois nunca era alcançado.
+ */
+function conversaDireta(remoteJid: string | null | undefined): boolean {
+  if (!remoteJid) return false;
+  if (remoteJid === "status@broadcast") return false; // stories
+  if (remoteJid.endsWith("@g.us")) return false; // grupos — fora do MVP
+  if (remoteJid.endsWith("@newsletter")) return false; // canais/newsletter
+  if (remoteJid.endsWith("@broadcast")) return false; // listas de transmissão
+  return true;
+}
+
+/**
+ * Identidade externa do remetente, já sabendo que a conversa é direta.
+ *
+ * O WhatsApp novo endereça por `@lid` (privacidade) em vez do telefone. Quando
+ * só há LID, Baileys às vezes expõe o telefone real num campo paralelo
+ * (`remoteJidAlt`) — é o caso do payload real:
+ *
+ *     remoteJid: "49328018215052@lid" · remoteJidAlt: "551128475131@s.whatsapp.net"
+ *
+ * Preferimos o telefone porque é ele que casa com o cadastro do cliente e com
+ * as outras identidades do mesmo contato. Sem telefone, o LID vale como
+ * identidade OPACA com prefixo `lid:` — que nunca colide com um E.164, então
+ * threading e dedup continuam corretos, e o telefone entra depois, quando o
+ * WhatsApp o revelar.
+ */
+export function identidadeDeMensagem(msg: WAMessage): string | null {
+  const k = msg.key as {
+    remoteJid?: string | null;
+    remoteJidAlt?: string | null;
+    participantAlt?: string | null;
+  };
+  if (!conversaDireta(k.remoteJid)) return null;
+
+  const telefone =
+    telefoneDeJid(k.remoteJid) ?? telefoneDeJid(k.remoteJidAlt) ?? telefoneDeJid(k.participantAlt);
+  if (telefone) return telefone;
+
+  if (k.remoteJid?.endsWith("@lid")) {
+    const id = k.remoteJid.split("@")[0]?.split(":")[0] ?? "";
+    return id ? `lid:${id}` : null;
+  }
+  return null; // endereço que não sabemos responder
+}
+
+/** Compat: mantido para os testes existentes. */
+export function jidParaTelefone(jid: string | null | undefined): string | null {
+  return telefoneDeJid(jid);
 }
 
 function extrairTexto(msg: WAMessage): string | undefined {
@@ -60,8 +125,11 @@ export function normalizarInboundBaileys(
   msg: WAMessage,
 ): MensagemInboundNormalizada | null {
   if (msg.key.fromMe) return null;
-  const telefone = jidParaTelefone(msg.key.remoteJid);
-  if (!telefone) return null; // grupo, status, newsletter — fora do MVP
+  // `identidadeDeMensagem` já recusa grupo, status, newsletter e transmissão —
+  // o filtro mora lá porque precisa vir ANTES da busca pelo telefone (ver o
+  // comentário de `conversaDireta`).
+  const identidade = identidadeDeMensagem(msg);
+  if (!identidade) return null;
   const idExterno = msg.key.id;
   if (!idExterno || !msg.message) return null;
 
@@ -76,7 +144,7 @@ export function normalizarInboundBaileys(
   return {
     empresaId,
     canalId,
-    identidadeExterna: { tipo: "telefone", valor: telefone },
+    identidadeExterna: { tipo: "telefone", valor: identidade },
     tipo,
     texto,
     midia: [], // download de mídia p/ R2 chega com o binding R2 (Bloco 3 tardio)
