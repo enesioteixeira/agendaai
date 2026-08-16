@@ -7,6 +7,7 @@ import makeWASocket, {
   initAuthCreds,
   BufferJSON,
   makeCacheableSignalKeyStore,
+  jidDecode,
   type AuthenticationState,
   type AuthenticationCreds,
   type SignalDataTypeMap,
@@ -14,6 +15,8 @@ import makeWASocket, {
   type WAMessage,
 } from "@whiskeysockets/baileys";
 import pino from "pino";
+
+export { jidDecode };
 
 export type {
   AuthenticationState,
@@ -85,6 +88,8 @@ export interface EventosSocket {
   // deveReconectar=false → sessão deslogada (limpar auth e re-parear)
   aoFechar(deveReconectar: boolean): void;
   aoMensagens(mensagens: WAMessage[]): void;
+  /** Recibos de entrega das mensagens que ENVIAMOS (✓ → ✓✓ → lida). */
+  aoRecibos(recibos: readonly { idExterno: string; codigo: number | null }[]): void;
 }
 
 /** Cria o socket Baileys já ligado nos eventos. Logger silencioso (pino). */
@@ -122,6 +127,16 @@ export function criarSocketBaileys(
 
   sock.ev.on("messages.upsert", ({ messages, type }) => {
     if (type === "notify") eventos.aoMensagens(messages);
+  });
+
+  // `messages.update` carrega muita coisa além de recibo (edição, revogação,
+  // reação). Só o que tem `status` interessa aqui; o resto é filtrado antes de
+  // chegar ao gestor para ele não precisar conhecer o formato do Baileys.
+  sock.ev.on("messages.update", (atualizacoes) => {
+    const recibos = atualizacoes
+      .filter((a) => a.key?.fromMe && a.key.id && a.update?.status != null)
+      .map((a) => ({ idExterno: a.key.id as string, codigo: a.update.status as number }));
+    if (recibos.length > 0) eventos.aoRecibos(recibos);
   });
 
   return sock;

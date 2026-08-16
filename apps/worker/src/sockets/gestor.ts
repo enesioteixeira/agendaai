@@ -19,6 +19,7 @@ import QRCode from "qrcode";
 import { criarArmazenamentoAuthPg, limparAuthState } from "./auth-state-pg.js";
 import { listarCanaisBaileys } from "../consumers/plataforma.js";
 import { processarInbound } from "../consumers/inbound.js";
+import { aplicarRecibos } from "../consumers/recibos.js";
 
 const { cifrarSegredo } = cryptoCore;
 
@@ -95,6 +96,9 @@ async function abrirSocket(empresaId: string, canalId: string): Promise<void> {
     },
     aoMensagens(mensagens) {
       for (const msg of mensagens) {
+        // DIAGNÓSTICO (temporário): registra a chave bruta de cada inbound
+        // p/ investigar por que não vira conversa. Arquivo lido pelo dev.
+        diagInbound(canalId, msg);
         const normalizada = normalizarInboundBaileys(empresaId, canalId, msg);
         if (normalizada) {
           processarInbound(normalizada).catch((e) =>
@@ -103,11 +107,17 @@ async function abrirSocket(empresaId: string, canalId: string): Promise<void> {
         }
       }
     },
+    aoRecibos(recibos) {
+      aplicarRecibos(empresaId, recibos).catch((e) =>
+        console.error(`[gestor] recibos ${canalId}:`, e),
+      );
+    },
   });
 
   entrada.socket = socket;
   entrada.conector = criarConectorBaileys(socket, async (m: MensagemOutbound) => {
-    // destino = telefone da identidade da conversa → JID
+    // destino = identidade da conversa → JID. Telefone "+55..." vira
+    // "55...@s.whatsapp.net"; identidade opaca "lid:123" vira "123@lid".
     const conversa = await runWithTenant({ empresaId: m.empresaId }, () =>
       prisma.conversa.findUnique({
         where: { id: m.conversaId },
@@ -115,8 +125,35 @@ async function abrirSocket(empresaId: string, canalId: string): Promise<void> {
       }),
     );
     const valor = conversa?.identidade.valor ?? "";
+    if (valor.startsWith("lid:")) return `${valor.slice(4)}@lid`;
     return `${valor.replace(/^\+/, "")}@s.whatsapp.net`;
   });
+}
+
+// Diagnóstico de inbound em arquivo (worker roda local — doc 11). Remover
+// quando o fluxo do WhatsApp estiver confirmado.
+function diagInbound(canalId: string, msg: unknown): void {
+  try {
+    const m = msg as {
+      key?: Record<string, unknown>;
+      message?: Record<string, unknown> | null;
+      messageStubType?: unknown;
+    };
+    const linha =
+      JSON.stringify({
+        t: new Date().toISOString(),
+        canalId,
+        key: m.key,
+        temMessage: !!m.message,
+        chavesMessage: m.message ? Object.keys(m.message) : [],
+        stub: m.messageStubType,
+      }) + "\n";
+    void import("node:fs").then((fs) =>
+      fs.appendFileSync(new URL("../../diag-inbound.log", import.meta.url), linha),
+    );
+  } catch {
+    // diagnóstico nunca derruba o fluxo
+  }
 }
 
 function fecharSocket(canalId: string): void {
