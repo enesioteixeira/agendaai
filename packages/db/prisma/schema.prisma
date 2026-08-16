@@ -80,6 +80,11 @@ model Empresa {
   conversas        Conversa[]
   mensagens        Mensagem[]
   authStatesBaileys AuthStateBaileys[]
+
+  // Fase C — motor de IA
+  propostas        PropostaAcao[]
+  resumosConversa  ResumoConversa[]
+  feedbacksIA      FeedbackIA[]
 }
 
 model Unidade {
@@ -627,9 +632,113 @@ model Conversa {
   identidade IdentidadeCanal @relation(fields: [identidadeCanalId], references: [id])
   atendente  Usuario?        @relation(fields: [atendenteUsuarioId], references: [id])
   mensagens  Mensagem[]
+  propostas  PropostaAcao[]
+  resumos    ResumoConversa[]
 
   // Fila de atendimento e inbox por estado (doc 02 §14.1)
   @@index([empresaId, estado, atualizadoEm])
+}
+
+/// Propose-confirm (regra inviolável 10): NENHUMA escrita disparada por IA
+/// acontece direto. A tool cria uma proposta PENDENTE, o cliente confirma pelo
+/// canal, e a execução é determinística — sem LLM, com auditoria.
+model PropostaAcao {
+  id                String         @id @default(cuid())
+  empresaId         String
+  conversaId        String
+  /// Só a MESMA identidade que originou confirma. Sem isto, um "sim" vindo de
+  /// outro canal do mesmo cliente executaria uma proposta que ele não viu.
+  identidadeCanalId String
+  tipo              TipoProposta
+  /// Payload congelado no momento da proposta e validado por Zod na execução.
+  /// O que o modelo escrever DEPOIS não entra aqui — é o que impede que texto
+  /// injetado na conversa mude o que vai ser executado.
+  payload           Json
+  status            StatusProposta @default(PENDENTE)
+  /// TTL de 15 min: proposta velha confirmada por um "sim" tardio é a forma
+  /// mais fácil de executar algo que o cliente já esqueceu que pediu.
+  expiraEm          DateTime
+  criadoEm          DateTime       @default(now())
+  executadaEm       DateTime?
+  resultadoJson     Json?
+  /// Mensagem que apresentou a proposta — para reconstruir o que o cliente viu.
+  mensagemId        String?
+
+  empresa  Empresa  @relation(fields: [empresaId], references: [id])
+  conversa Conversa @relation(fields: [conversaId], references: [id])
+
+  /// Uma proposta PENDENTE por conversa (doc 05 §4): sem isto, um "sim" solto
+  /// fica ambíguo entre duas propostas abertas — e a escolha errada executa a
+  /// que o cliente não quis. Índice parcial em SQL manual (o Prisma não expressa
+  /// `WHERE status = 'PENDENTE'`).
+  @@index([empresaId, conversaId, status])
+  @@index([status, expiraEm])
+}
+
+/// Resumo gerado por IA no handoff e no encerramento. Existe para o atendente
+/// humano não precisar ler cinquenta mensagens antes de assumir.
+model ResumoConversa {
+  id              String      @id @default(cuid())
+  empresaId       String
+  conversaId      String
+  tipo            TipoResumo
+  texto           String
+  geradoPorModelo String
+  criadoEm        DateTime    @default(now())
+
+  empresa  Empresa  @relation(fields: [empresaId], references: [id])
+  conversa Conversa @relation(fields: [conversaId], references: [id])
+
+  @@index([empresaId, conversaId, criadoEm])
+}
+
+/// 👍/👎 numa resposta da IA. Alimenta a medição de qualidade do agente
+/// (Fase D) — sem isto, "o bot está ruim" continua sendo impressão.
+model FeedbackIA {
+  id         String        @id @default(cuid())
+  empresaId  String
+  mensagemId String
+  util       Boolean
+  comentario String?
+  origem     OrigemFeedback
+  criadoEm   DateTime      @default(now())
+
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+
+  /// Um feedback por mensagem e origem — clicar duas vezes no 👍 não vira dois.
+  @@unique([empresaId, mensagemId, origem])
+}
+
+enum TipoProposta {
+  /// Os três primeiros são o fluxo de venda na conversa (doc 12 §6).
+  montar_pedido
+  gerar_cobranca
+  enviar_contrato
+
+  // Os tipos de agenda (criar/remarcar/cancelar agendamento) que o doc 02
+  // previa NÃO entram aqui: o módulo está congelado (doc 12 §1.2) e não expõe
+  // tools de IA. Valor de enum sem uso é dívida morta — eles voltam junto com o
+  // módulo, se ele voltar.
+}
+
+enum StatusProposta {
+  /// MAIÚSCULAS por herança do ev-tracker (doc 02 §7, exceção declarada):
+  /// mantém o motor propose-confirm reusável sem renomear estados em código
+  /// que já rodou em produção.
+  PENDENTE
+  CONFIRMADA
+  EXPIRADA
+  REJEITADA
+}
+
+enum TipoResumo {
+  handoff
+  encerramento
+}
+
+enum OrigemFeedback {
+  cliente
+  atendente
 }
 
 model Mensagem {
