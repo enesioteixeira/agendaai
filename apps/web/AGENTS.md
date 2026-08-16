@@ -23,7 +23,17 @@ Toda Server Action valida input com schema Zod de `@atende/core`, resolve tenant
 
 ## Dependências
 
-Importa: `@atende/core`, `@atende/db`, `next`, `react`. Ninguém importa o web.
+Importa: `@atende/core`, `@atende/db`, `@atende/ui`, `@atende/dinheiro`, `next`, `react`. Ninguém importa o web.
+
+## Fundação visual (Fase A do doc 12)
+
+Tailwind 4 (`postcss.config.mjs` + `@import 'tailwindcss'` no `globals.css`) e o chassi de `@atende/ui`. Três coisas que quebram de forma confusa se mexidas sem saber:
+
+1. **Ordem das folhas no `layout.tsx`**: `./globals.css` **antes** de `@atende/ui/estilos.css`. O preflight do Tailwind zera borda e espaçamento; se vier por último, desfaz o chassi (mesma especificidade de classe) e a tela renderiza sem moldura — parece estilo faltando, não ordem trocada.
+2. **`SCRIPT_DE_TEMA` no `<head>`** (`src/componentes/tema.ts`) roda antes da primeira pintura e escreve a classe `dark` no `<html>`. O tema **escuro é o padrão**, não a preferência do sistema: a identidade Instant é o navy, e abrir claro por causa de um ajuste do Windows faria o primeiro contato não parecer o mesmo produto. Daí o `suppressHydrationWarning` no `<html>` — o servidor não emite a classe.
+3. **Os tokens de marca moram aqui**, em `src/app/globals.css`, e não no pacote: o chassi lê `var(--token-do-app, literal)`, então o app sempre vence. Os contrastes anotados nos comentários são **medidos** (WCAG AA); não subir luminosidade sem remedir.
+
+Utilitárias Tailwind com nome de token (`bg-superficie`, `text-texto-suave`, `border-borda`, `rounded-2`) vêm do bloco `@theme inline` do `globals.css`.
 
 ## Comandos
 
@@ -44,8 +54,10 @@ pnpm --filter @atende/web build
 - [x] **Bloco 2 — booking pública (B4)**: `(publico)/agendar/[slug]` — fluxo server-rendered por searchParams (serviço → profissional → dia → slot → nome/WhatsApp) + `/confirmado`. Slots calculados por `slotsLivres` (@atende/core, função pura: grade ∩ funcionamento − ocupados − bloqueios − passado) via `slotsBooking`/`criarAgendamentoBooking` (@atende/db, sob runWithTenant do slug). Cliente provisório com dedup por telefone NA transação; conflito = 23P01. Booking por PATH até ter domínio próprio (depois {slug}.dominio → mesma resolução por hostname/KV)
 - [x] **Bloco 2 — GCal pull (B5)**: `worker.ts` (entry customizado: fetch do OpenNext + `scheduled` → POST interno em `/api/cron/gcal-pull` com Bearer CRON_SECRET); cron `*/10 * * * *` no wrangler.jsonc (critério ≤15 min). OAuth por profissional: `/api/gcal/conectar` (escopo Google MÍNIMO calendar.freebusy; state HMAC anti-CSRF em `modules/agenda/gcal-state.ts`) → `/api/gcal/callback` (troca code, grava refresh cifrado via `salvarConexaoGcal`, sync imediato). Sync = free/busy 30 dias → bloqueios `origemGcal` replace-all (`aplicarJanelasGcal` — nunca toca bloqueio manual). UI: coluna Google Calendar em /agenda/profissionais (conectar/reconectar/desconectar + última sync). Secrets: GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/CRON_SECRET; var APP_BASE_URL. Testar cron local: `wrangler dev --test-scheduled` + GET `/cdn-cgi/handler/scheduled?cron=*/10+*+*+*+*`
 - [x] **Bloco 3.4 — painel de atendimento**: `/atendimento` (inbox com abas Abertas/Fila/Minhas/Encerradas, assumir com claim atômico anti-corrida) e `/atendimento/[id]` (histórico estilo chat + responder + encerrar). Envio é OUTBOX: a action grava a `Mensagem` de saída como `pendente` na transação — o worker entrega (o web NUNCA toca socket/pg-boss). `/configuracoes/canais` (config:canais): criar canal WhatsApp Baileys, exibir QR de pareamento (decifra `Canal.configCifrada` quando `pareando`), remover (desativa + limpa auth-state). Tempo real = polling via `AutoRefresh` (router.refresh 3–5s) até o worker ter host público (doc 11)
+- [x] **Fase A — fundação visual e rebrand** (doc 12 §10): Tailwind 4 + chassi `@atende/ui` + tokens de marca Instant em `globals.css` (tema escuro padrão, sem piscar); shell do painel reescrito (`(painel)/layout.tsx`) com a marca **Instant Channel** e a navegação do produto — Atender / Vender / Automatizar / Configurar, itens não entregues visíveis e esmaecidos; `/inbox` esqueleto em três colunas lendo `Conversa`/`Mensagem` reais (lista viva; timeline e contexto são molduras da Fase B). A rota `/atendimento` continua no ar e é ela que abre ao clicar numa conversa — trocar a fundação visual não pode derrubar a inbox em produção
 - [ ] Seletor de empresa no login (quando houver usuário com 2+ vínculos); edição de papéis/vínculos existentes
 - [ ] `api/webhooks/{meta,asaas}` (Blocos 3/5), `api/v1/` (Fase 2)
+- [ ] Telas restantes migram para o chassi **oportunisticamente** — quando forem tocadas por outro motivo, não num big-bang. `src/modules/agenda/estilos.ts` (objetos `CSSProperties` inline) é o que resta da fundação anterior e morre junto com a última tela que o usa
 
 ## Armadilha — Workers proíbe I/O entre requests
 

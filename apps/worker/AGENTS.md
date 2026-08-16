@@ -38,7 +38,9 @@ pnpm --filter @atende/worker dev   # local; NÃO subir em produção fora do Doc
 - [x] Bootstrap: health server + pg-boss (inicia quando `DATABASE_URL` existir)
 - [x] Dockerfile multi-stage
 - [x] **Bloco 3.3**: `src/sockets/` — gestor Baileys `Map<canalId, socket>` com reconciliação a cada 15s (abre canais novos, fecha removidos), reconexão backoff 2s×n (teto 30s), auth-state cifrado no Postgres (`auth-state-pg.ts` — logout limpa e volta a parear), QR cifrado em `Canal.configCifrada` + status `pareando` (o painel decifra e exibe). `src/consumers/`: `plataforma.ts` (leituras cross-tenant allowlistadas: canais ativos + saídas pendentes), `inbound.ts` (identidade→cliente provisório→conversa `fila_humano`→mensagem com dedup), `outbox-envio.ts` (varre `Mensagem` `pendente` de saída a cada 3s, claim atômico por tenant, envia pelo conector, `falhou` em erro). **Sem SSE por ora**: worker roda na máquina local (doc 11) — painel usa polling; hub SSE entra quando houver host público.
+- [x] **Fase B — recibos de entrega**: `consumers/recibos.ts` aplica os recibos do evento `messages.update` (✓ → ✓✓ → lida) casando por `idExterno`. As regras de ordem são puras e vivem em `@atende/canais/acks` — aqui fica só o encontro com o banco. Lê antes de escrever para não deixar um `entregue` atrasado desfazer um `lida` já gravado
 - [ ] Consumers dos motores: lembretes, régua, e-mail, IA (pg-boss — Blocos 4–5); retenção LGPD (Bloco 6)
+- [ ] **Fase B pendente**: mídia (download → R2) está **bloqueada por infra** — o binding R2 não existe no `wrangler.jsonc` (comentado desde o Bloco 0: exigiria permissão R2 no token). Sem o bucket, `normalizarInboundBaileys` continua devolvendo `midia: []` e a timeline mostra "Mensagem de imagem" em vez do arquivo. Watchdog e política de reenvio (portes de `ev-tracker/whatsapp-worker`) também pendentes
 
 ## Rodar local (Bloco 3)
 

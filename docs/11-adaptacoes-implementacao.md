@@ -12,6 +12,30 @@
 | 6 | GCal pull | Cron pg-boss no worker OCI (doc 02 §3.1) | **Cron Trigger do próprio Worker web** (`worker.ts` scheduled → rota interna `/api/cron/gcal-pull` com `CRON_SECRET`), a cada 10 min; sync free/busy 30 dias → bloqueios `origemGcal` replace-all | `apps/worker`/VM OCI só se torna necessário no Bloco 3 (Baileys/SSE); Cron Trigger cobre o caso a custo zero e sem infra nova | Bloco 3 provisiona o worker → avaliar mover o cron p/ pg-boss junto dos demais jobs (não obrigatório) |
 | 7 | Escopo Google | — (doc não especificava escopo) | `calendar.freebusy` (mínimo: só janelas ocupado/livre, nunca conteúdo de evento) | Minimização LGPD | Sync bidirecional (Fase 2, Bloco 13) exigirá `calendar.events` — pedir upgrade de escopo na reconexão |
 | 8 | Sync incremental GCal | `syncTokenGcal` incremental (doc 02 §3) | **free/busy stateless** (janela de 30 dias, replace-all idempotente); campo `syncTokenGcal` permanece no schema | free/busy é ~10× menos código, sem estado p/ corromper (410 GONE etc.); volume do MVP (poucas conexões × 1 chamada/10 min) é desprezível | Se o rate limit do Google apertar (muitos profissionais) → migrar p/ `events.list` incremental usando o campo já existente |
+| 9 | Origem do design system | Portar o do ev-tracker (Tailwind 4 + 15 primitivos próprios), doc 12 §3.2 | **Cópia adaptada do chassi do Instant ERP** (`@instanterp/ui` → `packages/ui`) + os tokens de marca do ERP (`globals.css`), com o vocabulário de ícones de atendimento acrescentado | O ERP já tinha a identidade da família Instant pronta e medida (navy / azul elétrico / roxo em oklch, com contrastes AA anotados linha a linha). Portar do ev-tracker significaria inventar uma paleta e deixar os dois produtos da família visualmente desconexos. Decisão do dono do produto | Nenhum previsto. Se o Channel divergir visualmente do ERP a ponto de a paleta atrapalhar, os tokens são um arquivo só (`apps/web/src/app/globals.css`) |
+| 10 | Escopo da cópia do chassi | "Copiar `@instanterp/ui` inteiro" | **Chassi + base + componentes + formato + status.** Ficaram de fora: `escopo/` (por segurança), `telas/`, `tabela/`, `consulta/`, `referencia/`, `Trilha` (dependem de `escopo/`), `formulario/` (arrasta `@instanterp/contracts`, domínio fiscal) e `graficos/` (sem métrica para desenhar ainda) | `escopo/` é o **seletor de empresa/filial na interface** do ERP: no Channel o tenant vem sempre da sessão JWT e nunca de escolha na tela (**regra inviolável 3**), e não existe versão "só visual" disso que seja segura. O resto ou depende dele ou é anatomia de grid de ERP, que não é a forma de uma inbox | `formulario/` volta sem os campos fiscais quando o estúdio de agentes precisar; `graficos/` entra na Fase D. `escopo/` **não volta** |
+| 11 | Nome do produto | — | **Instant Channel** (grafia inglesa) no painel, na marca e nos textos. Prefixo técnico de chave de API: `ichl_` | "Chanel" colide com marca registrada de moda (SEO ruim, risco de marca). Decisão do dono do produto, tomada antes da Fase A justamente porque é ela que renomeia o painel | Nenhum. Os nomes técnicos de package (`@atende/*`) seguem inalterados por ora — ver nota abaixo |
+
+| 12 | Tempo real da inbox | SSE do hub no worker (doc 01, doc 12 §2.3) | **Polling condicional por assinatura** (`apps/web/src/modules/inbox/pulso.ts`): o tick pergunta `max(atualizadoEm) + count` das conversas do tenant e só chama `router.refresh()` quando a assinatura muda; pausa com a aba escondida e não empilha requisições | O hub SSE vive no `apps/worker`, que ainda roda local e **não tem host público** (mesma raiz da divergência 6). Servir o stream pelo próprio Next não resolve: o Worker teria de consultar o banco dentro da conexão aberta, contra o teto de 10 ms de CPU do plano gratuito | Worker na nuvem com host público → hub SSE, mantendo este polling como fallback (proxy corporativo derruba SSE, e a inbox não pode parar) |
+
+## Nota — bug do inbound corrigido na Fase B (vale como aviso permanente)
+
+O `remoteJid` de uma mensagem de **status/story** vem como `status@broadcast`, mas o `remoteJidAlt` da mesma chave traz **um telefone válido**:
+
+```json
+{ "remoteJid": "status@broadcast", "remoteJidAlt": "5511911128569@s.whatsapp.net",
+  "participant": "276927176822971@lid", "addressingMode": "lid" }
+```
+
+A versão anterior de `identidadeDeMensagem` procurava o telefone **antes** de checar o endereço da conversa: encontrava um em `remoteJidAlt` e admitia a mensagem. O filtro de `status@broadcast` existia, mas vinha depois e nunca era alcançado — **cada story postado por qualquer contato da agenda viraria uma conversa nova na inbox**, com nome e telefone de gente real.
+
+A regra que ficou: **o endereço da conversa decide a admissão antes de qualquer busca por remetente** (`conversaDireta` recusa `status@broadcast`, `@g.us`, `@newsletter` e `@broadcast`). Presa por `packages/canais/src/baileys/conector.test.ts`, com payloads reais do `diag-inbound.log`.
+
+## Nota — os packages ainda se chamam `@atende/*`
+
+O produto é Instant Channel; os packages continuam `@atende/core`, `@atende/db`, `@atende/ui`. **É dívida consciente, não esquecimento.** Renomear o escopo toca todo import do monorepo, os `paths` do tsconfig, o `transpilePackages` e o nome do repositório — churn grande, risco real de quebrar o deploy, e ganho zero para quem usa o produto (o nome do package não aparece em lugar nenhum da tela).
+
+**Gatilho para renomear:** quando o repositório e o domínio forem renomeados, tudo na mesma leva. Até lá, o nome visível ao usuário (título, marca, metadados) é o único que precisa estar certo — e está.
 
 ## Notas de resolução de módulos (Bloco 3)
 
