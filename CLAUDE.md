@@ -1,6 +1,11 @@
-# atende-ai — CLAUDE.md (raiz)
+# atende-ai / Instant Channel — CLAUDE.md (raiz)
 
-SaaS **multi-tenant** de agendamento e gestão para negócios de horário marcado (salões, barbearias, clínicas, escritórios), com carro-chefe em **atendimento omnichannel** (WhatsApp primeiro) operado por dois motores combináveis: **árvore de decisão** determinística e **IA conversacional**, com handoff humano.
+SaaS **multi-tenant** de **atendimento e venda por conversa** (omnichannel: WhatsApp, Instagram, Messenger, webchat, Telegram, e-mail), operado por dois motores combináveis — **árvore de decisão** determinística e **IA conversacional** com agentes criados e treinados pelo próprio tenant —, com handoff humano, catálogo com fechamento de pedido na conversa e integrações nativas com ERPs (principalmente o **Instant ERP**) e CRMs.
+
+> **Pivô de produto (2026-08-16) — leia `docs/12-instant-chanel.md` antes de planejar qualquer trabalho novo.**
+> O produto passa a se chamar **Instant Channel** (grafia "Instant Channel" em decisão — doc 12 §1.5). Não é fork: este monorepo **é** o produto, o rebrand é progressivo.
+> **O módulo `agenda` está CONGELADO**: continua funcionando e é mantido quanto a segurança/tenancy/LGPD, mas não recebe funcionalidade nova, não entra no caminho crítico e **não expõe tools de IA** no escopo inicial.
+> Blocos 0–3 do `docs/04-roadmap.md` seguem válidos; do Bloco 4 em diante o roadmap é o das **Fases A–I** do doc 12 §10.
 
 Status: **Fase 1 concluída** · **Blocos 0, 1 e 2 do MVP concluídos e em produção** (`atende-ai-web.atende-ai.workers.dev`, deploy automático via Cloudflare Workers Builds a cada push na `main`): tenancy fail-closed, identidade/RBAC/convites, agenda completa (CRUD, grade dia/semana, exclusion constraints, booking pública `/agendar/{slug}`, GCal pull via Cron Trigger). Divergências de implementação vs. desenho: `docs/11-adaptacoes-implementacao.md`. Próximo: Bloco 3 (canais). Antes de editar um módulo, leia o `AGENTS.md` dele.
 
@@ -19,6 +24,7 @@ Status: **Fase 1 concluída** · **Blocos 0, 1 e 2 do MVP concluídos e em produ
 | `docs/09-estrutura-monorepo.md` | Árvore do monorepo, convenções, template de AGENTS.md |
 | `docs/10-setup-contas.md` | Checklist de contas externas (Neon, Cloudflare, Google, Meta, Asaas...) |
 | `docs/11-adaptacoes-implementacao.md` | Onde a implementação divergiu do desenho, por quê e gatilho de reversão |
+| `docs/12-instant-chanel.md` | **Plano de ação do pivô omnichannel (Instant Channel)**: visão, arquitetura alvo, mapa de reúso do ev-tracker, conectores, agentes de IA treináveis, catálogo/venda, hub ERP/CRM, API aberta, UI e Fases A–I |
 
 ## Arquitetura em uma linha
 
