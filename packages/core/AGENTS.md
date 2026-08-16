@@ -40,4 +40,10 @@ pnpm --filter @atende/core test
 
 - [x] `identidade/`: schemas (sessão, cadastro, login, convite), sessão JWT pura (assinar/verificar/guard de escopo), senha argon2id, catálogo de 24 escopos, papéis padrão por vertical (matriz doc 02 §13, testado)
 - [x] `crypto/`: AES-256-GCM hard-fail (port do ev-tracker, doc 08 — passthrough banido, testado)
-- [ ] `agenda/` (Bloco 2), `clientes/` (Bloco 2), `atendimento/` + `ia/` + `arvore/` (Blocos 3–4), `financeiro/` + `payment-provider/` (Bloco 5), `lgpd/` (Bloco 6), `email/` (port do ev-tracker — doc 08)
+- [x] **Fase C (1ª etapa) — `atendimento/ia/`: o núcleo de decisão do motor**, puro, sem SDK e sem banco:
+  - `pii.ts` — portão de PII por tenant em três modos (`off` / `observar` / `mascarar`). CPF, CNPJ e cartão com **validação de dígito verificador**: sem ela a máscara viraria um localizador de "onze dígitos seguidos" e comeria número de pedido e id do ERP. Telefone e e-mail ficam fora de propósito — aqui o telefone **é** a identidade do cliente
+  - `tentativa.ts` — orçamento do turno, classificação de erro, escolha de provedor reserva e `PROVEDORES_HOMOLOGADOS`. A lista fica no **código**, não em tabela editável: homologar provedor é decisão de quem responde pelo DPA, e provedor em free tier nunca entra (os termos do nível gratuito costumam autorizar uso do conteúdo para treinamento)
+  - `guardas.ts` — `empacotarResultadoTool` (`<<<dados>>>`, anti-injection, pareado com a regra no system prompt) e `guardarAfirmacaoDeAcao` (anti-alucinação: "seu pedido foi confirmado" sem proposta executada vira promessa comercial falsa)
+  - `tipos.ts` — o contrato que os adapters vão cumprir. Existe **antes** deles para que nenhum invente a própria forma
+- [ ] **Fase C (2ª etapa)**: adapters Anthropic / Gemini / OpenAI-Grok + dispatcher `responder()`. Exigem os 3 SDKs como dependência. ⚠️ Ao converter tools para o Gemini, **omitir `parameters` quando não houver argumento**: OBJECT com `properties` vazio devolve 400 e derruba a conversa inteira, não só a chamada
+- [ ] `agenda/` (Bloco 2), `clientes/` (Bloco 2), `arvore/` (Fase C), `financeiro/` + `payment-provider/` (Fase F), `lgpd/` (Bloco 6), `email/` (port do ev-tracker — doc 08)
