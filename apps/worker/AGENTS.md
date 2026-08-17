@@ -29,14 +29,21 @@ Importa: `@atende/core`, `@atende/db`, `@atende/canais`, `pg-boss`. Ninguém imp
 
 ```bash
 pnpm --filter @atende/worker typecheck
-pnpm --filter @atende/worker build
-pnpm --filter @atende/worker dev   # local; NÃO subir em produção fora do Docker
+pnpm --filter @atende/worker build   # bundle esbuild → dist/index.js (ver build.mjs)
+pnpm --filter @atende/worker start   # roda o bundle, igual ao container
+pnpm --filter @atende/worker dev     # local, via tsx
 ```
+
+### Por que o build é bundle e não emit do tsc
+
+O monorepo usa resolução `bundler` em todo lugar (tsconfig.base), porque o `apps/web` consome os packages como TS cru via `transpilePackages` — um regime só evita o conflito do doc 11. O efeito colateral é que **o emit do tsc não serve para produção**: ele não põe extensão nos imports relativos e resolve `@atende/*` para o *fonte* TypeScript, então `node dist/index.js` morria com `ERR_UNKNOWN_FILE_EXTENSION` tentando carregar `packages/core/src/index.ts`. E emitia em `dist/apps/worker/src/`, não em `dist/` — o `CMD` do Dockerfile apontava para um caminho inexistente.
+
+`build.mjs` resolve com um bundle único: o código do repositório entra no arquivo, tudo que vem de `node_modules` fica externo e é resolvido em runtime. A regra de externo é por origem, não por lista — dependência nova não exige tocar no build.
 
 ## Estado atual
 
 - [x] Bootstrap: health server + pg-boss (inicia quando `DATABASE_URL` existir)
-- [x] Dockerfile multi-stage
+- [x] **Container que de fato sobe** (E0 do plano): build por bundle esbuild, `CMD` apontando para o arquivo certo e `HEALTHCHECK` no `/healthz`. Verificado nativamente — `node dist/index.js` sobe health, fila e gestor de sockets. **Falta subir a imagem numa VM**: enquanto isso não acontecer, o produto continua dependendo da máquina de quem desenvolve estar ligada, e é isso que precede qualquer conversa comercial
 - [x] **Bloco 3.3**: `src/sockets/` — gestor Baileys `Map<canalId, socket>` com reconciliação a cada 15s (abre canais novos, fecha removidos), reconexão backoff 2s×n (teto 30s), auth-state cifrado no Postgres (`auth-state-pg.ts` — logout limpa e volta a parear), QR cifrado em `Canal.configCifrada` + status `pareando` (o painel decifra e exibe). `src/consumers/`: `plataforma.ts` (leituras cross-tenant allowlistadas: canais ativos + saídas pendentes), `inbound.ts` (identidade→cliente provisório→conversa `fila_humano`→mensagem com dedup), `outbox-envio.ts` (varre `Mensagem` `pendente` de saída a cada 3s, claim atômico por tenant, envia pelo conector, `falhou` em erro). **Sem SSE por ora**: worker roda na máquina local (doc 11) — painel usa polling; hub SSE entra quando houver host público.
 - [x] **Fase B — recibos de entrega**: `consumers/recibos.ts` aplica os recibos do evento `messages.update` (✓ → ✓✓ → lida) casando por `idExterno`. As regras de ordem são puras e vivem em `@atende/canais/acks` — aqui fica só o encontro com o banco. Lê antes de escrever para não deixar um `entregue` atrasado desfazer um `lida` já gravado
 - [x] **Fase B — reenvio** (`consumers/reenvio.ts`): até 3 tentativas com espera 0/2s/8s dentro do próprio envio. Antes, uma oscilação de rede de dois segundos matava a mensagem do atendente na primeira exceção. Só erro **transitório** repete — recusa definitiva (número não existe, JID inválido, socket morto) vai direto a `falhou`, porque repetir só atrasa o que o atendente precisa ver

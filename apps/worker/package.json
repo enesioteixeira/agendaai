@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "node build.mjs",
     "typecheck": "tsc --noEmit",
     "start": "node dist/index.js",
     "test": "vitest run"
@@ -23,6 +23,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/qrcode": "^1.5.6",
+    "esbuild": "^0.25.4",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"
