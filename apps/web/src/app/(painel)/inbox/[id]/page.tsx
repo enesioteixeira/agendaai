@@ -80,17 +80,33 @@ export default async function ConversaDaInboxPage({
     !encerrada && (conversa.estado === "fila_humano" || souOAtendente);
 
   return (
-    <div className="grid h-full grid-cols-[340px_1fr_300px] overflow-hidden">
+    // Uma coluna de cada vez conforme a largura permite:
+    //   celular → só a conversa (com "voltar" na barra)
+    //   ≥ lg    → lista + conversa
+    //   ≥ xl    → lista + conversa + contexto
+    // O contato é o primeiro a sair porque é apoio; a conversa é o trabalho.
+    <div className="grid h-full grid-cols-1 overflow-hidden lg:grid-cols-[340px_1fr] xl:grid-cols-[340px_1fr_300px]">
       <PulsoDaInbox />
 
-      <ListaDeConversas
-        filtro={filtro}
-        ativaId={conversa.id}
-        empresaId={sessao.empresaId}
-        usuarioId={sessao.usuarioId}
-      />
+      {/* A lista some no celular: quem abriu a conversa quer a conversa, e
+          empilhar as duas faria rolar cem itens até chegar na primeira bolha. */}
+      <div className="hidden min-h-0 lg:grid">
+        <ListaDeConversas
+          filtro={filtro}
+          ativaId={conversa.id}
+          empresaId={sessao.empresaId}
+          usuarioId={sessao.usuarioId}
+        />
+      </div>
 
       <section aria-label="Conversa" className="flex min-h-0 flex-col bg-fundo">
+        {/* Sem a lista ao lado, o caminho de volta precisa existir na tela. */}
+        <a
+          href={`/inbox?filtro=${filtro}`}
+          className="border-b border-borda bg-superficie px-4 py-2 text-[12px] text-acento lg:hidden"
+        >
+          ← Todas as conversas
+        </a>
         <BarraDaConversa
           conversa={conversa}
           podeAssumir={temEscopo(sessao, "atendimento:assumir")}
@@ -112,7 +128,10 @@ export default async function ConversaDaInboxPage({
         )}
       </section>
 
-      <PainelDoContato contato={conversa.cliente} conversaIniciadaEm={conversa.criadoEm} />
+      {/* O contexto do contato é apoio: sai primeiro quando falta largura. */}
+      <div className="hidden min-h-0 xl:grid">
+        <PainelDoContato contato={conversa.cliente} conversaIniciadaEm={conversa.criadoEm} />
+      </div>
     </div>
   );
 }

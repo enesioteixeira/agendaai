@@ -52,37 +52,65 @@ export default async function PainelLayout({ children }: { children: ReactNode }
   const sessao = await lerSessao();
   if (!sessao) redirect("/login");
 
+  const marca = (
+    <div className="flex items-center gap-2.5">
+      <span
+        aria-hidden
+        className="marca-simbolo grid h-8 w-8 shrink-0 place-items-center rounded-2 text-[15px] font-bold"
+      >
+        IC
+      </span>
+      <span className="text-[15px] font-semibold tracking-tight text-texto">Instant Channel</span>
+    </div>
+  );
+
+  const rodape = (
+    <div className="flex flex-col gap-3 border-t border-borda pt-3">
+      <AlternadorDeTema />
+      <form action={logoutAction}>
+        <button
+          type="submit"
+          className="w-full rounded-2 border border-borda px-2.5 py-1.5 text-[13px] text-texto-suave transition-colors hover:border-borda-forte hover:text-texto"
+        >
+          Sair
+        </button>
+      </form>
+    </div>
+  );
+
   return (
-    <div className="grid h-full min-h-screen grid-cols-[232px_1fr] bg-fundo">
-      <aside className="flex flex-col gap-6 overflow-y-auto border-r border-borda bg-superficie p-4 barra-fina">
-        <div className="flex items-center gap-2.5 px-1">
-          <span
-            aria-hidden
-            className="marca-simbolo grid h-8 w-8 place-items-center rounded-2 text-[15px] font-bold"
-          >
-            IC
+    // Uma coluna no celular, duas a partir de `md`. A versão anterior fixava
+    // 232px + 1fr em qualquer largura: no celular a lateral tomava a tela e o
+    // conteúdo ficava fora do viewport, sem nem dar para rolar até ele.
+    <div className="grid h-full min-h-screen grid-cols-1 bg-fundo md:grid-cols-[232px_1fr]">
+      {/* CELULAR — barra no topo com menu recolhível.
+          `<details>` nativo, e não estado de React: o layout é server component,
+          e um menu que depende de JS deixaria a navegação inacessível enquanto
+          o bundle carrega — justamente em conexão ruim, que é onde mais dói. */}
+      <details className="group border-b border-borda bg-superficie md:hidden">
+        <summary className="flex cursor-pointer list-none items-center justify-between p-3 [&::-webkit-details-marker]:hidden">
+          {marca}
+          <span className="rounded-2 border border-borda px-2 py-1 text-[12px] text-texto-suave">
+            <span className="group-open:hidden">Menu</span>
+            <span className="hidden group-open:inline">Fechar</span>
           </span>
-          <span className="text-[15px] font-semibold tracking-tight text-texto">
-            Instant Channel
-          </span>
+        </summary>
+        <div className="flex flex-col gap-4 px-3 pb-3">
+          <NavLateral grupos={GRUPOS} />
+          {rodape}
         </div>
+      </details>
 
+      {/* DESKTOP — lateral fixa. */}
+      <aside className="hidden flex-col gap-6 overflow-y-auto border-r border-borda bg-superficie p-4 barra-fina md:flex">
+        <div className="px-1">{marca}</div>
         <NavLateral grupos={GRUPOS} />
-
-        <div className="mt-auto flex flex-col gap-3 border-t border-borda pt-3">
-          <AlternadorDeTema />
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              className="w-full rounded-2 border border-borda px-2.5 py-1.5 text-[13px] text-texto-suave transition-colors hover:border-borda-forte hover:text-texto"
-            >
-              Sair
-            </button>
-          </form>
-        </div>
+        <div className="mt-auto">{rodape}</div>
       </aside>
 
-      <main className="min-w-0 overflow-auto barra-fina">{children}</main>
+      {/* `min-h-0` deixa o filho rolar sozinho em vez de esticar a página — sem
+          ele, a inbox de altura total empurra o layout e o topo some. */}
+      <main className="min-h-0 min-w-0 overflow-auto barra-fina">{children}</main>
     </div>
   );
 }

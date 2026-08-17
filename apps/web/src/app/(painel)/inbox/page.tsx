@@ -32,14 +32,20 @@ export default async function InboxPage({
   }
 
   return (
-    <div className="grid h-full grid-cols-[340px_1fr] overflow-hidden">
+    // No celular só a LISTA aparece: o convite "selecione uma conversa" ao lado
+    // não tem lado nenhum numa tela de 390px, e ocuparia a altura toda dizendo
+    // ao usuário para fazer algo que ele já está fazendo.
+    <div className="grid h-full grid-cols-1 overflow-hidden lg:grid-cols-[340px_1fr]">
       <PulsoDaInbox />
       <ListaDeConversas
         filtro={filtro}
         empresaId={sessao.empresaId}
         usuarioId={sessao.usuarioId}
       />
-      <section aria-label="Conversa" className="grid min-h-0 place-items-center bg-fundo p-6">
+      <section
+        aria-label="Conversa"
+        className="hidden min-h-0 place-items-center bg-fundo p-6 lg:grid"
+      >
         <EstadoVazio
           icone="conversa"
           titulo="Selecione uma conversa"
