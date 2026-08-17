@@ -41,4 +41,5 @@ pnpm --filter @atende/canais test
 - [x] **Recibos de entrega** (`acks.ts` + evento `messages.update` no socket): ✓ → ✓✓ → lida, com regra de não-retrocesso
 - [ ] Conector `whatsapp_oficial` (MVP — port de `ev-tracker/src/lib/whatsapp.ts`, doc 08 §3.1)
 - [ ] Conector `whatsapp_baileys` (MVP — port de `ev-tracker/whatsapp-worker/`, doc 08 §3.2)
-- [ ] `telegram`, `webchat`, `instagram`, `messenger`, `email` (Fase 2)
+- [x] **Conector `telegram`** (Fase I): Bot API por HTTP puro, sem SDK. Único canal com **botão nativo confiável** — inline keyboard, uma coluna por botão (rótulo em duas colunas trunca no celular). Clique vira mensagem de texto com o payload, então o motor trata botão e digitação pelo mesmo caminho. Proativo recusado por construção: o Telegram só deixa o bot escrever para quem já deu `/start`, o que coincide com a regra 12
+- [ ] `webchat`, `instagram`, `messenger`, `email` (Fase I / bloqueados por app review da Meta)
