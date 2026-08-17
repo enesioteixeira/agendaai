@@ -12,6 +12,14 @@
 // Quando aparecer o primeiro tenant que precise da agenda ligada, isto vira
 // `Empresa.agendaHabilitada` e esta função passa a ler a sessão. A troca é
 // barata justamente porque o resto do código só conhece a função.
+//
+// Sutileza de build: `/` e `/cadastro` são pré-renderizados, então o valor
+// lido nelas é o do momento do build. Como as variáveis moram no
+// `wrangler.jsonc` — versionado —, mudar uma delas já significa novo build, e
+// as duas coisas andam juntas. O que NÃO acompanha é sobrescrever a variável
+// pelo painel do Cloudflare: aí o texto da página estática fica velho enquanto
+// a server action, que roda sempre em runtime, já obedece ao valor novo. Por
+// isso o portão de verdade é sempre a action, nunca a página.
 
 /**
  * A agenda é módulo congelado e saiu da superfície do produto.
