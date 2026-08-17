@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { empacotarResultadoTool, guardarAfirmacaoDeAcao } from "./guardas";
+import {
+  empacotarResultadoTool,
+  guardarAfirmacaoDeAcao,
+  guardarNumeroSemFerramenta,
+} from "./guardas";
 import { aplicarPortaoPii, cartaoValido, cnpjValido, cpfValido, mascararPii } from "./pii";
 import {
   MINIMO_PARA_RESERVA_MS,
@@ -177,5 +181,58 @@ describe("resiliência de provedor", () => {
    */
   it("mantém a lista de homologados fechada", () => {
     expect([...PROVEDORES_HOMOLOGADOS]).toEqual(["anthropic"]);
+  });
+});
+
+describe("guardarNumeroSemFerramenta", () => {
+  // O contexto que dá sentido ao teste: hoje o registro de ferramentas está
+  // vazio e o agente responde cliente real. Todo número que ele disser sobre
+  // preço, estoque, crédito, prazo ou tributo veio da memória do modelo — foi
+  // inventado com aparência de consulta. É a regra que o painel chama de
+  // inegociável, e ela estava valendo só no papel.
+  const bloqueiam = [
+    "O fardo de arroz sai por R$ 189,90.",
+    "Esse item custa 45 reais a caixa.",
+    "Tenho 30 unidades disponíveis para pronta entrega.",
+    "Temos 120 caixas em estoque no CD.",
+    "Consigo 12% de desconto para você.",
+    "Seu limite de crédito é de R$ 20.000.",
+    "A entrega chega em 3 dias úteis.",
+    "O prazo de entrega é 48 horas.",
+    "O ICMS dessa operação é 18%.",
+    "O preço fica em 1.250,00 com o imposto.",
+  ];
+
+  it.each(bloqueiam)("bloqueia %j quando nenhuma ferramenta foi chamada", (texto) => {
+    const r = guardarNumeroSemFerramenta(texto, 0);
+    expect(r.bloqueou).toBe(true);
+    expect(r.texto).not.toContain("R$");
+    expect(r.texto).toMatch(/equipe/i);
+  });
+
+  // Bloquear todo dígito quebraria a conversa. Estes são os casos que precisam
+  // passar — e o de horário é o mais traiçoeiro, porque "18 horas" tem número
+  // e unidade de tempo igual a um prazo de entrega.
+  const passam = [
+    "Atendemos de segunda a sexta, das 8h às 18 horas.",
+    "Seu protocolo é 4821.",
+    "Recebi sua mensagem às 14h e já estou verificando.",
+    "Somos a Distribuidora Aurora, atendemos a região desde 1998.",
+    "Você falou de 10 caixas? Vou confirmar com a equipe.",
+    "Pode me mandar o CNPJ para eu localizar seu cadastro?",
+  ];
+
+  it.each(passam)("deixa passar %j", (texto) => {
+    expect(guardarNumeroSemFerramenta(texto, 0).bloqueou).toBe(false);
+  });
+
+  // Com ferramenta chamada a guarda sai do caminho: o número pode ter vindo da
+  // consulta, e conferir se veio é trabalho da validação de saída contra o
+  // resultado da tool — que só faz sentido quando existir tool.
+  it("sai do caminho quando alguma ferramenta foi chamada", () => {
+    const texto = "O fardo de arroz sai por R$ 189,90.";
+    const r = guardarNumeroSemFerramenta(texto, 1);
+    expect(r.bloqueou).toBe(false);
+    expect(r.texto).toBe(texto);
   });
 });

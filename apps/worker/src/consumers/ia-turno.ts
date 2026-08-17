@@ -15,6 +15,7 @@ import {
   ORCAMENTO_IA_MS,
   classificarErroIA,
   guardarAfirmacaoDeAcao,
+  guardarNumeroSemFerramenta,
   textoFalhaIA,
 } from "@atende/core";
 import { prisma, runWithTenant } from "@atende/db";
@@ -145,9 +146,19 @@ async function executarTurno(job: JobIaTurno): Promise<void> {
       // Nenhuma proposta é executada nesta fase, então a guarda roda no regime
       // mais estrito: com zero execuções, qualquer afirmação de ação concluída
       // ("já agendei", "pedido confirmado") é alucinação e o texto é trocado.
-      const guarda = guardarAfirmacaoDeAcao(texto, 0);
-      if (guarda.bloqueou) {
+      const guardaAcao = guardarAfirmacaoDeAcao(texto, 0);
+      if (guardaAcao.bloqueou) {
         console.warn(`[ia-turno] guarda anti-alucinação agiu na conversa ${conversaId}`);
+      }
+
+      // E o registro de ferramentas está vazio — nenhuma tool é passada ao
+      // modelo neste turno —, então TODO número de preço, estoque, crédito,
+      // prazo ou tributo que aparecer veio da memória do modelo. A contagem é
+      // literalmente zero, e é isso que a guarda recebe. Enquanto o E2 não
+      // conectar a leitura do ERP, esse assunto é de pessoa.
+      const guarda = guardarNumeroSemFerramenta(guardaAcao.texto, 0);
+      if (guarda.bloqueou) {
+        console.warn(`[ia-turno] guarda de número agiu na conversa ${conversaId}`);
       }
 
       await gravarSaida(conversaId, ctx.canalId, guarda.texto);

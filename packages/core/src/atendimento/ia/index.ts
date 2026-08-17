@@ -48,9 +48,11 @@ export {
 } from "./tentativa";
 
 export {
+  ASSUNTOS_QUE_VAO_PARA_HUMANO,
   MOLDURA_DE_DADOS_NO_SYSTEM,
   empacotarResultadoTool,
   guardarAfirmacaoDeAcao,
+  guardarNumeroSemFerramenta,
   type ResultadoDaGuarda,
 } from "./guardas";
 
