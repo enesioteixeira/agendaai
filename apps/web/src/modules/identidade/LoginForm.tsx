@@ -1,34 +1,43 @@
 "use client";
 
 import { useActionState } from "react";
+
+import { Campo, Entrada, ErroDoFormulario } from "@/componentes/Campo";
+
 import { loginAction, type EstadoForm } from "./actions";
 
 export function LoginForm() {
   const [estado, action, pending] = useActionState<EstadoForm, FormData>(loginAction, {});
 
   return (
-    <form action={action} style={{ display: "grid", gap: "0.85rem" }}>
-      <label style={lb}>
-        E-mail
-        <input name="email" type="email" required style={ip} autoComplete="email" defaultValue={estado.valores?.email} />
-      </label>
-      <label style={lb}>
-        Senha
-        <input name="senha" type="password" required style={ip} autoComplete="current-password" />
-      </label>
+    <form action={action} className="flex flex-col gap-3">
+      <Campo rotulo="E-mail">
+        <Entrada
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          // Preservar o e-mail no erro evita redigitar depois de errar a senha —
+          // e é o único campo que dá para preservar sem guardar credencial.
+          defaultValue={estado.valores?.email}
+        />
+      </Campo>
 
-      {estado.erro && <p style={{ color: "var(--perigo)", margin: 0, fontSize: 14 }}>{estado.erro}</p>}
+      <Campo rotulo="Senha">
+        <Entrada name="senha" type="password" required autoComplete="current-password" />
+      </Campo>
 
-      <button type="submit" disabled={pending} style={bt}>
-        {pending ? "Entrando..." : "Entrar"}
+      <ErroDoFormulario>{estado.erro}</ErroDoFormulario>
+
+      {/* `w-full` porque este é o botão de ação única da tela: no celular ele
+          deve ocupar a largura toda, e não ficar um retângulo pequeno à esquerda. */}
+      <button
+        type="submit"
+        disabled={pending}
+        className="ie-botao ie-botao--primario w-full justify-center"
+      >
+        {pending ? "Entrando…" : "Entrar"}
       </button>
-      <p style={{ fontSize: 14, color: "var(--texto-suave)", margin: 0 }}>
-        Não tem conta? <a href="/cadastro">Criar empresa</a>
-      </p>
     </form>
   );
 }
-
-const lb: React.CSSProperties = { display: "grid", gap: 4, fontSize: 14, color: "var(--texto)" };
-const ip: React.CSSProperties = { padding: "0.5rem 0.6rem", border: "1px solid var(--borda)", borderRadius: 6, fontSize: 15 };
-const bt: React.CSSProperties = { padding: "0.65rem", background: "var(--acento)", color: "var(--acento-texto)", border: "none", borderRadius: 6, fontSize: 15, cursor: "pointer" };

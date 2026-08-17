@@ -1,19 +1,24 @@
 import { redirect } from "next/navigation";
-import { lerSessao } from "@/lib/sessao";
+
 import { temEscopo, crypto as cryptoCore } from "@atende/core";
 import { prisma, runWithTenant } from "@atende/db";
+import { Badge, EstadoVazio } from "@atende/ui";
+
 import { AutoRefresh } from "@/modules/atendimento/AutoRefresh";
 import { CanalForm } from "@/modules/atendimento/CanalForm";
 import { canalRemoverAction } from "@/modules/atendimento/actions";
-import { tb, th, td, btSec, tbLarga, rolagemX } from "@/componentes/estilos-ponte";
+import { lerSessao } from "@/lib/sessao";
 
 const { decifrarSegredo } = cryptoCore;
 
-const STATUS_ROTULO: Record<string, string> = {
-  desconectado: "Desconectado — aguardando o worker",
-  pareando: "Pareando — escaneie o QR abaixo",
-  conectado: "✓ Conectado",
-  erro: "Erro de conexão",
+const STATUS: Record<
+  string,
+  { readonly rotulo: string; readonly tom: "sucesso" | "atencao" | "perigo" | "neutro" }
+> = {
+  conectado: { rotulo: "Conectado", tom: "sucesso" },
+  pareando: { rotulo: "Escaneie o QR", tom: "atencao" },
+  desconectado: { rotulo: "Aguardando o worker", tom: "neutro" },
+  erro: { rotulo: "Erro de conexão", tom: "perigo" },
 };
 
 // Canais WhatsApp (config:canais). O pareamento é via QR: o worker (rodando
@@ -27,8 +32,11 @@ export default async function CanaisPage() {
   if (!temEscopo(sessao, "config:canais")) {
     return (
       <div className="p-4 md:p-6">
-        <h1 style={{ fontSize: 22 }}>Canais</h1>
-        <p style={{ color: "var(--perigo)" }}>Seu papel não configura canais (escopo config:canais).</p>
+        <EstadoVazio
+          icone="escudo"
+          titulo="Sem acesso a canais"
+          descricao="Seu papel não configura canais. Peça a um administrador o escopo config:canais."
+        />
       </div>
     );
   }
@@ -39,83 +47,95 @@ export default async function CanaisPage() {
   );
 
   return (
-    <div className="p-4 md:p-6" style={{ display: "grid", gap: "1.5rem", maxWidth: 760 }}>
+    <div className="mx-auto flex max-w-3xl flex-col gap-6 p-4 md:p-6">
+      {/* Polling curto: o QR troca a cada ~20 s e o status muda no instante do
+          scan — sem isso o usuário fica olhando um QR já vencido. */}
       <AutoRefresh intervaloMs={3000} />
-      <div>
-        <h1 style={{ fontSize: 22, marginBottom: 4 }}>Canais de atendimento</h1>
-        <p style={{ color: "var(--texto-suave)", margin: 0 }}>
+
+      <header>
+        <h1 className="text-[19px] font-semibold tracking-tight">Canais de atendimento</h1>
+        <p className="mt-1 text-[13px] leading-relaxed text-texto-suave">
           Conecte o WhatsApp do seu negócio escaneando o QR (WhatsApp → Aparelhos conectados).
-          Este canal <strong>responde</strong> conversas iniciadas pelos clientes — envios em massa/proativos não existem aqui.
+          Este canal <strong className="font-semibold text-texto">responde</strong> conversas
+          iniciadas pelo cliente — disparo em massa não existe aqui, e é de propósito: é o que
+          mantém o número fora do risco de bloqueio.
         </p>
-      </div>
+      </header>
 
       <CanalForm />
 
-      <div style={rolagemX}>
-        <table style={tbLarga}>
-        <thead>
-          <tr>
-            <th style={th}>Canal</th>
-            <th style={th}>Tipo</th>
-            <th style={th}>Status</th>
-            <th style={th} />
-          </tr>
-        </thead>
-        <tbody>
-          {canais.length === 0 && (
-            <tr><td style={td} colSpan={4}>Nenhum canal — adicione o primeiro acima e deixe o worker rodando.</td></tr>
-          )}
+      {canais.length === 0 ? (
+        <EstadoVazio
+          icone="antena"
+          titulo="Nenhum canal conectado"
+          descricao="Adicione o primeiro acima e deixe o worker rodando para o QR aparecer."
+        />
+      ) : (
+        <ul className="flex flex-col gap-3">
           {canais.map((c) => {
             let qrDataUrl: string | null = null;
             if (c.statusConexao === "pareando" && c.configCifrada) {
               try {
-                qrDataUrl = (JSON.parse(decifrarSegredo(c.configCifrada)) as { qrDataUrl?: string }).qrDataUrl ?? null;
+                qrDataUrl =
+                  (JSON.parse(decifrarSegredo(c.configCifrada)) as { qrDataUrl?: string })
+                    .qrDataUrl ?? null;
               } catch {
                 qrDataUrl = null;
               }
             }
+            const st = STATUS[c.statusConexao] ?? { rotulo: c.statusConexao, tom: "neutro" as const };
+
             return (
-              <tr key={c.id}>
-                <td style={td}>{c.nome}</td>
-                <td style={td}>{c.tipo === "whatsapp_baileys" ? "WhatsApp (QR)" : c.tipo}</td>
-                <td style={td}>
-                  {STATUS_ROTULO[c.statusConexao] ?? c.statusConexao}
-                  {qrDataUrl && (
-                    <div style={{ marginTop: 8 }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={qrDataUrl}
-                        alt="QR de pareamento do WhatsApp"
-                        width={220}
-                        height={220}
-                        /* `min(220px, 60vw)` porque 220px fixos dentro de <td>
-                           forçam a tabela a estourar o viewport do celular —
-                           e é justamente no celular que se lê o QR. */
-                        style={{ width: "min(220px, 60vw)", height: "auto", border: "1px solid var(--borda)", borderRadius: 8 }}
-                      />
-                    </div>
-                  )}
-                </td>
-                <td style={td}>
+              <li
+                key={c.id}
+                className="flex flex-col gap-3 rounded-2 border border-borda bg-superficie p-4"
+              >
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-semibold">{c.nome}</p>
+                    <p className="text-[11px] text-texto-fraco">
+                      {c.tipo === "whatsapp_baileys" ? "WhatsApp (QR)" : c.tipo}
+                    </p>
+                  </div>
+                  <Badge tom={st.tom}>{st.rotulo}</Badge>
                   <form action={canalRemoverAction}>
                     <input type="hidden" name="id" value={c.id} />
-                    <button type="submit" style={{ ...btSec, padding: "0.25rem 0.6rem", fontSize: 13 }}>
+                    <button type="submit" className="ie-botao">
                       Remover
                     </button>
                   </form>
-                </td>
-              </tr>
+                </div>
+
+                {qrDataUrl ? (
+                  <div className="flex flex-col items-center gap-2 border-t border-borda pt-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={qrDataUrl}
+                      alt="QR de pareamento do WhatsApp"
+                      width={220}
+                      height={220}
+                      // Largura fluida: 220px fixos estouravam o viewport do
+                      // celular — que é justamente onde o QR é lido.
+                      className="rounded-2 border border-borda"
+                      style={{ width: "min(220px, 60vw)", height: "auto" }}
+                    />
+                    <p className="text-center text-[11px] text-texto-fraco">
+                      WhatsApp → Aparelhos conectados → Conectar aparelho
+                    </p>
+                  </div>
+                ) : null}
+
+                {c.statusConexao === "desconectado" ? (
+                  <p className="border-t border-borda pt-3 text-[11px] leading-relaxed text-texto-fraco">
+                    O QR aparece quando o worker está rodando. Se ele estiver parado, o canal
+                    fica assim e nenhuma mensagem entra ou sai.
+                  </p>
+                ) : null}
+              </li>
             );
           })}
-        </tbody>
-      </table>
-        </div>
-
-      <p style={{ color: "var(--texto-fraco)", fontSize: 13, margin: 0 }}>
-        O pareamento exige o <strong>worker rodando</strong> (por ora na máquina do administrador:
-        <code style={{ margin: "0 4px" }}>pnpm --filter @atende/worker dev</code> com DATABASE_URL e ENCRYPTION_KEY).
-        Status atualiza sozinho a cada 3s.
-      </p>
+        </ul>
+      )}
     </div>
   );
 }

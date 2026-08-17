@@ -1,8 +1,17 @@
 "use client";
 
 import { useActionState } from "react";
+
+import { Botao } from "@atende/ui";
+
+import {
+  Campo,
+  Entrada,
+  ErroDoFormulario,
+  LinhaDeCampos,
+} from "@/componentes/Campo";
+
 import { clienteCriarAction, type EstadoAgendaForm } from "./actions";
-import { lb, ip, bt, erroTxt } from "@/componentes/estilos-ponte";
 
 export function ClienteForm() {
   const [estado, action, pending] = useActionState<EstadoAgendaForm, FormData>(
@@ -11,23 +20,29 @@ export function ClienteForm() {
   );
 
   return (
-    <form action={action} style={{ display: "flex", gap: 8, alignItems: "end", flexWrap: "wrap" }}>
-      <label style={lb}>
-        Nome
-        <input name="nome" required style={{ ...ip, minWidth: 200 }} placeholder="Ana Souza" />
-      </label>
-      <label style={lb}>
-        WhatsApp/telefone
-        <input name="telefone" style={{ ...ip, width: 150 }} placeholder="11999998888" />
-      </label>
-      <label style={lb}>
-        E-mail (opcional)
-        <input name="email" type="email" style={{ ...ip, minWidth: 180 }} />
-      </label>
-      <button type="submit" disabled={pending} style={bt}>
-        {pending ? "Salvando..." : "Adicionar cliente"}
-      </button>
-      {estado.erro && <p style={erroTxt}>{estado.erro}</p>}
+    <form
+      action={action}
+      className="flex flex-col gap-3 rounded-2 border border-borda bg-superficie p-4"
+    >
+      <LinhaDeCampos>
+        <Campo rotulo="Nome">
+          <Entrada name="nome" required placeholder="Ana Souza" />
+        </Campo>
+        <Campo rotulo="WhatsApp / telefone">
+          <Entrada name="telefone" inputMode="tel" placeholder="11999998888" />
+        </Campo>
+      </LinhaDeCampos>
+
+      <Campo rotulo="E-mail" dica="Opcional.">
+        <Entrada name="email" type="email" autoComplete="off" />
+      </Campo>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Botao type="submit" variante="primario" disabled={pending}>
+          {pending ? "Salvando…" : "Adicionar contato"}
+        </Botao>
+        <ErroDoFormulario>{estado.erro}</ErroDoFormulario>
+      </div>
     </form>
   );
 }

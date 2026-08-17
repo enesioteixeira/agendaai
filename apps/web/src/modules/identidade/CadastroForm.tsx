@@ -1,6 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
+
+import { Campo, Entrada, ErroDoFormulario, Selecao } from "@/componentes/Campo";
+
 import { cadastrarAction, type EstadoForm } from "./actions";
 
 const VERTICAIS = [
@@ -16,67 +19,70 @@ export function CadastroForm() {
   const [estado, action, pending] = useActionState<EstadoForm, FormData>(cadastrarAction, {});
 
   return (
-    <form action={action} style={{ display: "grid", gap: "0.85rem" }}>
-      <fieldset style={fs}>
-        <legend style={lg}>Seus dados</legend>
-        <label style={lb}>
-          Nome
-          <input name="nome" required style={ip} autoComplete="name" defaultValue={estado.valores?.nome} />
-        </label>
-        <label style={lb}>
-          E-mail
-          <input name="email" type="email" required style={ip} autoComplete="email" defaultValue={estado.valores?.email} />
-        </label>
-        <label style={lb}>
-          Senha (mín. 8 caracteres)
-          <input name="senha" type="password" required minLength={8} style={ip} autoComplete="new-password" />
-        </label>
+    <form action={action} className="flex flex-col gap-4">
+      <fieldset className="flex flex-col gap-3 rounded-2 border border-borda p-4">
+        <legend className="px-1.5 text-[12px] font-semibold text-texto">Seus dados</legend>
+
+        <Campo rotulo="Nome">
+          <Entrada name="nome" required autoComplete="name" defaultValue={estado.valores?.nome} />
+        </Campo>
+        <Campo rotulo="E-mail">
+          <Entrada
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            defaultValue={estado.valores?.email}
+          />
+        </Campo>
+        <Campo rotulo="Senha" dica="Mínimo de 8 caracteres.">
+          <Entrada name="senha" type="password" required minLength={8} autoComplete="new-password" />
+        </Campo>
       </fieldset>
 
-      <fieldset style={fs}>
-        <legend style={lg}>Sua empresa</legend>
-        <label style={lb}>
-          Nome da empresa
-          <input name="empresaNome" required style={ip} defaultValue={estado.valores?.empresaNome} />
-        </label>
-        <label style={lb}>
-          Endereço da página de agendamento
-          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <input
+      <fieldset className="flex flex-col gap-3 rounded-2 border border-borda p-4">
+        <legend className="px-1.5 text-[12px] font-semibold text-texto">Sua empresa</legend>
+
+        <Campo rotulo="Nome da empresa">
+          <Entrada name="empresaNome" required defaultValue={estado.valores?.empresaNome} />
+        </Campo>
+
+        <Campo
+          rotulo="Endereço da página de agendamento"
+          dica="Só letras minúsculas, números e hífen."
+        >
+          <span className="flex items-center gap-1.5">
+            <Entrada
               name="empresaSlug"
               required
               pattern="[a-z0-9\-]+"
               placeholder="minha-empresa"
-              style={{ ...ip, flex: 1 }}
               defaultValue={estado.valores?.empresaSlug}
             />
-            <span style={{ color: "var(--texto-fraco)", fontSize: 13 }}>.atende-ai.com.br</span>
+            <span className="shrink-0 text-[12px] text-texto-fraco">.atende-ai.com.br</span>
           </span>
-        </label>
-        <label style={lb}>
-          Ramo
-          <select name="vertical" required style={ip} defaultValue={estado.valores?.vertical || "salao"}>
+        </Campo>
+
+        <Campo rotulo="Ramo">
+          <Selecao name="vertical" required defaultValue={estado.valores?.vertical || "salao"}>
             {VERTICAIS.map((v) => (
-              <option key={v.valor} value={v.valor}>{v.rotulo}</option>
+              <option key={v.valor} value={v.valor}>
+                {v.rotulo}
+              </option>
             ))}
-          </select>
-        </label>
+          </Selecao>
+        </Campo>
       </fieldset>
 
-      {estado.erro && <p style={{ color: "var(--perigo)", margin: 0, fontSize: 14 }}>{estado.erro}</p>}
+      <ErroDoFormulario>{estado.erro}</ErroDoFormulario>
 
-      <button type="submit" disabled={pending} style={bt}>
-        {pending ? "Criando..." : "Criar conta e empresa"}
+      <button
+        type="submit"
+        disabled={pending}
+        className="ie-botao ie-botao--primario w-full justify-center"
+      >
+        {pending ? "Criando…" : "Criar conta e empresa"}
       </button>
-      <p style={{ fontSize: 14, color: "var(--texto-suave)", margin: 0 }}>
-        Já tem conta? <a href="/login">Entrar</a>
-      </p>
     </form>
   );
 }
-
-const fs: React.CSSProperties = { border: "1px solid var(--borda)", borderRadius: 8, padding: "0.75rem 1rem", display: "grid", gap: "0.75rem" };
-const lg: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: "var(--texto)", padding: "0 6px" };
-const lb: React.CSSProperties = { display: "grid", gap: 4, fontSize: 14, color: "var(--texto)" };
-const ip: React.CSSProperties = { padding: "0.5rem 0.6rem", border: "1px solid var(--borda)", borderRadius: 6, fontSize: 15 };
-const bt: React.CSSProperties = { padding: "0.65rem", background: "var(--acento)", color: "var(--acento-texto)", border: "none", borderRadius: 6, fontSize: 15, cursor: "pointer" };
