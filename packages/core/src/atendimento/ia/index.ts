@@ -54,6 +54,21 @@ export {
   type ResultadoDaGuarda,
 } from "./guardas";
 
+export {
+  REGRA_UMA_PENDENTE,
+  TTL_PROPOSTA_MS,
+  expiraEmA_partirDe,
+  lerResposta,
+  motivoDoTtl,
+  podeConfirmar,
+  type LeituraDaResposta,
+  type MotivoRecusa,
+  type PropostaParaDecidir,
+  type StatusProposta,
+  type TipoProposta,
+  type VeredictoConfirmacao,
+} from "./proposta";
+
 export type {
   AnexoIA,
   MensagemHistorico,

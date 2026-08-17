@@ -52,7 +52,21 @@ pnpm --filter @atende/db typecheck
 - [x] **Bloco 2 (schema)**: domínio `agenda` completo (doc 02 §3), `Cliente` mínimo (§4) e os **5 models LGPD** (§11 — devidos desde o Bloco 0). Migration `agenda_clientes_lgpd` com SQL manual: `btree_gist` + 2 exclusion constraints anti-sobreposição (profissional e recurso, predicado por status) + índice parcial de busca de clientes. E2E `src/agenda/agenda.e2e.test.ts`: isolamento da cadeia, corrida de double-booking (23P01 do banco) e encaixe `[)` — passando contra o Neon real.
 - [x] **B4 (booking)**: `src/agenda/booking.ts` — `catalogoBooking`/`slotsBooking`/`criarAgendamentoBooking`, todos partindo de `resolverEmpresaPorSlug` e rodando sob `runWithTenant`. E2E `booking.e2e.test.ts` (isolamento entre slugs, fluxo completo com dedup de cliente provisório, corrida 23P01) contra o Neon real.
 - [x] **Bloco 3.1 (schema)**: clientes completo (`IdentidadeCanal` — pivô do inbound com `@@unique([empresaId, tipo, valor])` —, `NotaCliente`, `Tag`, `TagCliente`) e atendimento (`Canal`, `Conversa` com máquina de estados, `Mensagem` com dedup `@@unique([empresaId, canalId, idExterno])` e índice `(conversaId, criadoEm)` sem prefixo de tenant [exceção deliberada doc 02 §14.1], `AuthStateBaileys`). Migration `atendimento_clientes_completo` + índice parcial SQL manual do arquivamento. `Conversa.fluxoVersaoId`/`noAtualId` são Strings puras até o Bloco 4 criar as tabelas de fluxo. E2E `src/atendimento/atendimento.e2e.test.ts` (isolamento da cadeia, dedup de webhook, identidade por tenant).
-- [ ] Models de motor/IA: `PropostaAcao` (+unique parcial PENDENTE), `FluxoArvore`/`VersaoFluxo`, `ResumoConversa`, `FeedbackIA` (Bloco 4); `financeiro` (Bloco 5); superfície LGPD self-service (Bloco 6)
+- [x] **Fase C (schema)**: `PropostaAcao` (+ **unique parcial `PENDENTE`**), `ResumoConversa`, `FeedbackIA` e os enums `TipoProposta`/`StatusProposta`/`TipoResumo`/`OrigemFeedback`. Migration `20260816210000_motor_ia_propose_confirm` — **escrita à mão** (não havia banco de sombra para `migrate diff`) e **AINDA NÃO APLICADA**: ver o aviso abaixo
+- [ ] `FluxoArvore`/`VersaoFluxo` (árvore de decisão); `AgenteIA`/`VersaoAgente`/`BaseConhecimento`/`Chunk` + pgvector (Fase D); `financeiro` (Fase F); superfície LGPD self-service (Bloco 6)
+
+## ⚠️ Migration pendente de aplicação — ordem obrigatória
+
+`20260816210000_motor_ia_propose_confirm` está no repositório e **não foi aplicada no Neon**.
+
+O build do Workers Builds **não roda `migrate deploy`**: as migrations são aplicadas à mão. Subir código que usa `PropostaAcao` antes de a tabela existir quebra o caminho em produção. Portanto:
+
+1. Aplicar a migration contra o Neon e confirmar que as três tabelas e o índice parcial existem.
+2. Só então mergear/subir o código que as usa.
+
+A migration é **aditiva** (só `CREATE TYPE`, `CREATE TABLE`, `CREATE INDEX`, `ADD CONSTRAINT`): não altera nem remove nada existente, então não há efeito sobre linha já gravada e o rollback é `DROP` das quatro coisas criadas.
+
+**O índice parcial não vem do Prisma.** `PropostaAcao_uma_pendente_por_conversa` garante "uma proposta PENDENTE por conversa" com `WHERE status = 'PENDENTE'`, que o schema não expressa — mesmo padrão do unique parcial de `ConviteUsuario` e das exclusion constraints da agenda. Ele é o que impede que um "sim" solto fique ambíguo entre duas propostas abertas e execute a que o cliente **não** quis.
 
 ## Armadilha — `prisma migrate dev` desfaz o patch workerd
 
