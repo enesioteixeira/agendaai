@@ -6,7 +6,7 @@ import { Badge, EstadoVazio } from "@atende/ui";
 
 import { AutoRefresh } from "@/modules/atendimento/AutoRefresh";
 import { CanalForm } from "@/modules/atendimento/CanalForm";
-import { canalRemoverAction } from "@/modules/atendimento/actions";
+import { canalDefinirAgenteAction, canalRemoverAction } from "@/modules/atendimento/actions";
 import { lerSessao } from "@/lib/sessao";
 
 const { decifrarSegredo } = cryptoCore;
@@ -41,9 +41,18 @@ export default async function CanaisPage() {
     );
   }
 
-  const canais = await runWithTenant(
+  const { canais, agentes } = await runWithTenant(
     { empresaId: sessao.empresaId, usuarioId: sessao.usuarioId },
-    () => prisma.canal.findMany({ where: { ativo: true }, orderBy: { criadoEm: "asc" } }),
+    async () => ({
+      canais: await prisma.canal.findMany({ where: { ativo: true }, orderBy: { criadoEm: "asc" } }),
+      // Só agentes com versão PUBLICADA podem atender: oferecer um rascunho na
+      // lista faria o usuário escolher algo que nunca responderia.
+      agentes: await prisma.agenteIA.findMany({
+        where: { ativo: true, deletedAt: null, NOT: { versaoAtivaId: null } },
+        select: { id: true, nome: true },
+        orderBy: { nome: "asc" },
+      }),
+    }),
   );
 
   return (
@@ -124,6 +133,40 @@ export default async function CanaisPage() {
                     </p>
                   </div>
                 ) : null}
+
+                <form
+                  action={canalDefinirAgenteAction}
+                  className="flex flex-wrap items-center gap-2 border-t border-borda pt-3"
+                >
+                  <input type="hidden" name="canalId" value={c.id} />
+                  <label className="flex flex-1 flex-col gap-1 text-[12px] text-texto-suave">
+                    Quem atende primeiro
+                    <select
+                      name="agenteId"
+                      defaultValue={c.agentePadraoId ?? ""}
+                      className="rounded-2 border border-borda bg-superficie px-2 py-1.5 text-[13px] text-texto outline-none focus:border-acento"
+                    >
+                      <option value="">Ninguém — só humanos</option>
+                      {agentes.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button type="submit" className="ie-botao self-end">
+                    Salvar
+                  </button>
+                  {agentes.length === 0 ? (
+                    <p className="w-full text-[11px] text-texto-fraco">
+                      Nenhum agente publicado ainda —{" "}
+                      <a href="/agentes" className="text-acento underline">
+                        crie e publique um
+                      </a>{" "}
+                      para ele atender aqui.
+                    </p>
+                  ) : null}
+                </form>
 
                 {c.statusConexao === "desconectado" ? (
                   <p className="border-t border-borda pt-3 text-[11px] leading-relaxed text-texto-fraco">

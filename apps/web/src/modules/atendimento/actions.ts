@@ -52,9 +52,15 @@ export async function assumirConversaAction(
     const sessao = await exigir("atendimento:assumir");
     const conversaId = String(formData.get("id") ?? "");
     await runWithTenant(contexto(sessao), async () => {
-      // claim atômico: só assume se ainda está na fila (anti-corrida entre atendentes)
+      // Claim atômico. Aceita `bot_ia` além de `fila_humano`: **assumir é o
+      // freio do bot**. Sem isso o agente seguiria respondendo por cima do
+      // atendente, e não haveria como interromper uma conversa que descarrilou
+      // — é requisito operacional, não conforto.
+      //
+      // O turno em voo não é cancelado, mas `montarContexto` relê o estado e
+      // desiste quando não é mais `bot_ia`.
       const claim = await prisma.conversa.updateMany({
-        where: { id: conversaId, estado: "fila_humano" },
+        where: { id: conversaId, estado: { in: ["fila_humano", "bot_ia"] } },
         data: { estado: "humano", atendenteUsuarioId: sessao.usuarioId },
       });
       if (claim.count === 0) throw new Error("Conversa já foi assumida por outra pessoa.");
@@ -78,13 +84,14 @@ export async function encerrarConversaAction(formData: FormData): Promise<void> 
 }
 
 /**
- * Devolve à fila: o atendente larga a conversa e ela volta a ficar disponível
- * para quem estiver livre.
+ * Devolve a conversa — ao agente de IA se o canal tiver um publicado, senão à
+ * fila humana.
  *
- * NÃO é "devolver ao bot". Enquanto o motor de IA não existe (Fase C), devolver
- * para `bot_ia` deixaria a conversa sem ninguém — nem humano, nem máquina —, e o
- * cliente ficaria falando sozinho. A transição para os estados de bot entra
- * junto com o motor que sabe atendê-los.
+ * O destino depende do canal porque devolver para `bot_ia` num canal sem agente
+ * deixaria a conversa sem ninguém: nem humano, nem máquina, e o cliente falando
+ * sozinho. Com agente publicado, o bot retoma a partir da próxima mensagem do
+ * cliente — o turno não é disparado agora, e é isso que se quer: devolver não é
+ * responder.
  *
  * O claim é condicionado a `estado: "humano"`: se a conversa já mudou (outro
  * atendente, encerramento), o `updateMany` casa zero linhas e a ação recusa em
@@ -98,9 +105,26 @@ export async function devolverConversaAction(
     const sessao = await exigir("atendimento:responder");
     const conversaId = String(formData.get("id") ?? "");
     await runWithTenant(contexto(sessao), async () => {
+      const conversa = await prisma.conversa.findUnique({
+        where: { id: conversaId },
+        select: { canal: { select: { agentePadraoId: true } } },
+      });
+
+      let destino: "bot_ia" | "fila_humano" = "fila_humano";
+      const agenteId = conversa?.canal.agentePadraoId;
+      if (agenteId) {
+        // Exige versão PUBLICADA, não só o vínculo: um agente sem versão no ar
+        // não tem persona, e a conversa voltaria para um bot que não responde.
+        const agente = await prisma.agenteIA.findFirst({
+          where: { id: agenteId, ativo: true, deletedAt: null },
+          select: { versaoAtivaId: true },
+        });
+        if (agente?.versaoAtivaId) destino = "bot_ia";
+      }
+
       const devolvida = await prisma.conversa.updateMany({
         where: { id: conversaId, estado: "humano" },
-        data: { estado: "fila_humano", atendenteUsuarioId: null },
+        data: { estado: destino, atendenteUsuarioId: null },
       });
       if (devolvida.count === 0) throw new Error("Esta conversa não está em atendimento.");
     });
@@ -183,6 +207,38 @@ export async function responderConversaAction(
     revalidatePath("/inbox");
     revalidatePath(`/inbox/${parsed.data.conversaId}`);
   });
+}
+
+/**
+ * Define quem atende primeiro num canal.
+ *
+ * `""` significa "ninguém" — só humanos. É o desligado, e por isso a coluna é
+ * nullable em vez de haver um booleano ao lado dela.
+ */
+export async function canalDefinirAgenteAction(formData: FormData): Promise<void> {
+  const sessao = await exigir("config:canais");
+  const canalId = String(formData.get("canalId") ?? "");
+  const agenteId = String(formData.get("agenteId") ?? "");
+
+  await runWithTenant(contexto(sessao), async () => {
+    if (agenteId) {
+      // Confere que o agente é DESTE tenant antes de vincular. A extension de
+      // tenancy já isolaria a leitura, mas gravar um id que não resolve deixaria
+      // o canal apontando para lugar nenhum — e o sintoma apareceria só na
+      // primeira mensagem do cliente.
+      const agente = await prisma.agenteIA.findFirst({
+        where: { id: agenteId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!agente) throw new Error("Agente não encontrado.");
+    }
+
+    await prisma.canal.update({
+      where: { id: canalId },
+      data: { agentePadraoId: agenteId || null },
+    });
+  });
+  revalidatePath("/configuracoes/canais");
 }
 
 // ── Canais (config:canais) ───────────────────────────────────

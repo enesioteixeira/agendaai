@@ -74,6 +74,9 @@ importers:
       '@atende/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@atende/ia':
+        specifier: workspace:*
+        version: link:../../packages/ia
       '@whiskeysockets/baileys':
         specifier: 7.0.0-rc13
         version: 7.0.0-rc13(sharp@0.34.5)

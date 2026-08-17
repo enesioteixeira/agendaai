@@ -5,6 +5,7 @@ import { prisma, runWithTenant } from "@atende/db";
 import { Badge, EstadoVazio, formatarDataHora } from "@atende/ui";
 
 import { FormEditarVersao, FormNovoAgente } from "@/modules/agentes/FormAgente";
+import { FormChaveIa } from "@/modules/agentes/FormChaveIa";
 import { alternarAgenteAction, publicarVersaoAction } from "@/modules/agentes/actions";
 import { lerSessao } from "@/lib/sessao";
 
@@ -26,14 +27,21 @@ export default async function AgentesPage() {
     );
   }
 
-  const agentes = await runWithTenant(
+  const { agentes, chaves } = await runWithTenant(
     { empresaId: sessao.empresaId, usuarioId: sessao.usuarioId },
-    () =>
-      prisma.agenteIA.findMany({
+    async () => ({
+      agentes: await prisma.agenteIA.findMany({
         where: { deletedAt: null },
         orderBy: { criadoEm: "asc" },
         include: { versoes: { orderBy: { numero: "desc" } } },
       }),
+      // Só `tipo` e `ultimoErro`: a credencial cifrada não entra no select —
+      // o que não é lido não vaza por acidente num log ou erro serializado.
+      chaves: await prisma.integracaoExterna.findMany({
+        where: { categoria: "ia" },
+        select: { tipo: true, ultimoErro: true },
+      }),
+    }),
   );
 
   return (
@@ -47,6 +55,11 @@ export default async function AgentesPage() {
           está conversando termina com a persona com que começou.
         </p>
       </header>
+
+      <FormChaveIa
+        configurados={chaves.map((c) => c.tipo)}
+        erros={Object.fromEntries(chaves.map((c) => [c.tipo, c.ultimoErro]))}
+      />
 
       {agentes.length === 0 ? (
         <EstadoVazio
@@ -126,14 +139,14 @@ export default async function AgentesPage() {
         <FormNovoAgente />
       </section>
 
-      {/* Honestidade sobre o que ainda não existe: o agente é configurável, mas
-          o motor que o faz responder numa conversa real é a próxima etapa.
-          Deixar isso implícito faria o usuário publicar e esperar em vão. */}
       <p className="rounded-2 border border-borda bg-superficie-2 p-3 text-[12px] leading-relaxed text-texto-suave">
-        <strong className="font-semibold text-texto">Em construção:</strong> a persona já fica
-        gravada e versionada, mas o agente ainda não responde sozinho nas conversas — falta ligar o
-        motor ao canal, e a chave do provedor de IA precisa ser configurada. Enquanto isso, o
-        atendimento segue humano pela Inbox.
+        <strong className="font-semibold text-texto">Como colocar no ar:</strong> salve a chave,
+        publique uma versão do agente e escolha esse agente em{" "}
+        <a href="/configuracoes/canais" className="text-acento underline">
+          Canais
+        </a>
+        . A partir daí ele responde as conversas novas daquele canal. Assumir uma conversa na
+        Inbox tira o agente dela na hora — e a IA não volta a responder até você devolvê-la.
       </p>
     </div>
   );

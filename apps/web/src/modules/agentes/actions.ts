@@ -10,10 +10,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { temEscopo, type SessaoPayload } from "@atende/core";
+import { crypto as cryptoCore, temEscopo, type SessaoPayload } from "@atende/core";
 import { prisma, runWithTenant } from "@atende/db";
 
 import { lerSessao } from "@/lib/sessao";
+
+const { cifrarSegredo } = cryptoCore;
 
 export interface EstadoAgente {
   erro?: string;
@@ -163,6 +165,64 @@ export async function publicarVersaoAction(formData: FormData): Promise<void> {
     ]);
   });
   revalidatePath("/agentes");
+}
+
+const chaveSchema = z.object({
+  provedor: z.enum(["anthropic", "gemini", "openai", "grok"]),
+  apiKey: z.string().min(20).max(400),
+});
+
+/**
+ * Guarda a chave do provedor de modelo do tenant.
+ *
+ * Mora em `IntegracaoExterna { categoria: "ia" }` e não num model próprio: sem
+ * fallback para chave da plataforma, um `ConfigIAEmpresa` seria uma tabela com
+ * uma coluna útil — e aqui já vêm cifragem AES-256-GCM, `status` e `ultimoErro`
+ * (doc 11, divergência D1).
+ *
+ * A chave **nunca volta para a tela**: nem aqui, nem no `select` da página. O
+ * que a interface mostra é se existe uma, não qual é.
+ */
+export async function salvarChaveIaAction(
+  _prev: EstadoAgente,
+  formData: FormData,
+): Promise<EstadoAgente> {
+  return comoEstado(async () => {
+    const sessao = await exigir();
+    const p = chaveSchema.safeParse({
+      provedor: formData.get("provedor"),
+      apiKey: formData.get("apiKey"),
+    });
+    if (!p.success) throw new Error("Informe uma chave válida (mínimo de 20 caracteres).");
+
+    const credenciais = cifrarSegredo(JSON.stringify({ apiKey: p.data.apiKey }));
+
+    await runWithTenant({ empresaId: sessao.empresaId, usuarioId: sessao.usuarioId }, async () => {
+      const existente = await prisma.integracaoExterna.findFirst({
+        where: { categoria: "ia", tipo: p.data.provedor },
+      });
+
+      if (existente) {
+        await prisma.integracaoExterna.update({
+          where: { id: existente.id },
+          // Trocar a chave zera o erro anterior: manter `ultimoErro` faria a
+          // tela seguir acusando credencial recusada depois de corrigida.
+          data: { credenciaisCifradas: credenciais, status: "conectada", ultimoErro: null },
+        });
+        return;
+      }
+
+      await prisma.integracaoExterna.create({
+        data: {
+          categoria: "ia",
+          tipo: p.data.provedor,
+          nome: p.data.provedor,
+          credenciaisCifradas: credenciais,
+        } as never,
+      });
+    });
+    revalidatePath("/agentes");
+  });
 }
 
 export async function alternarAgenteAction(formData: FormData): Promise<void> {

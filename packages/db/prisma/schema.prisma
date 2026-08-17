@@ -602,6 +602,10 @@ model Canal {
   configCifrada String? // tokens/segredos AES-256-GCM (regra 15)
   statusConexao StatusConexaoCanal @default(desconectado)
   fluxoPadraoId String? // FK lógica — FluxoArvore chega no Bloco 4
+  /// Agente de IA que atende as conversas novas deste canal. FK LÓGICA (mesmo
+  /// padrão de `fluxoPadraoId`) para não criar ciclo Canal↔AgenteIA no Prisma.
+  /// `NULL` = sem IA neste canal: é o desligado, sem coluna booleana extra.
+  agentePadraoId String?
   ativo         Boolean            @default(true)
   criadoEm      DateTime           @default(now())
 
@@ -830,6 +834,12 @@ enum CategoriaIntegracao {
   erp
   crm
   pagamento
+  /// Provedor de modelo (anthropic, gemini…). A chave do tenant mora em
+  /// `IntegracaoExterna.credenciaisCifradas` em vez de um model próprio: sem
+  /// fallback para chave da plataforma, um `ConfigIAEmpresa` seria uma tabela
+  /// com uma coluna útil — e aqui já vêm cifragem, status e `ultimoErro`.
+  /// Divergência do doc 12 §5.6, registrada no doc 11.
+  ia
 }
 
 enum StatusIntegracao {

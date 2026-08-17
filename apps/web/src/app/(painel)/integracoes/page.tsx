@@ -13,7 +13,7 @@ import { lerSessao } from "@/lib/sessao";
 
 export const dynamic = "force-dynamic";
 
-const CATEGORIA = { erp: "ERP", crm: "CRM", pagamento: "Pagamento" } as const;
+const CATEGORIA = { erp: "ERP", crm: "CRM", pagamento: "Pagamento", ia: "IA" } as const;
 const TOM = { conectada: "sucesso", erro: "perigo", pausada: "atencao" } as const;
 
 export default async function IntegracoesPage() {
@@ -36,6 +36,10 @@ export default async function IntegracoesPage() {
     { empresaId: sessao.empresaId, usuarioId: sessao.usuarioId },
     () =>
       prisma.integracaoExterna.findMany({
+        // A credencial de IA aparece em /agentes, junto do agente que a usa —
+        // listá-la aqui como "integração" faria o usuário procurar a chave do
+        // modelo em dois lugares.
+        where: { categoria: { not: "ia" } },
         orderBy: { criadoEm: "asc" },
         // A credencial cifrada NÃO entra no select: o que não é lido não vaza
         // por acidente num log ou num erro serializado.
