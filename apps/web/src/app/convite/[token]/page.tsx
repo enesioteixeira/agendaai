@@ -16,7 +16,7 @@ export default async function ConvitePage({
     return (
       <main style={wrap}>
         <h1 style={{ fontSize: 22 }}>Convite inválido</h1>
-        <p style={{ color: "#666" }}>
+        <p style={{ color: "var(--texto-suave)" }}>
           Este link de convite não existe, expirou ou já foi utilizado. Peça um novo
           convite para o administrador da empresa.
         </p>
@@ -27,12 +27,12 @@ export default async function ConvitePage({
   return (
     <main style={wrap}>
       <h1 style={{ fontSize: 22 }}>Você foi convidado</h1>
-      <p style={{ color: "#444", marginBottom: "1.25rem" }}>
+      <p style={{ color: "var(--texto)", marginBottom: "1.25rem" }}>
         <strong>{convite.empresaNome}</strong> convidou <strong>{convite.email}</strong> para
         entrar como <strong>{convite.papelNome}</strong>.
       </p>
       {convite.emailJaCadastrado && (
-        <p style={{ color: "#666", fontSize: 14 }}>
+        <p style={{ color: "var(--texto-suave)", fontSize: 14 }}>
           Esse e-mail já tem conta no atende-ai — ao aceitar, a empresa é adicionada ao seu acesso.
         </p>
       )}

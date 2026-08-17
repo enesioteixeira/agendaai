@@ -5,7 +5,7 @@ import { prisma, runWithTenant } from "@atende/db";
 import { AutoRefresh } from "@/modules/atendimento/AutoRefresh";
 import { CanalForm } from "@/modules/atendimento/CanalForm";
 import { canalRemoverAction } from "@/modules/atendimento/actions";
-import { tb, th, td, btSec } from "@/modules/agenda/estilos";
+import { tb, th, td, btSec, tbLarga, rolagemX } from "@/componentes/estilos-ponte";
 
 const { decifrarSegredo } = cryptoCore;
 
@@ -26,9 +26,9 @@ export default async function CanaisPage() {
 
   if (!temEscopo(sessao, "config:canais")) {
     return (
-      <div>
+      <div className="p-4 md:p-6">
         <h1 style={{ fontSize: 22 }}>Canais</h1>
-        <p style={{ color: "#c0362c" }}>Seu papel não configura canais (escopo config:canais).</p>
+        <p style={{ color: "var(--perigo)" }}>Seu papel não configura canais (escopo config:canais).</p>
       </div>
     );
   }
@@ -39,11 +39,11 @@ export default async function CanaisPage() {
   );
 
   return (
-    <div style={{ display: "grid", gap: "1.5rem", maxWidth: 760 }}>
+    <div className="p-4 md:p-6" style={{ display: "grid", gap: "1.5rem", maxWidth: 760 }}>
       <AutoRefresh intervaloMs={3000} />
       <div>
         <h1 style={{ fontSize: 22, marginBottom: 4 }}>Canais de atendimento</h1>
-        <p style={{ color: "#666", margin: 0 }}>
+        <p style={{ color: "var(--texto-suave)", margin: 0 }}>
           Conecte o WhatsApp do seu negócio escaneando o QR (WhatsApp → Aparelhos conectados).
           Este canal <strong>responde</strong> conversas iniciadas pelos clientes — envios em massa/proativos não existem aqui.
         </p>
@@ -51,7 +51,8 @@ export default async function CanaisPage() {
 
       <CanalForm />
 
-      <table style={tb}>
+      <div style={rolagemX}>
+        <table style={tbLarga}>
         <thead>
           <tr>
             <th style={th}>Canal</th>
@@ -82,7 +83,16 @@ export default async function CanaisPage() {
                   {qrDataUrl && (
                     <div style={{ marginTop: 8 }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={qrDataUrl} alt="QR de pareamento do WhatsApp" width={220} height={220} style={{ border: "1px solid #ddd", borderRadius: 8 }} />
+                      <img
+                        src={qrDataUrl}
+                        alt="QR de pareamento do WhatsApp"
+                        width={220}
+                        height={220}
+                        /* `min(220px, 60vw)` porque 220px fixos dentro de <td>
+                           forçam a tabela a estourar o viewport do celular —
+                           e é justamente no celular que se lê o QR. */
+                        style={{ width: "min(220px, 60vw)", height: "auto", border: "1px solid var(--borda)", borderRadius: 8 }}
+                      />
                     </div>
                   )}
                 </td>
@@ -99,8 +109,9 @@ export default async function CanaisPage() {
           })}
         </tbody>
       </table>
+        </div>
 
-      <p style={{ color: "#999", fontSize: 13, margin: 0 }}>
+      <p style={{ color: "var(--texto-fraco)", fontSize: 13, margin: 0 }}>
         O pareamento exige o <strong>worker rodando</strong> (por ora na máquina do administrador:
         <code style={{ margin: "0 4px" }}>pnpm --filter @atende/worker dev</code> com DATABASE_URL e ENCRYPTION_KEY).
         Status atualiza sozinho a cada 3s.

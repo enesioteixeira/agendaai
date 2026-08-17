@@ -34,16 +34,16 @@ export default async function ConfirmadoPage({
     <main style={{ fontFamily: "system-ui", maxWidth: 560, margin: "0 auto", padding: "3rem 1rem", display: "grid", gap: "1rem", textAlign: "center" }}>
       <div style={{ fontSize: 48 }}>✅</div>
       <h1 style={{ fontSize: 22, margin: 0 }}>Horário confirmado!</h1>
-      <p style={{ color: "#444", margin: 0, fontSize: 16 }}>
+      <p style={{ color: "var(--texto)", margin: 0, fontSize: 16 }}>
         <strong>{agendamento.servico.nome}</strong> com <strong>{agendamento.profissional.nome}</strong>
         <br />
         {`${data.slice(8)}/${data.slice(5, 7)}/${data.slice(0, 4)}`} às {horaNoFuso(agendamento.inicio, fuso)}
       </p>
-      <p style={{ color: "#666", fontSize: 14 }}>
+      <p style={{ color: "var(--texto-suave)", fontSize: 14 }}>
         {empresa.nome} · Guarde este comprovante. Se precisar remarcar, entre em contato com o estabelecimento.
       </p>
       <p style={{ margin: 0 }}>
-        <a href={`/agendar/${slug}`} style={{ color: "#4f7cff" }}>Fazer outro agendamento</a>
+        <a href={`/agendar/${slug}`} style={{ color: "var(--acento)" }}>Fazer outro agendamento</a>
       </p>
     </main>
   );

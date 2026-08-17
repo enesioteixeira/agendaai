@@ -1,11 +1,44 @@
+import Link from "next/link";
+
 import { LoginForm } from "@/modules/identidade/LoginForm";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ motivo?: string }>;
+}) {
+  const { motivo } = await searchParams;
+
   return (
-    <main style={{ fontFamily: "system-ui", maxWidth: 380, margin: "4rem auto", padding: "0 1rem" }}>
-      <h1 style={{ fontSize: 24 }}>Entrar</h1>
-      <p style={{ color: "#666", marginBottom: "1.5rem" }}>Acesse o painel da sua empresa.</p>
+    <main className="mx-auto max-w-[380px] px-4 py-16">
+      <h1 className="text-[24px] font-semibold tracking-tight text-texto">Entrar</h1>
+      <p className="mb-6 mt-1 text-[13px] text-texto-suave">Acesse o painel da sua empresa.</p>
+
+      {/* O painel derruba a sessão quando o tenant do JWT não existe mais
+          (empresa removida, ambiente recriado). Sem esta explicação, o usuário
+          é devolvido ao login sem saber por quê e tenta a mesma senha de novo. */}
+      {motivo === "sessao-invalida" ? (
+        <div
+          role="status"
+          className="mb-4 rounded-2 border border-atencao bg-atencao-fraco px-3 py-2 text-[12px] leading-relaxed text-texto"
+        >
+          Sua sessão não vale mais — a empresa vinculada a ela não está mais disponível.
+          Entre de novo ou{" "}
+          <Link href="/cadastro" className="underline">
+            crie uma conta
+          </Link>
+          .
+        </div>
+      ) : null}
+
       <LoginForm />
+
+      <p className="mt-6 text-[12px] text-texto-suave">
+        Não tem conta?{" "}
+        <Link href="/cadastro" className="text-acento underline">
+          Criar agora
+        </Link>
+      </p>
     </main>
   );
 }

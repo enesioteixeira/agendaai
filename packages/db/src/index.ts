@@ -4,6 +4,7 @@
 export { prisma, Prisma, type PrismaTenant } from "./client";
 export { runWithTenant, contextoTenantAtual, type ContextoTenant } from "./tenancy";
 export { resolverEmpresaPorSlug, type EmpresaResolvida } from "./resolver-slug";
+export { empresaDaSessao, type EmpresaDaSessao } from "./empresa-da-sessao";
 export { cadastroInicial, type ResultadoOnboarding } from "./identidade/onboarding";
 export {
   autenticar,

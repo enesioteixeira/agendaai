@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { profissionalSalvarAction, type EstadoAgendaForm } from "./actions";
-import { lb, ip, bt, erroTxt } from "./estilos";
+import { lb, ip, bt, erroTxt } from "@/componentes/estilos-ponte";
 
 export interface UnidadeOpcao {
   id: string;
@@ -45,7 +45,7 @@ export function ProfissionalForm({
       </label>
       <label style={lb}>
         Cor na agenda
-        <input name="cor" type="color" defaultValue={profissional?.cor ?? "#4f7cff"} style={{ ...ip, padding: 2, width: 52, height: 38 }} />
+        <input name="cor" type="color" defaultValue={profissional?.cor ?? "var(--acento)"} style={{ ...ip, padding: 2, width: 52, height: 38 }} />
       </label>
       <button type="submit" disabled={pending} style={bt}>
         {pending ? "Salvando..." : profissional ? "Salvar" : "Adicionar profissional"}

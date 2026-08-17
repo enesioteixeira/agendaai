@@ -252,6 +252,12 @@ const ICONES = {
       <path d="M16.5 7.5h.01" />
     </Svg>
   ),
+  calendario: (p: PropsIcone) => (
+    <Svg {...p}>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </Svg>
+  ),
 } satisfies Record<string, ComponentType<PropsIcone>>
 
 export type NomeDeIcone = keyof typeof ICONES

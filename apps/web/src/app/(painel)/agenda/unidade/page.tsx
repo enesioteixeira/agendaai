@@ -20,7 +20,7 @@ export default async function UnidadePage() {
     return (
       <div>
         <h1 style={{ fontSize: 22 }}>Horário de funcionamento</h1>
-        <p style={{ color: "#c0362c" }}>Seu papel não pode configurar a agenda (escopo agenda:configurar).</p>
+        <p style={{ color: "var(--perigo)" }}>Seu papel não pode configurar a agenda (escopo agenda:configurar).</p>
       </div>
     );
   }
@@ -29,7 +29,7 @@ export default async function UnidadePage() {
     <div style={{ display: "grid", gap: "2rem", maxWidth: 720 }}>
       <div>
         <h1 style={{ fontSize: 22, marginBottom: 4 }}>Horário de funcionamento</h1>
-        <p style={{ color: "#666", margin: 0 }}>
+        <p style={{ color: "var(--texto-suave)", margin: 0 }}>
           Quando cada unidade abre — a booking pública nunca oferece horário fora do funcionamento.
         </p>
       </div>

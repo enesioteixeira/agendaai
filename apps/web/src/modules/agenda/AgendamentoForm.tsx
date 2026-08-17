@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { agendamentoCriarAction, type EstadoAgendaForm } from "./actions";
-import { lb, ip, bt, erroTxt } from "./estilos";
+import { lb, ip, bt, erroTxt } from "@/componentes/estilos-ponte";
 
 export interface OpcaoIdNome {
   id: string;
@@ -78,7 +78,7 @@ export function AgendamentoForm({
         <button
           type="button"
           onClick={() => setClienteNovo(!clienteNovo)}
-          style={{ background: "none", border: "none", color: "#4f7cff", cursor: "pointer", fontSize: 13, paddingBottom: 10 }}
+          style={{ background: "none", border: "none", color: "var(--acento)", cursor: "pointer", fontSize: 13, paddingBottom: 10 }}
         >
           {clienteNovo ? "usar cliente existente" : "+ cliente novo"}
         </button>

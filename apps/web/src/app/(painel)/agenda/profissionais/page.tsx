@@ -9,7 +9,7 @@ import {
   horariosTrabalhoSalvarAction,
   gcalDesconectarAction,
 } from "@/modules/agenda/actions";
-import { tb, th, td, btSec, DIAS_SEMANA } from "@/modules/agenda/estilos";
+import { tb, th, td, btSec, DIAS_SEMANA, tbLarga, rolagemX } from "@/componentes/estilos-ponte";
 
 const GCAL_AVISO: Record<string, string> = {
   ok: "Google Calendar conectado — horários ocupados já bloqueiam a agenda.",
@@ -50,7 +50,7 @@ export default async function ProfissionaisPage({
     <div style={{ display: "grid", gap: "1.5rem", maxWidth: 900 }}>
       <div>
         <h1 style={{ fontSize: 22, marginBottom: 4 }}>Profissionais</h1>
-        <p style={{ color: "#666", margin: 0 }}>
+        <p style={{ color: "var(--texto-suave)", margin: 0 }}>
           Quem atende — cada um com sua grade semanal de horários (a booking só oferece horários dentro da grade).
           Com o Google Calendar conectado, compromissos pessoais bloqueiam a agenda automaticamente
           (sincroniza a cada 10 minutos; só ocupado/livre é lido, nunca o conteúdo dos eventos).
@@ -58,7 +58,7 @@ export default async function ProfissionaisPage({
       </div>
 
       {gcal && (
-        <p style={{ margin: 0, padding: "0.6rem 0.9rem", borderRadius: 8, fontSize: 14, background: gcal === "ok" ? "#e8f0e8" : "#fdecea", color: gcal === "ok" ? "#2c7a2c" : "#c0362c" }}>
+        <p style={{ margin: 0, padding: "0.6rem 0.9rem", borderRadius: 8, fontSize: 14, background: gcal === "ok" ? "var(--sucesso-fraco)" : "var(--perigo-fraco)", color: gcal === "ok" ? "var(--sucesso)" : "var(--perigo)" }}>
           {GCAL_AVISO[gcal] ?? "Falha ao conectar o Google Calendar."}
         </p>
       )}
@@ -71,7 +71,8 @@ export default async function ProfissionaisPage({
       )}
 
       <section>
-        <table style={tb}>
+        <div style={rolagemX}>
+        <table style={tbLarga}>
           <thead>
             <tr>
               <th style={th}>Profissional</th>
@@ -89,7 +90,7 @@ export default async function ProfissionaisPage({
             {profissionais.map((p) => (
               <tr key={p.id} style={p.ativo ? undefined : { opacity: 0.5 }}>
                 <td style={td}>
-                  <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 5, background: p.cor ?? "#999", marginRight: 6 }} />
+                  <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 5, background: p.cor ?? "var(--texto-fraco)", marginRight: 6 }} />
                   {p.nome}
                 </td>
                 <td style={td}>{p.unidade.nome}</td>
@@ -103,16 +104,16 @@ export default async function ProfissionaisPage({
                     const s = p.sincronizacao;
                     if (!s || s.estadoSync === "desconectado") {
                       return podeConfigurar ? (
-                        <a href={`/api/gcal/conectar?profissionalId=${p.id}`} style={{ color: "#4f7cff", fontSize: 13 }}>Conectar</a>
+                        <a href={`/api/gcal/conectar?profissionalId=${p.id}`} style={{ color: "var(--acento)", fontSize: 13 }}>Conectar</a>
                       ) : (
                         "—"
                       );
                     }
                     if (s.estadoSync === "erro_token") {
                       return (
-                        <span style={{ color: "#c0362c", fontSize: 13 }}>
+                        <span style={{ color: "var(--perigo)", fontSize: 13 }}>
                           Acesso expirou{" "}
-                          {podeConfigurar && <a href={`/api/gcal/conectar?profissionalId=${p.id}`} style={{ color: "#4f7cff" }}>reconectar</a>}
+                          {podeConfigurar && <a href={`/api/gcal/conectar?profissionalId=${p.id}`} style={{ color: "var(--acento)" }}>reconectar</a>}
                         </span>
                       );
                     }
@@ -123,7 +124,7 @@ export default async function ProfissionaisPage({
                         {podeConfigurar && (
                           <form action={gcalDesconectarAction} style={{ display: "inline", marginLeft: 6 }}>
                             <input type="hidden" name="profissionalId" value={p.id} />
-                            <button type="submit" style={{ background: "none", border: "none", color: "#c0362c", cursor: "pointer", fontSize: 12, padding: 0 }}>
+                            <button type="submit" style={{ background: "none", border: "none", color: "var(--perigo)", cursor: "pointer", fontSize: 12, padding: 0 }}>
                               desconectar
                             </button>
                           </form>
@@ -171,6 +172,7 @@ export default async function ProfissionaisPage({
             ))}
           </tbody>
         </table>
+        </div>
       </section>
     </div>
   );

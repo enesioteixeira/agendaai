@@ -12,7 +12,7 @@ import {
 import { prisma, runWithTenant } from "@atende/db";
 import { AgendamentoForm } from "@/modules/agenda/AgendamentoForm";
 import { agendamentoStatusAction } from "@/modules/agenda/actions";
-import { DIAS_SEMANA } from "@/modules/agenda/estilos";
+import { DIAS_SEMANA } from "@/componentes/estilos-ponte";
 
 // Grade da agenda (B3): visão DIA (colunas por profissional) e SEMANA (um
 // profissional, colunas por dia). Slots de 30 min, 07:00–21:00, no fuso da
@@ -144,7 +144,7 @@ export default async function AgendaPage({
     lista.push({
       id: a.id,
       rotulo: `${horaA}–${horaNoFuso(a.fim, fuso)} ${a.cliente.nome} · ${a.servico.nome}`,
-      cor: a.profissional.cor ?? "#4f7cff",
+      cor: a.profissional.cor ?? "var(--acento)",
       status: a.status,
     });
     chips.set(chave, lista);
@@ -202,7 +202,7 @@ export default async function AgendaPage({
       </div>
 
       {profissionais.length === 0 ? (
-        <p style={{ color: "#666" }}>
+        <p style={{ color: "var(--texto-suave)" }}>
           Cadastre um <a href="/agenda/profissionais">profissional</a> e um{" "}
           <a href="/agenda/servicos">serviço</a> para começar a agendar.
         </p>
@@ -233,19 +233,19 @@ export default async function AgendaPage({
               <tbody>
                 {LINHAS.map((slot) => (
                   <tr key={slot}>
-                    <td style={{ ...cel, color: "#888", fontSize: 12, textAlign: "right", paddingRight: 6 }}>
+                    <td style={{ ...cel, color: "var(--texto-fraco)", fontSize: 12, textAlign: "right", paddingRight: 6 }}>
                       {slot}
                     </td>
                     {colunas.map((c) => {
                       const bloqueada = slotBloqueado(c.profissionalId, c.dataCol, slot);
                       const lista = chips.get(`${c.chave}|${slot}`) ?? [];
                       return (
-                        <td key={c.chave} style={{ ...cel, background: bloqueada ? "#f3f3f3" : undefined }}>
+                        <td key={c.chave} style={{ ...cel, background: bloqueada ? "var(--superficie-2)" : undefined }}>
                           {lista.map((chip) => (
                             <div
                               key={chip.id}
                               style={{
-                                background: chip.status === "concluido" ? "#e8f0e8" : "#fff",
+                                background: chip.status === "concluido" ? "var(--sucesso-fraco)" : "var(--superficie)",
                                 borderLeft: `3px solid ${chip.cor}`,
                                 borderRadius: 4,
                                 padding: "2px 6px",
@@ -279,7 +279,7 @@ export default async function AgendaPage({
               </tbody>
             </table>
           </div>
-          <p style={{ color: "#999", fontSize: 12, margin: 0 }}>
+          <p style={{ color: "var(--texto-fraco)", fontSize: 12, margin: 0 }}>
             Células cinza = período bloqueado · ✓ concluir · ✕ cancelar · Fuso: {fuso}
           </p>
         </>
@@ -288,8 +288,8 @@ export default async function AgendaPage({
   );
 }
 
-const cab: React.CSSProperties = { textAlign: "left", borderBottom: "2px solid #ddd", padding: "0.35rem 0.4rem", color: "#555", fontSize: 13 };
-const cel: React.CSSProperties = { borderBottom: "1px solid #eee", borderLeft: "1px solid #f2f2f2", padding: "1px 3px", height: 26, verticalAlign: "top" };
-const mini: React.CSSProperties = { background: "none", border: "1px solid #ccc", borderRadius: 4, cursor: "pointer", fontSize: 11, padding: "0 4px", marginLeft: 2 };
-const abaLink: React.CSSProperties = { color: "#333", textDecoration: "none", padding: "0.3rem 0.6rem", borderRadius: 6, fontSize: 13, background: "#f2f2f2" };
-const abaAtiva: React.CSSProperties = { ...abaLink, background: "#111", color: "#fff" };
+const cab: React.CSSProperties = { textAlign: "left", borderBottom: "2px solid var(--borda-forte)", padding: "0.35rem 0.4rem", color: "var(--texto-suave)", fontSize: 13 };
+const cel: React.CSSProperties = { borderBottom: "1px solid var(--borda)", borderLeft: "1px solid var(--borda)", padding: "1px 3px", height: 26, verticalAlign: "top" };
+const mini: React.CSSProperties = { background: "none", border: "1px solid var(--borda)", borderRadius: 4, cursor: "pointer", fontSize: 11, padding: "0 4px", marginLeft: 2 };
+const abaLink: React.CSSProperties = { color: "var(--texto)", textDecoration: "none", padding: "0.3rem 0.6rem", borderRadius: 6, fontSize: 13, background: "var(--superficie-2)" };
+const abaAtiva: React.CSSProperties = { ...abaLink, background: "var(--acento)", color: "var(--acento-texto)" };

@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 
 import { AlternadorDeTema } from "@/componentes/AlternadorDeTema";
 import { NavLateral, type GrupoDeNavegacao } from "@/componentes/NavLateral";
-import { lerSessao } from "@/lib/sessao";
+import { empresaDaSessao } from "@atende/db";
+
+import { apagarSessao, lerSessao } from "@/lib/sessao";
 import { logoutAction } from "@/modules/identidade/actions";
 
 // A navegação do produto. A ordem conta a história do Instant Channel: a conversa
@@ -43,6 +45,14 @@ const GRUPOS: readonly GrupoDeNavegacao[] = [
       { href: "/configuracoes", rotulo: "Configurações", icone: "engrenagem" },
     ],
   },
+  {
+    // A agenda é módulo CONGELADO (doc 12 §1.2): funciona e é mantida, mas não
+    // evolui. Ela estava FORA da navegação enquanto login e cadastro
+    // redirecionavam para lá — o usuário novo caía numa área da qual não
+    // conseguia sair pelo menu. O selo diz a verdade sobre o estado dela.
+    titulo: "Outros",
+    itens: [{ href: "/agenda", rotulo: "Agenda", icone: "calendario", selo: "congelado" }],
+  },
 ];
 
 // Layout do painel — porta de entrada autenticada. Sem sessão válida, redireciona
@@ -51,6 +61,23 @@ const GRUPOS: readonly GrupoDeNavegacao[] = [
 export default async function PainelLayout({ children }: { children: ReactNode }) {
   const sessao = await lerSessao();
   if (!sessao) redirect("/login");
+
+  // O JWT prova QUEM é; o banco decide se ainda vale.
+  //
+  // O cookie dura 7 dias e não é revalidado a cada request (pendência
+  // consciente registrada em `packages/db/AGENTS.md`). Sem esta checagem, uma
+  // sessão cujo tenant não existe mais — empresa removida, banco restaurado de
+  // backup — atravessa o painel inteiro e só falha lá na frente, como violação
+  // de chave estrangeira crua na cara do usuário ("Foreign key constraint
+  // violated on AgenteIA_empresaId_fkey"). Aconteceu de verdade.
+  //
+  // Uma query por navegação no painel é barata perto de deixar o usuário preso
+  // num app que aceita a sessão e recusa toda escrita.
+  const empresa = await empresaDaSessao(sessao.empresaId);
+  if (!empresa) {
+    await apagarSessao();
+    redirect("/login?motivo=sessao-invalida");
+  }
 
   const marca = (
     <div className="flex items-center gap-2.5">

@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { recursoSalvarAction, type EstadoAgendaForm } from "./actions";
 import type { UnidadeOpcao } from "./ProfissionalForm";
-import { lb, ip, bt, erroTxt } from "./estilos";
+import { lb, ip, bt, erroTxt } from "@/componentes/estilos-ponte";
 
 export interface RecursoEditavel {
   id: string;

@@ -39,13 +39,13 @@ export default async function BookingPage({
     <main style={{ fontFamily: "system-ui", maxWidth: 560, margin: "0 auto", padding: "2rem 1rem", display: "grid", gap: "1.5rem" }}>
       <header>
         <h1 style={{ fontSize: 24, margin: 0 }}>{empresa.nome}</h1>
-        <p style={{ color: "#666", margin: "4px 0 0" }}>Agende seu horário em poucos cliques.</p>
+        <p style={{ color: "var(--texto-suave)", margin: "4px 0 0" }}>Agende seu horário em poucos cliques.</p>
       </header>
 
       <section style={{ display: "grid", gap: 8 }}>
         <h2 style={h2}>1. Serviço</h2>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {servicos.length === 0 && <p style={{ color: "#666", margin: 0 }}>Nenhum serviço disponível no momento.</p>}
+          {servicos.length === 0 && <p style={{ color: "var(--texto-suave)", margin: 0 }}>Nenhum serviço disponível no momento.</p>}
           {servicos.map((s) => (
             <a key={s.id} href={`${base}?servicoId=${s.id}`} style={s.id === servico?.id ? chipAtivo : chip}>
               {s.nome} · {(s.precoCentavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
@@ -92,7 +92,7 @@ export default async function BookingPage({
         <section style={{ display: "grid", gap: 8 }}>
           <h2 style={h2}>4. Horário</h2>
           {!slots || slots.slots.length === 0 ? (
-            <p style={{ color: "#666", margin: 0 }}>Sem horários livres nesse dia — tente outro.</p>
+            <p style={{ color: "var(--texto-suave)", margin: 0 }}>Sem horários livres nesse dia — tente outro.</p>
           ) : (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {slots.slots.map((h) => (
@@ -112,7 +112,7 @@ export default async function BookingPage({
       {servico && profissional && q.data && q.hora && (
         <section style={{ display: "grid", gap: 8 }}>
           <h2 style={h2}>5. Seus dados</h2>
-          <p style={{ margin: 0, color: "#444", fontSize: 14 }}>
+          <p style={{ margin: 0, color: "var(--texto)", fontSize: 14 }}>
             {servico.nome} com {profissional.nome} em {`${q.data.slice(8)}/${q.data.slice(5, 7)}`} às {q.hora}.
           </p>
           <BookingForm
@@ -128,14 +128,14 @@ export default async function BookingPage({
   );
 }
 
-const h2: React.CSSProperties = { fontSize: 15, margin: 0, color: "#333" };
+const h2: React.CSSProperties = { fontSize: 15, margin: 0, color: "var(--texto)" };
 const chip: React.CSSProperties = {
   padding: "0.5rem 0.8rem",
-  border: "1px solid #ccc",
+  border: "1px solid var(--borda)",
   borderRadius: 999,
   textDecoration: "none",
-  color: "#222",
+  color: "var(--texto)",
   fontSize: 14,
-  background: "#fff",
+  background: "var(--superficie)",
 };
-const chipAtivo: React.CSSProperties = { ...chip, background: "#111", color: "#fff", borderColor: "#111" };
+const chipAtivo: React.CSSProperties = { ...chip, background: "var(--acento)", color: "var(--acento-texto)", borderColor: "var(--acento)" };

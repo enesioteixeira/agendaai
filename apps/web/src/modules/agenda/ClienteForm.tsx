@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { clienteCriarAction, type EstadoAgendaForm } from "./actions";
-import { lb, ip, bt, erroTxt } from "./estilos";
+import { lb, ip, bt, erroTxt } from "@/componentes/estilos-ponte";
 
 export function ClienteForm() {
   const [estado, action, pending] = useActionState<EstadoAgendaForm, FormData>(

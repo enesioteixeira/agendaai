@@ -5,7 +5,7 @@ import { prisma, runWithTenant } from "@atende/db";
 import { RecursoForm } from "@/modules/agenda/RecursoForm";
 import { BloqueioForm } from "@/modules/agenda/BloqueioForm";
 import { recursoAlternarAtivoAction, bloqueioExcluirAction } from "@/modules/agenda/actions";
-import { tb, th, td, btSec } from "@/modules/agenda/estilos";
+import { tb, th, td, btSec, tbLarga, rolagemX } from "@/componentes/estilos-ponte";
 
 const TIPO_BLOQUEIO: Record<string, string> = {
   ferias: "Férias/folga",
@@ -47,7 +47,7 @@ export default async function RecursosPage() {
     <div style={{ display: "grid", gap: "2rem", maxWidth: 950 }}>
       <div>
         <h1 style={{ fontSize: 22, marginBottom: 4 }}>Salas, recursos & bloqueios</h1>
-        <p style={{ color: "#666", margin: 0 }}>
+        <p style={{ color: "var(--texto-suave)", margin: 0 }}>
           Espaços físicos que a agenda reserva junto com o profissional — e os períodos em que algo (ou alguém) não atende.
         </p>
       </div>
@@ -55,7 +55,8 @@ export default async function RecursosPage() {
       <section style={{ display: "grid", gap: "0.75rem" }}>
         <h2 style={{ fontSize: 16, margin: 0 }}>Salas & recursos</h2>
         {podeConfigurar && <RecursoForm unidades={opcoesUnidade} />}
-        <table style={tb}>
+        <div style={rolagemX}>
+        <table style={tbLarga}>
           <thead>
             <tr>
               <th style={th}>Nome</th>
@@ -99,12 +100,14 @@ export default async function RecursosPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </section>
 
       <section style={{ display: "grid", gap: "0.75rem" }}>
         <h2 style={{ fontSize: 16, margin: 0 }}>Bloqueios (vigentes e futuros)</h2>
         {podeConfigurar && alvos.length > 0 && <BloqueioForm alvos={alvos} />}
-        <table style={tb}>
+        <div style={rolagemX}>
+        <table style={tbLarga}>
           <thead>
             <tr>
               <th style={th}>Alvo</th>
@@ -144,6 +147,7 @@ export default async function RecursosPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </section>
     </div>
   );

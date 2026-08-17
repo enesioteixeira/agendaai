@@ -4,7 +4,7 @@ import { temEscopo } from "@atende/core";
 import { prisma, runWithTenant } from "@atende/db";
 import { ServicoForm } from "@/modules/agenda/ServicoForm";
 import { servicoAlternarAtivoAction } from "@/modules/agenda/actions";
-import { tb, th, td, btSec } from "@/modules/agenda/estilos";
+import { tb, th, td, btSec, tbLarga, rolagemX } from "@/componentes/estilos-ponte";
 
 // Catálogo de serviços (agenda:configurar p/ mexer; agenda:ler p/ ver).
 export default async function ServicosPage() {
@@ -21,7 +21,7 @@ export default async function ServicosPage() {
     <div style={{ display: "grid", gap: "1.5rem", maxWidth: 900 }}>
       <div>
         <h1 style={{ fontSize: 22, marginBottom: 4 }}>Serviços</h1>
-        <p style={{ color: "#666", margin: 0 }}>
+        <p style={{ color: "var(--texto-suave)", margin: 0 }}>
           O que a sua empresa oferece — duração e preço alimentam a agenda e a booking.
         </p>
       </div>
@@ -34,7 +34,8 @@ export default async function ServicosPage() {
       )}
 
       <section>
-        <table style={tb}>
+        <div style={rolagemX}>
+        <table style={tbLarga}>
           <thead>
             <tr>
               <th style={th}>Serviço</th>
@@ -79,6 +80,7 @@ export default async function ServicosPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </section>
     </div>
   );

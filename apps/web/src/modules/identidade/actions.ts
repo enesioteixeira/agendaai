@@ -53,7 +53,7 @@ export async function cadastrarAction(
     }
     return { erro: msg, valores };
   }
-  redirect("/agenda");
+  redirect("/inbox");
 }
 
 export async function loginAction(
@@ -80,7 +80,7 @@ export async function loginAction(
   const sessao = await montarSessao(r.usuarioId, primeiro.empresaId);
   if (!sessao) return { erro: "Falha ao montar a sessão.", valores };
   await criarCookieSessao(sessao);
-  redirect("/agenda");
+  redirect("/inbox");
 }
 
 export async function logoutAction(): Promise<void> {

@@ -85,5 +85,5 @@ export async function aceitarConviteAction(
   const sessao = await montarSessao(r.usuarioId, r.empresaId);
   if (!sessao) return { erro: "Vínculo criado, mas falhou ao iniciar sessão — use o login.", valores };
   await criarCookieSessao(sessao);
-  redirect("/agenda");
+  redirect("/inbox");
 }

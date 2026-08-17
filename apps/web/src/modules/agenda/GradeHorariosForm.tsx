@@ -7,7 +7,7 @@
 
 import { useActionState, useState } from "react";
 import type { EstadoAgendaForm } from "./actions";
-import { ip, bt, btSec, erroTxt, DIAS_SEMANA } from "./estilos";
+import { ip, bt, btSec, erroTxt, DIAS_SEMANA } from "@/componentes/estilos-ponte";
 
 export interface Intervalo {
   diaSemana: number;
@@ -76,7 +76,7 @@ export function GradeHorariosForm({
       </div>
 
       {estado.erro && <p style={erroTxt}>{estado.erro}</p>}
-      {estado.ok && <p style={{ color: "#2c7a2c", margin: 0, fontSize: 14 }}>Grade salva.</p>}
+      {estado.ok && <p style={{ color: "var(--sucesso)", margin: 0, fontSize: 14 }}>Grade salva.</p>}
     </form>
   );
 }

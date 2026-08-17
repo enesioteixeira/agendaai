@@ -42,11 +42,11 @@ export function BookingForm({
       <button type="submit" disabled={pending} style={bt}>
         {pending ? "Confirmando..." : `Confirmar ${hora}`}
       </button>
-      {estado.erro && <p style={{ color: "#c0362c", margin: 0, fontSize: 14 }}>{estado.erro}</p>}
+      {estado.erro && <p style={{ color: "var(--perigo)", margin: 0, fontSize: 14 }}>{estado.erro}</p>}
     </form>
   );
 }
 
-const lb: React.CSSProperties = { display: "grid", gap: 4, fontSize: 14, color: "#333" };
-const ip: React.CSSProperties = { padding: "0.6rem 0.7rem", border: "1px solid #ccc", borderRadius: 8, fontSize: 16 };
-const bt: React.CSSProperties = { padding: "0.7rem 1rem", background: "#111", color: "#fff", border: "none", borderRadius: 8, fontSize: 15, cursor: "pointer" };
+const lb: React.CSSProperties = { display: "grid", gap: 4, fontSize: 14, color: "var(--texto)" };
+const ip: React.CSSProperties = { padding: "0.6rem 0.7rem", border: "1px solid var(--borda)", borderRadius: 8, fontSize: 16 };
+const bt: React.CSSProperties = { padding: "0.7rem 1rem", background: "var(--acento)", color: "var(--acento-texto)", border: "none", borderRadius: 8, fontSize: 15, cursor: "pointer" };

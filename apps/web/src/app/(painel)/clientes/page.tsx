@@ -3,7 +3,7 @@ import { lerSessao } from "@/lib/sessao";
 import { temEscopo } from "@atende/core";
 import { prisma, runWithTenant } from "@atende/db";
 import { ClienteForm } from "@/modules/agenda/ClienteForm";
-import { tb, th, td } from "@/modules/agenda/estilos";
+import { tb, th, td, tbLarga, rolagemX } from "@/componentes/estilos-ponte";
 
 // Clientes — versão mínima do Bloco 2 (cadastro p/ agendar). O módulo completo
 // (IdentidadeCanal, timeline, tags, merge) chega no Bloco 3 com o omnichannel.
@@ -13,9 +13,9 @@ export default async function ClientesPage() {
 
   if (!temEscopo(sessao, "clientes:ler")) {
     return (
-      <div>
+      <div className="p-4 md:p-6">
         <h1 style={{ fontSize: 22 }}>Clientes</h1>
-        <p style={{ color: "#c0362c" }}>Seu papel não tem acesso a clientes (escopo clientes:ler).</p>
+        <p style={{ color: "var(--perigo)" }}>Seu papel não tem acesso a clientes (escopo clientes:ler).</p>
       </div>
     );
   }
@@ -33,10 +33,10 @@ export default async function ClientesPage() {
   const podeCriar = temEscopo(sessao, "clientes:criar");
 
   return (
-    <div style={{ display: "grid", gap: "1.5rem", maxWidth: 860 }}>
+    <div className="p-4 md:p-6" style={{ display: "grid", gap: "1.5rem", maxWidth: 860 }}>
       <div>
         <h1 style={{ fontSize: 22, marginBottom: 4 }}>Clientes</h1>
-        <p style={{ color: "#666", margin: 0 }}>
+        <p style={{ color: "var(--texto-suave)", margin: 0 }}>
           Cadastro básico — histórico completo e conversas chegam com o atendimento (Bloco 3).
         </p>
       </div>
@@ -49,7 +49,8 @@ export default async function ClientesPage() {
       )}
 
       <section>
-        <table style={tb}>
+        <div style={rolagemX}>
+        <table style={tbLarga}>
           <thead>
             <tr>
               <th style={th}>Nome</th>
@@ -76,6 +77,7 @@ export default async function ClientesPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </section>
     </div>
   );

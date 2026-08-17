@@ -50,7 +50,7 @@ export function CadastroForm() {
               style={{ ...ip, flex: 1 }}
               defaultValue={estado.valores?.empresaSlug}
             />
-            <span style={{ color: "#888", fontSize: 13 }}>.atende-ai.com.br</span>
+            <span style={{ color: "var(--texto-fraco)", fontSize: 13 }}>.atende-ai.com.br</span>
           </span>
         </label>
         <label style={lb}>
@@ -63,20 +63,20 @@ export function CadastroForm() {
         </label>
       </fieldset>
 
-      {estado.erro && <p style={{ color: "#c0362c", margin: 0, fontSize: 14 }}>{estado.erro}</p>}
+      {estado.erro && <p style={{ color: "var(--perigo)", margin: 0, fontSize: 14 }}>{estado.erro}</p>}
 
       <button type="submit" disabled={pending} style={bt}>
         {pending ? "Criando..." : "Criar conta e empresa"}
       </button>
-      <p style={{ fontSize: 14, color: "#666", margin: 0 }}>
+      <p style={{ fontSize: 14, color: "var(--texto-suave)", margin: 0 }}>
         Já tem conta? <a href="/login">Entrar</a>
       </p>
     </form>
   );
 }
 
-const fs: React.CSSProperties = { border: "1px solid #e2e2e2", borderRadius: 8, padding: "0.75rem 1rem", display: "grid", gap: "0.75rem" };
-const lg: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: "#444", padding: "0 6px" };
-const lb: React.CSSProperties = { display: "grid", gap: 4, fontSize: 14, color: "#333" };
-const ip: React.CSSProperties = { padding: "0.5rem 0.6rem", border: "1px solid #ccc", borderRadius: 6, fontSize: 15 };
-const bt: React.CSSProperties = { padding: "0.65rem", background: "#111", color: "#fff", border: "none", borderRadius: 6, fontSize: 15, cursor: "pointer" };
+const fs: React.CSSProperties = { border: "1px solid var(--borda)", borderRadius: 8, padding: "0.75rem 1rem", display: "grid", gap: "0.75rem" };
+const lg: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: "var(--texto)", padding: "0 6px" };
+const lb: React.CSSProperties = { display: "grid", gap: 4, fontSize: 14, color: "var(--texto)" };
+const ip: React.CSSProperties = { padding: "0.5rem 0.6rem", border: "1px solid var(--borda)", borderRadius: 6, fontSize: 15 };
+const bt: React.CSSProperties = { padding: "0.65rem", background: "var(--acento)", color: "var(--acento-texto)", border: "none", borderRadius: 6, fontSize: 15, cursor: "pointer" };
