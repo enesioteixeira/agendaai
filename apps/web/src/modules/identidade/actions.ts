@@ -12,6 +12,8 @@ import {
   loginSchema,
 } from "@atende/core";
 import { cadastroInicial, autenticar, montarSessao } from "@atende/db";
+
+import { cadastroAberto } from "@/lib/flags";
 import { criarCookieSessao, apagarSessao } from "@/lib/sessao";
 
 export interface EstadoForm {
@@ -24,6 +26,15 @@ export async function cadastrarAction(
   _prev: EstadoForm,
   formData: FormData,
 ): Promise<EstadoForm> {
+  // O portão real é aqui, e não na página: esconder o formulário e deixar a
+  // action aberta é convite a quem sabe montar um POST. Enquanto não existir
+  // cobrança, conta nova nasce por convite.
+  if (!cadastroAberto()) {
+    return {
+      erro: "As contas são criadas por convite. Fale com a gente para receber o seu acesso.",
+    };
+  }
+
   const valores = {
     nome: String(formData.get("nome") ?? ""),
     email: String(formData.get("email") ?? ""),

@@ -26,3 +26,22 @@
 export function agendaHabilitada(): boolean {
   return process.env.AGENDA_HABILITADA === "true";
 }
+
+/**
+ * O cadastro é autoatendimento aberto?
+ *
+ * Hoje qualquer pessoa cria uma empresa e usa o produto de graça — não existe
+ * plano, assinatura, limite nem porta de pagamento em lugar nenhum. Enquanto
+ * isso for verdade, cadastro aberto é uma máquina ligada atraindo justamente o
+ * público que o perfil de cliente decidido manda recusar: o formulário pede a
+ * vertical, e as opções são salão, barbearia, clínica e advocacia.
+ *
+ * Fechado, a conta nasce por convite (`/convite/{token}`), que é o caminho que
+ * já existe e que o comercial controla.
+ *
+ * Reabrir: `CADASTRO_ABERTO=true`. O gatilho para isso é a cobrança existir —
+ * autoatendimento sem porta de pagamento não é aquisição, é custo.
+ */
+export function cadastroAberto(): boolean {
+  return process.env.CADASTRO_ABERTO === "true";
+}

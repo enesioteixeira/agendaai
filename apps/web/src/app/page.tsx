@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { cadastroAberto } from "@/lib/flags";
+
 import "./globals.css";
 
 export const metadata = {
@@ -41,7 +43,7 @@ export default function Home() {
             Entrar
           </Link>
           <Link href="/cadastro" className="ie-botao">
-            Criar conta
+            {cadastroAberto() ? "Criar conta" : "Pedir acesso"}
           </Link>
         </div>
       </div>

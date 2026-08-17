@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { agendaHabilitada } from "../src/lib/flags";
+import { agendaHabilitada, cadastroAberto } from "../src/lib/flags";
 
 const original = process.env.AGENDA_HABILITADA;
 
@@ -35,4 +35,31 @@ describe("agendaHabilitada", () => {
       expect(agendaHabilitada()).toBe(false);
     },
   );
+});
+
+const originalCadastro = process.env.CADASTRO_ABERTO;
+
+afterEach(() => {
+  if (originalCadastro === undefined) delete process.env.CADASTRO_ABERTO;
+  else process.env.CADASTRO_ABERTO = originalCadastro;
+});
+
+describe("cadastroAberto", () => {
+  // Mesma lógica do padrão seguro: um ambiente novo não pode nascer aceitando
+  // que qualquer pessoa crie uma empresa e use de graça, porque não existe
+  // cobrança em produto nenhum para conter isso.
+  it("nasce fechado quando a variável não existe", () => {
+    delete process.env.CADASTRO_ABERTO;
+    expect(cadastroAberto()).toBe(false);
+  });
+
+  it("abre apenas com a string exata 'true'", () => {
+    process.env.CADASTRO_ABERTO = "true";
+    expect(cadastroAberto()).toBe(true);
+  });
+
+  it.each(["1", "sim", "TRUE", "on", ""])("não abre com %j", (valor) => {
+    process.env.CADASTRO_ABERTO = valor;
+    expect(cadastroAberto()).toBe(false);
+  });
 });

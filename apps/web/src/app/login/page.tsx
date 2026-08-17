@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { cadastroAberto } from "@/lib/flags";
+
 import { LoginForm } from "@/modules/identidade/LoginForm";
 
 export default async function LoginPage({
@@ -23,21 +25,28 @@ export default async function LoginPage({
           className="mb-4 rounded-2 border border-atencao bg-atencao-fraco px-3 py-2 text-[12px] leading-relaxed text-texto"
         >
           Sua sessão não vale mais — a empresa vinculada a ela não está mais disponível.
-          Entre de novo ou{" "}
-          <Link href="/cadastro" className="underline">
-            crie uma conta
-          </Link>
-          .
+          Entre de novo com outra conta.
         </div>
       ) : null}
 
       <LoginForm />
 
       <p className="mt-6 text-[12px] text-texto-suave">
-        Não tem conta?{" "}
-        <Link href="/cadastro" className="text-acento underline">
-          Criar agora
-        </Link>
+        {cadastroAberto() ? (
+          <>
+            Não tem conta?{" "}
+            <Link href="/cadastro" className="text-acento underline">
+              Criar agora
+            </Link>
+          </>
+        ) : (
+          <>
+            Não tem conta? As contas são criadas por convite —{" "}
+            <Link href="/cadastro" className="text-acento underline">
+              saiba como receber o seu acesso
+            </Link>
+          </>
+        )}
       </p>
     </main>
   );

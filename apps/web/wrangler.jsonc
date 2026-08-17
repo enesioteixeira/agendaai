@@ -16,7 +16,12 @@
   // (`src/lib/flags.ts`).
   "vars": {
     "APP_BASE_URL": "https://atende-ai-web.atende-ai.workers.dev",
-    "AGENDA_HABILITADA": "false"
+    "AGENDA_HABILITADA": "false",
+    // CADASTRO_ABERTO: enquanto não existir cobrança — não há plano,
+    // assinatura, limite nem porta de pagamento em produto nenhum —, cadastro
+    // aberto atrai de graça o público que o perfil de cliente manda recusar.
+    // Conta nova nasce por convite. Reabrir quando a cobrança existir.
+    "CADASTRO_ABERTO": "false"
   },
   "account_id": "c158973636514615cb24b9ff908147b1",
   // nodejs_compat: habilita node:async_hooks (AsyncLocalStorage da tenancy),

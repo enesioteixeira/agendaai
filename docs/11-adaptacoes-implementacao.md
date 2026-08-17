@@ -59,6 +59,16 @@ O produto é Instant Channel; os packages continuam `@atende/core`, `@atende/db`
 
 **Gatilho para voltar ao desenho:** o primeiro tenant que precise da agenda ligada. Aí vira `Empresa.agendaHabilitada` e a função passa a ler a sessão — troca barata porque o resto do código só conhece a função.
 
+## Divergência 14 — o cadastro fecha até existir cobrança
+
+**O desenho dizia:** onboarding self-service, com trial de 14 dias sem cartão (doc 06).
+
+**O que está implementado:** `CADASTRO_ABERTO`, desligada por padrão. A action `cadastrarAction` recusa antes de qualquer validação — o portão é no servidor, porque esconder o formulário e deixar a action aberta é convite a quem sabe montar um POST. A página `/cadastro` explica em vez de dar 404 (o link circula em proposta e e-mail), e login e home trocam "Criar conta" por "Pedir acesso". Conta nova nasce por `/convite/{token}`, que já existia.
+
+**Por quê:** não existe cobrança em produto nenhum — sem `PlanoLicenca`, sem assinatura, sem limite por plano, sem porta de pagamento. Cadastro aberto nesse estado é uma máquina ligada atraindo de graça justamente o público que o perfil de cliente manda recusar: o próprio formulário pede a vertical, e as opções são salão, barbearia, clínica e advocacia.
+
+**Gatilho para voltar ao desenho:** a cobrança existir (E1 do plano de estágios). Autoatendimento com porta de pagamento é aquisição; sem ela é custo.
+
 ## Decisões do ecossistema que mudam este produto (2026-08-17)
 
 Estas não são divergências de implementação: são decisões tomadas no nível da empresa, registradas em `instant-empresa/adr/`, que alteram o **desenho** deste produto. Ficam aqui porque quem lê os docs 01–12 precisa saber o que deixou de valer.
