@@ -5,6 +5,7 @@ import { AlternadorDeTema } from "@/componentes/AlternadorDeTema";
 import { NavLateral, type GrupoDeNavegacao } from "@/componentes/NavLateral";
 import { empresaDaSessao } from "@atende/db";
 
+import { agendaHabilitada } from "@/lib/flags";
 import { apagarSessao, lerSessao } from "@/lib/sessao";
 import { logoutAction } from "@/modules/identidade/actions";
 
@@ -45,15 +46,20 @@ const GRUPOS: readonly GrupoDeNavegacao[] = [
       { href: "/configuracoes", rotulo: "Configurações", icone: "engrenagem" },
     ],
   },
-  {
-    // A agenda é módulo CONGELADO (doc 12 §1.2): funciona e é mantida, mas não
-    // evolui. Ela estava FORA da navegação enquanto login e cadastro
-    // redirecionavam para lá — o usuário novo caía numa área da qual não
-    // conseguia sair pelo menu. O selo diz a verdade sobre o estado dela.
-    titulo: "Outros",
-    itens: [{ href: "/agenda", rotulo: "Agenda", icone: "calendario", selo: "congelado" }],
-  },
 ];
+
+// A agenda é módulo CONGELADO (doc 12 §1.2) e, desde a decisão de perfil de
+// cliente, saiu da superfície do produto: o comprador é distribuidor com
+// entrega, e um menu com "Profissionais", "Salas & bloqueios" e "Horário de
+// funcionamento" diz a ele que o produto não é para ele.
+//
+// O grupo só aparece com o sinalizador ligado — e as rotas também são fechadas
+// (`(painel)/agenda/layout.tsx`), porque esconder do menu e deixar a URL aberta
+// é meia medida: o link antigo continua circulando.
+const GRUPO_AGENDA: GrupoDeNavegacao = {
+  titulo: "Outros",
+  itens: [{ href: "/agenda", rotulo: "Agenda", icone: "calendario", selo: "congelado" }],
+};
 
 // Layout do painel — porta de entrada autenticada. Sem sessão válida, redireciona
 // para /login. A identidade do tenant vem SEMPRE daqui (sessão JWT), nunca de
@@ -78,6 +84,8 @@ export default async function PainelLayout({ children }: { children: ReactNode }
     await apagarSessao();
     redirect("/login?motivo=sessao-invalida");
   }
+
+  const grupos = agendaHabilitada() ? [...GRUPOS, GRUPO_AGENDA] : GRUPOS;
 
   const marca = (
     <div className="flex items-center gap-2.5">
@@ -123,7 +131,7 @@ export default async function PainelLayout({ children }: { children: ReactNode }
           </span>
         </summary>
         <div className="flex flex-col gap-4 px-3 pb-3">
-          <NavLateral grupos={GRUPOS} />
+          <NavLateral grupos={grupos} />
           {rodape}
         </div>
       </details>
@@ -131,7 +139,7 @@ export default async function PainelLayout({ children }: { children: ReactNode }
       {/* DESKTOP — lateral fixa. */}
       <aside className="hidden flex-col gap-6 overflow-y-auto border-r border-borda bg-superficie p-4 barra-fina md:flex">
         <div className="px-1">{marca}</div>
-        <NavLateral grupos={GRUPOS} />
+        <NavLateral grupos={grupos} />
         <div className="mt-auto">{rodape}</div>
       </aside>
 

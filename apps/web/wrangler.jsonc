@@ -7,7 +7,17 @@
   // Cron do GCal pull — a cada 10 min (critério doc 04 §2.3: eco ≤ 15 min)
   "triggers": { "crons": ["*/10 * * * *"] },
   // URL pública do app (redirect_uri do OAuth Google). Não é segredo.
-  "vars": { "APP_BASE_URL": "https://atende-ai-web.atende-ai.workers.dev" },
+  //
+  // AGENDA_HABILITADA: a agenda é módulo congelado e saiu da superfície do
+  // produto — o comprador passou a ser distribuidor com entrega, para quem
+  // "Profissionais" e "Salas & bloqueios" dizem que o produto não é para ele.
+  // Desligada fecha o menu E as rotas, inclusive a booking pública. Vira coluna
+  // por empresa quando existir um tenant que precise da diferença
+  // (`src/lib/flags.ts`).
+  "vars": {
+    "APP_BASE_URL": "https://atende-ai-web.atende-ai.workers.dev",
+    "AGENDA_HABILITADA": "false"
+  },
   "account_id": "c158973636514615cb24b9ff908147b1",
   // nodejs_compat: habilita node:async_hooks (AsyncLocalStorage da tenancy),
   // node:crypto (AES/argon salt) e o driver pg sobre TCP. Data >= 2025-04-01

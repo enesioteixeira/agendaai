@@ -49,6 +49,16 @@ O produto é Instant Channel; os packages continuam `@atende/core`, `@atende/db`
 - **Redirect URI Google**: `{APP_BASE_URL}/api/gcal/callback` — atualizar no Google Cloud Console quando o domínio próprio entrar.
 - **Cron local**: `wrangler dev --test-scheduled` + `GET /cdn-cgi/handler/scheduled?cron=*/10+*+*+*+*`.
 
+## Divergência 13 — a agenda sai da superfície por variável de ambiente, não por coluna
+
+**O desenho dizia:** sinalizador **por empresa**, desligado por padrão (plano de estágios, E0).
+
+**O que está implementado:** `AGENDA_HABILITADA` nas vars do Worker (`src/lib/flags.ts`), desligada por padrão. Fecha o grupo do menu, as cinco rotas de `(painel)/agenda/*` — portão no layout, para que página nova nasça fechada — e a booking pública `/agendar/{slug}`, que é a face externa e sobrevive a qualquer mudança de menu.
+
+**Por quê:** o sinalizador por empresa existe para diferenciar tenants, e hoje o conjunto de tenants que precisaria da agenda ligada está vazio: não há cliente pagante em nenhum produto, e o perfil decidido é distribuidor com entrega. Criar a coluna agora custaria migration aplicada à mão contra o Neon (o build do Workers Builds não roda `migrate deploy`) com deploy coordenado, para separar um conjunto vazio.
+
+**Gatilho para voltar ao desenho:** o primeiro tenant que precise da agenda ligada. Aí vira `Empresa.agendaHabilitada` e a função passa a ler a sessão — troca barata porque o resto do código só conhece a função.
+
 ## Decisões do ecossistema que mudam este produto (2026-08-17)
 
 Estas não são divergências de implementação: são decisões tomadas no nível da empresa, registradas em `instant-empresa/adr/`, que alteram o **desenho** deste produto. Ficam aqui porque quem lê os docs 01–12 precisa saber o que deixou de valer.

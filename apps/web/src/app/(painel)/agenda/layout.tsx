@@ -1,7 +1,17 @@
 import type { ReactNode } from "react";
+import { notFound } from "next/navigation";
+
+import { agendaHabilitada } from "@/lib/flags";
 
 // Sub-navegação da Agenda: grade (B3) + configuração do catálogo (B2).
+//
+// O módulo saiu da superfície do produto (ver `@/lib/flags`). O portão fica
+// aqui, no layout, e não em cada página: as cinco rotas passam por ele, e uma
+// página nova nasce fechada por construção em vez de depender de alguém
+// lembrar de repetir a checagem.
 export default function AgendaLayout({ children }: { children: ReactNode }) {
+  if (!agendaHabilitada()) notFound();
+
   return (
     <div style={{ display: "grid", gap: "1.25rem" }} className="p-4 md:p-6">
       {/* `flexWrap` porque cinco abas em linha estouram o viewport do celular —
