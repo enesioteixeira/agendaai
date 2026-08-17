@@ -85,6 +85,12 @@ model Empresa {
   propostas        PropostaAcao[]
   resumosConversa  ResumoConversa[]
   feedbacksIA      FeedbackIA[]
+
+  // Fase D — agentes por tenant · Fase G — integrações de retaguarda
+  agentesIA        AgenteIA[]
+  versoesAgente    VersaoAgente[]
+  integracoes      IntegracaoExterna[]
+  mapeamentos      MapeamentoEntidade[]
 }
 
 model Unidade {
@@ -734,6 +740,121 @@ enum StatusProposta {
 enum TipoResumo {
   handoff
   encerramento
+}
+
+/// Um agente de IA do tenant. O "quem" do estado bot_ia da Conversa.
+/// A configuração viva mora na VERSÃO — aqui fica só a identidade e qual
+/// versão está no ar.
+model AgenteIA {
+  id            String    @id @default(cuid())
+  empresaId     String
+  nome          String
+  ativo         Boolean   @default(true)
+  /// FK lógica para VersaoAgente (evita ciclo de FK no Prisma).
+  versaoAtivaId String?
+  criadoEm      DateTime  @default(now())
+  atualizadoEm  DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  empresa Empresa        @relation(fields: [empresaId], references: [id])
+  versoes VersaoAgente[]
+
+  @@unique([empresaId, nome])
+  @@index([empresaId, ativo])
+}
+
+/// PUBLICAR É CONGELAR (mesmo desenho de VersaoFluxo, doc 05 §3.1): conversa em
+/// andamento termina na versão em que começou. Editar um agente enquanto ele
+/// atende trocaria a persona no meio da frase.
+model VersaoAgente {
+  id               String            @id @default(cuid())
+  empresaId        String
+  agenteId         String
+  numero           Int
+  status           StatusVersaoAgente @default(rascunho)
+  /// System prompt escrito pelo tenant. Entra no turno dentro de moldura
+  /// anti-injection — ver MOLDURA_DE_DADOS_NO_SYSTEM em @atende/core.
+  persona          String
+  provedor         String            @default("anthropic")
+  modelo           String?
+  /// string[] validada contra o registry — nunca aceita cega.
+  toolsHabilitadas Json              @default("[]")
+  /// Janelas de atendimento por dia da semana, no fuso da Unidade.
+  horarioAtuacao   Json?
+  /// Gatilhos de palavra, limite de falhas, fila destino.
+  handoffConfig    Json?
+  criadoEm         DateTime          @default(now())
+  publicadaEm      DateTime?
+
+  empresa Empresa  @relation(fields: [empresaId], references: [id])
+  agente  AgenteIA @relation(fields: [agenteId], references: [id])
+
+  @@unique([empresaId, agenteId, numero])
+  @@index([empresaId, agenteId, status])
+}
+
+enum StatusVersaoAgente {
+  rascunho
+  publicada
+  arquivada
+}
+
+/// Credencial de sistema externo (ERP, CRM, gateway), por tenant.
+/// As credenciais são cifradas AES-256-GCM (regra 15) e NUNCA saem em DTO.
+model IntegracaoExterna {
+  id                   String            @id @default(cuid())
+  empresaId            String
+  categoria            CategoriaIntegracao
+  /// instant_erp | sankhya | omie | ploomes | asaas… — string livre porque o
+  /// catálogo de drivers vive em @atende/integracoes e cresce sem migration.
+  tipo                 String
+  nome                 String
+  credenciaisCifradas  String
+  /// Segredo do HMAC do webhook do provedor. Dois ativos durante rotação.
+  webhookSecretCifrado String?
+  status               StatusIntegracao  @default(conectada)
+  ultimoErro           String?
+  ultimaSincronizacao  DateTime?
+  criadoEm             DateTime          @default(now())
+  atualizadoEm         DateTime          @updatedAt
+
+  empresa     Empresa              @relation(fields: [empresaId], references: [id])
+  mapeamentos MapeamentoEntidade[]
+
+  /// Uma integração por categoria+tipo: dois ERPs "omie" no mesmo tenant não
+  /// fazem sentido e tornariam ambíguo qual responde a uma tool.
+  @@unique([empresaId, categoria, tipo])
+}
+
+enum CategoriaIntegracao {
+  erp
+  crm
+  pagamento
+}
+
+enum StatusIntegracao {
+  conectada
+  erro
+  pausada
+}
+
+/// Correlação id local ↔ id externo. É o que torna a sincronização IDEMPOTENTE:
+/// sem isto, reenviar um pedido depois de um timeout cria o segundo no ERP.
+model MapeamentoEntidade {
+  id           String   @id @default(cuid())
+  empresaId    String
+  integracaoId String
+  entidade     String // produto | cliente | pedido | cobranca | contrato
+  idLocal      String
+  idExterno    String
+  criadoEm     DateTime @default(now())
+
+  empresa    Empresa           @relation(fields: [empresaId], references: [id])
+  integracao IntegracaoExterna @relation(fields: [integracaoId], references: [id])
+
+  /// Únicos nos DOIS sentidos: um local aponta para um externo e vice-versa.
+  @@unique([empresaId, integracaoId, entidade, idLocal])
+  @@unique([empresaId, integracaoId, entidade, idExterno])
 }
 
 enum OrigemFeedback {

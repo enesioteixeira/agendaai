@@ -31,7 +31,7 @@ const GRUPOS: readonly GrupoDeNavegacao[] = [
   {
     titulo: "Automatizar",
     itens: [
-      { href: "/agentes", rotulo: "Agentes de IA", icone: "agente", ativo: false, selo: "em breve" },
+      { href: "/agentes", rotulo: "Agentes de IA", icone: "agente" },
       { href: "/conhecimento", rotulo: "Conhecimento", icone: "livro", ativo: false, selo: "em breve" },
     ],
   },
@@ -39,7 +39,7 @@ const GRUPOS: readonly GrupoDeNavegacao[] = [
     titulo: "Configurar",
     itens: [
       { href: "/configuracoes/canais", rotulo: "Canais", icone: "antena" },
-      { href: "/integracoes", rotulo: "Integrações", icone: "plugue", ativo: false, selo: "em breve" },
+      { href: "/integracoes", rotulo: "Integrações", icone: "plugue" },
       { href: "/configuracoes", rotulo: "Configurações", icone: "engrenagem" },
     ],
   },
