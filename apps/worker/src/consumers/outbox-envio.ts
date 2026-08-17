@@ -83,9 +83,10 @@ async function enviarUma(m: {
   });
 }
 
-export function iniciarOutboxEnvio(intervaloMs = 3_000): void {
+/** Devolve a função de parada — o bootstrap a usa no encerramento gracioso. */
+export function iniciarOutboxEnvio(intervaloMs = 3_000): () => void {
   let rodando = false;
-  setInterval(() => {
+  const id = setInterval(() => {
     if (rodando) return; // sem sobreposição de varreduras
     rodando = true;
     listarMensagensPendentesBaileys()
@@ -97,4 +98,6 @@ export function iniciarOutboxEnvio(intervaloMs = 3_000): void {
         rodando = false;
       });
   }, intervaloMs);
+
+  return () => clearInterval(id);
 }

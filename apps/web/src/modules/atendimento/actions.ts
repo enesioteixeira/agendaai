@@ -36,20 +36,32 @@ function comoEstado(fn: () => Promise<void>): Promise<EstadoAtendimento> {
 
 // ── Conversas ────────────────────────────────────────────────
 
-export async function assumirConversaAction(formData: FormData): Promise<void> {
-  const sessao = await exigir("atendimento:assumir");
-  const conversaId = String(formData.get("id") ?? "");
-  await runWithTenant(contexto(sessao), async () => {
-    // claim atômico: só assume se ainda está na fila (anti-corrida entre atendentes)
-    const claim = await prisma.conversa.updateMany({
-      where: { id: conversaId, estado: "fila_humano" },
-      data: { estado: "humano", atendenteUsuarioId: sessao.usuarioId },
+/**
+ * Assumir, devolver e reabrir devolvem ESTADO em vez de lançar.
+ *
+ * Perder a corrida do claim é caminho **normal**: dois atendentes olhando a
+ * mesma fila e clicando quase junto é o dia a dia de um time de atendimento.
+ * Enquanto isso era `throw`, o segundo atendente via a tela de erro do Next —
+ * um evento cotidiano sendo tratado como falha de sistema.
+ */
+export async function assumirConversaAction(
+  _prev: EstadoAtendimento,
+  formData: FormData,
+): Promise<EstadoAtendimento> {
+  return comoEstado(async () => {
+    const sessao = await exigir("atendimento:assumir");
+    const conversaId = String(formData.get("id") ?? "");
+    await runWithTenant(contexto(sessao), async () => {
+      // claim atômico: só assume se ainda está na fila (anti-corrida entre atendentes)
+      const claim = await prisma.conversa.updateMany({
+        where: { id: conversaId, estado: "fila_humano" },
+        data: { estado: "humano", atendenteUsuarioId: sessao.usuarioId },
+      });
+      if (claim.count === 0) throw new Error("Conversa já foi assumida por outra pessoa.");
     });
-    if (claim.count === 0) throw new Error("Conversa já foi assumida por outra pessoa.");
+    revalidatePath("/inbox");
+    revalidatePath(`/inbox/${conversaId}`);
   });
-  revalidatePath("/atendimento");
-  revalidatePath("/inbox");
-  revalidatePath(`/inbox/${conversaId}`);
 }
 
 export async function encerrarConversaAction(formData: FormData): Promise<void> {
@@ -61,7 +73,6 @@ export async function encerrarConversaAction(formData: FormData): Promise<void> 
       data: { estado: "encerrada", encerradaEm: new Date() },
     });
   });
-  revalidatePath("/atendimento");
   revalidatePath("/inbox");
   revalidatePath(`/inbox/${conversaId}`);
 }
@@ -79,19 +90,23 @@ export async function encerrarConversaAction(formData: FormData): Promise<void> 
  * atendente, encerramento), o `updateMany` casa zero linhas e a ação recusa em
  * vez de sobrescrever o que aconteceu no meio.
  */
-export async function devolverConversaAction(formData: FormData): Promise<void> {
-  const sessao = await exigir("atendimento:responder");
-  const conversaId = String(formData.get("id") ?? "");
-  await runWithTenant(contexto(sessao), async () => {
-    const devolvida = await prisma.conversa.updateMany({
-      where: { id: conversaId, estado: "humano" },
-      data: { estado: "fila_humano", atendenteUsuarioId: null },
+export async function devolverConversaAction(
+  _prev: EstadoAtendimento,
+  formData: FormData,
+): Promise<EstadoAtendimento> {
+  return comoEstado(async () => {
+    const sessao = await exigir("atendimento:responder");
+    const conversaId = String(formData.get("id") ?? "");
+    await runWithTenant(contexto(sessao), async () => {
+      const devolvida = await prisma.conversa.updateMany({
+        where: { id: conversaId, estado: "humano" },
+        data: { estado: "fila_humano", atendenteUsuarioId: null },
+      });
+      if (devolvida.count === 0) throw new Error("Esta conversa não está em atendimento.");
     });
-    if (devolvida.count === 0) throw new Error("Esta conversa não está em atendimento.");
+    revalidatePath("/inbox");
+    revalidatePath(`/inbox/${conversaId}`);
   });
-  revalidatePath("/atendimento");
-  revalidatePath("/inbox");
-  revalidatePath(`/inbox/${conversaId}`);
 }
 
 /**
@@ -99,19 +114,23 @@ export async function devolverConversaAction(formData: FormData): Promise<void> 
  * novo depois do encerramento cria uma conversa nova pelo worker; isto aqui é
  * para o outro caso — encerrar por engano, ou perceber que faltou resolver algo.
  */
-export async function reabrirConversaAction(formData: FormData): Promise<void> {
-  const sessao = await exigir("atendimento:responder");
-  const conversaId = String(formData.get("id") ?? "");
-  await runWithTenant(contexto(sessao), async () => {
-    const reaberta = await prisma.conversa.updateMany({
-      where: { id: conversaId, estado: "encerrada" },
-      data: { estado: "fila_humano", encerradaEm: null, atendenteUsuarioId: null },
+export async function reabrirConversaAction(
+  _prev: EstadoAtendimento,
+  formData: FormData,
+): Promise<EstadoAtendimento> {
+  return comoEstado(async () => {
+    const sessao = await exigir("atendimento:responder");
+    const conversaId = String(formData.get("id") ?? "");
+    await runWithTenant(contexto(sessao), async () => {
+      const reaberta = await prisma.conversa.updateMany({
+        where: { id: conversaId, estado: "encerrada" },
+        data: { estado: "fila_humano", encerradaEm: null, atendenteUsuarioId: null },
+      });
+      if (reaberta.count === 0) throw new Error("Esta conversa não está encerrada.");
     });
-    if (reaberta.count === 0) throw new Error("Esta conversa não está encerrada.");
+    revalidatePath("/inbox");
+    revalidatePath(`/inbox/${conversaId}`);
   });
-  revalidatePath("/atendimento");
-  revalidatePath("/inbox");
-  revalidatePath(`/inbox/${conversaId}`);
 }
 
 const responderSchema = z.object({
@@ -161,7 +180,6 @@ export async function responderConversaAction(
         }),
       ]);
     });
-    revalidatePath(`/atendimento/${parsed.data.conversaId}`);
     revalidatePath("/inbox");
     revalidatePath(`/inbox/${parsed.data.conversaId}`);
   });

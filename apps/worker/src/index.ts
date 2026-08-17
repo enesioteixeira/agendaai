@@ -19,15 +19,19 @@ try {
   // sem .env — segue com o ambiente do processo
 }
 
-const { default: PgBoss } = await import("pg-boss");
+const { iniciarFila, pararFila } = await import("./fila.js");
 const { iniciarHealthServer } = await import("./health.js");
 const { iniciarGestorSockets } = await import("./sockets/gestor.js");
 const { iniciarOutboxEnvio } = await import("./consumers/outbox-envio.js");
 
 const PORTA_HEALTH = Number(process.env.PORT ?? 8080);
 
+/** Tudo que precisa ser desligado na ordem certa. */
+const desligar: (() => void | Promise<void>)[] = [];
+
 async function main(): Promise<void> {
-  iniciarHealthServer(PORTA_HEALTH);
+  const servidor = iniciarHealthServer(PORTA_HEALTH);
+  desligar.push(() => new Promise<void>((r) => servidor.close(() => r())));
   console.log(`[worker] health em :${PORTA_HEALTH}/healthz`);
 
   const databaseUrl = process.env.DATABASE_URL;
@@ -40,15 +44,14 @@ async function main(): Promise<void> {
     return;
   }
 
-  const boss = new PgBoss({ connectionString: databaseUrl, schema: "pgboss" });
-  boss.on("error", (err) => console.error("[worker] pg-boss error:", err));
-  await boss.start();
-  console.log("[worker] pg-boss iniciado (filas dos motores entram no Bloco 4)");
+  await iniciarFila(databaseUrl);
+  desligar.push(pararFila);
+  console.log("[worker] fila pg-boss pronta (ia-turno, expirar-propostas, expirar-envios)");
 
-  iniciarGestorSockets();
+  desligar.push(iniciarGestorSockets());
   console.log("[worker] gestor de sockets Baileys ativo (reconciliação a cada 15s)");
 
-  iniciarOutboxEnvio();
+  desligar.push(iniciarOutboxEnvio());
   console.log("[worker] outbox de envio ativo (varredura a cada 3s)");
 }
 
@@ -57,6 +60,44 @@ async function main(): Promise<void> {
 process.on("unhandledRejection", (reason) => {
   console.error("[worker] unhandledRejection:", reason);
 });
+
+/**
+ * Encerramento gracioso.
+ *
+ * Sem isto, todo `Ctrl+C` matava socket no meio de envio e job no meio de
+ * execução — e durante o desenvolvimento isso acontece dezenas de vezes por dia.
+ * A ordem importa: parar de aceitar trabalho novo (intervalos e fila) antes de
+ * fechar o servidor.
+ *
+ * O teto de 10 s existe porque um socket Baileys travado seguraria o processo
+ * para sempre, e um terminal que não devolve o prompt é pior que um encerramento
+ * abrupto. `unref()` para o próprio timer não manter o processo vivo.
+ */
+let encerrando = false;
+for (const sinal of ["SIGTERM", "SIGINT"] as const) {
+  process.on(sinal, () => {
+    if (encerrando) return; // segundo Ctrl+C não reentra
+    encerrando = true;
+    console.log(`[worker] ${sinal} recebido — encerrando…`);
+
+    setTimeout(() => {
+      console.warn("[worker] encerramento demorou demais — saindo à força");
+      process.exit(1);
+    }, 10_000).unref();
+
+    void (async () => {
+      for (const parar of desligar.reverse()) {
+        try {
+          await parar();
+        } catch (e) {
+          console.error("[worker] falha ao desligar componente:", e);
+        }
+      }
+      console.log("[worker] encerrado.");
+      process.exit(0);
+    })();
+  });
+}
 
 main().catch((err) => {
   console.error("[worker] falha fatal no bootstrap:", err);

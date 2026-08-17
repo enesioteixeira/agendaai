@@ -42,6 +42,20 @@ pnpm --filter @atende/db typecheck
 
 `runWithTenant` faz `await fn()` DENTRO do `storage.run` de propósito: a PrismaPromise é lazy (a query e a extension só disparam no `.then()`). Se o `.then()` acontecer fora do `run`, o `empresaId` se perde e a query vaza entre tenants. **Nunca** simplifique `runWithTenant` para `return storage.run(ctx, fn)` cru — o teste de isolamento pega, mas o custo é um vazamento de tenant. Fluxos pré-tenant (onboarding, login) usam `prismaSemTenant` e carimbam `empresaId` à mão.
 
+## ⚠️ A suíte deste pacote passa por vacuidade se você deixar
+
+Os 7 arquivos de teste abrem com `describe.skipIf(!DATABASE_URL_TEST)`. Sem a variável, `pnpm test` reporta **verde tendo pulado 100% da camada de banco** — incluindo `isolamento.test.ts`, que é a prova da regra inviolável 1. Teste ausente é visível; teste pulado parece cobertura.
+
+**Antes de mexer em `client.ts`, `tenancy.ts` ou no schema:**
+
+```bash
+EXIGIR_DB_TEST=1 pnpm --filter @atende/db test
+```
+
+`src/exigencia.test.ts` transforma a ausência da variável em falha vermelha, e recusa `DATABASE_URL_TEST` apontando para o banco de desenvolvimento — os testes criam e apagam tenants, e este projeto já teve um incidente de banco resetado por comando rodado no lugar errado.
+
+Use um **branch descartável do Neon**, nunca o banco principal.
+
 ## Estado atual
 
 - [x] Extension de tenancy (`client.ts`), `runWithTenant` (com fix do AsyncLocalStorage), `unsafe.ts`, `resolver-slug.ts`

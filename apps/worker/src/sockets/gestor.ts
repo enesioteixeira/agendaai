@@ -121,9 +121,6 @@ async function abrirSocket(empresaId: string, canalId: string): Promise<void> {
     aoMensagens(mensagens) {
       entrada.ultimoSinal = Date.now();
       for (const msg of mensagens) {
-        // DIAGNÓSTICO (temporário): registra a chave bruta de cada inbound
-        // p/ investigar por que não vira conversa. Arquivo lido pelo dev.
-        diagInbound(canalId, msg);
         const normalizada = normalizarInboundBaileys(empresaId, canalId, msg);
         if (normalizada) {
           processarInbound(normalizada).catch((e) =>
@@ -155,31 +152,14 @@ async function abrirSocket(empresaId: string, canalId: string): Promise<void> {
   });
 }
 
-// Diagnóstico de inbound em arquivo (worker roda local — doc 11). Remover
-// quando o fluxo do WhatsApp estiver confirmado.
-function diagInbound(canalId: string, msg: unknown): void {
-  try {
-    const m = msg as {
-      key?: Record<string, unknown>;
-      message?: Record<string, unknown> | null;
-      messageStubType?: unknown;
-    };
-    const linha =
-      JSON.stringify({
-        t: new Date().toISOString(),
-        canalId,
-        key: m.key,
-        temMessage: !!m.message,
-        chavesMessage: m.message ? Object.keys(m.message) : [],
-        stub: m.messageStubType,
-      }) + "\n";
-    void import("node:fs").then((fs) =>
-      fs.appendFileSync(new URL("../../diag-inbound.log", import.meta.url), linha),
-    );
-  } catch {
-    // diagnóstico nunca derruba o fluxo
-  }
-}
+// O diagnóstico de inbound em arquivo foi REMOVIDO (2026-08-17). Ele gravava a
+// `key` bruta de toda mensagem — incluindo telefone de cliente — num arquivo sem
+// rotação nem limite, em texto claro, para todos os tenants. Existia para
+// investigar por que inbound não virava conversa; a causa foi encontrada e
+// corrigida (status/story admitido como conversa por causa de `remoteJidAlt`),
+// está registrada no doc 11 e presa por teste em
+// `packages/canais/src/baileys/conector.test.ts`. Diagnóstico que sobrevive ao
+// bug que o motivou vira vazamento.
 
 function fecharSocket(canalId: string): void {
   const entrada = sockets.get(canalId);
@@ -196,6 +176,24 @@ function fecharSocket(canalId: string): void {
 /** Conector vivo do canal (p/ o consumer de envio). */
 export function conectorDoCanal(canalId: string): Conector | null {
   return sockets.get(canalId)?.conector ?? null;
+}
+
+/** Quantos canais têm socket aberto agora — para o /healthz. */
+export function totalDeSockets(): number {
+  return sockets.size;
+}
+
+let reconciliadoEm: number | null = null;
+
+/**
+ * Instante da última reconciliação bem-sucedida.
+ *
+ * O `/healthz` usa isto para distinguir "worker vivo" de "worker útil": o laço
+ * roda a cada 15 s, então silêncio longo aqui significa que ele travou — e um
+ * processo travado responde 200 alegremente.
+ */
+export function ultimaReconciliacao(): number | null {
+  return reconciliadoEm;
 }
 
 /**
@@ -241,11 +239,27 @@ export async function reconciliarSockets(): Promise<void> {
       fecharSocket(canalId);
     }
   }
+
+  // Marcado só no fim, e só em sucesso: se `listarCanaisBaileys` falhar, o laço
+  // sai por exceção e o timestamp fica velho — que é exatamente o sinal que o
+  // /healthz precisa para acusar worker travado.
+  reconciliadoEm = Date.now();
 }
 
-export function iniciarGestorSockets(intervaloMs = 15_000): void {
+/**
+ * Devolve a função de parada: cancela a reconciliação e fecha todos os sockets.
+ *
+ * Fechar os sockets no encerramento evita deixar a sessão do WhatsApp pendurada
+ * do lado do servidor da Meta — o que atrasa a reconexão no próximo boot.
+ */
+export function iniciarGestorSockets(intervaloMs = 15_000): () => void {
   void reconciliarSockets();
-  setInterval(() => {
+  const id = setInterval(() => {
     void reconciliarSockets();
   }, intervaloMs);
+
+  return () => {
+    clearInterval(id);
+    for (const canalId of [...sockets.keys()]) fecharSocket(canalId);
+  };
 }

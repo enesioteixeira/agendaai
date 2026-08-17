@@ -1,3 +1,7 @@
+"use client";
+
+import { useActionState } from "react";
+
 import { Badge, Icone } from "@atende/ui";
 
 import {
@@ -5,6 +9,7 @@ import {
   devolverConversaAction,
   encerrarConversaAction,
   reabrirConversaAction,
+  type EstadoAtendimento,
 } from "@/modules/atendimento/actions";
 
 import { CANAIS, ESTADOS, type EstadoConversa, type TipoCanal } from "./vocabulario";
@@ -16,7 +21,48 @@ import { CANAIS, ESTADOS, type EstadoConversa, type TipoCanal } from "./vocabula
  * As ações são decididas pelo ESTADO, não empilhadas todas com metade
  * desabilitada: botão cinza obriga o operador a descobrir por tentativa por que
  * não pode clicar. Cada estado mostra só o que faz sentido a partir dele.
+ *
+ * É client component porque perder a corrida do claim ("já foi assumida por
+ * outra pessoa") é caminho normal entre dois atendentes, e precisa aparecer
+ * como aviso aqui — não como tela de erro.
  */
+
+/** Botão de ação com estado próprio, para o erro nascer ao lado do clique. */
+function AcaoComEstado({
+  action,
+  conversaId,
+  rotulo,
+  variante,
+}: {
+  readonly action: (
+    prev: EstadoAtendimento,
+    fd: FormData,
+  ) => Promise<EstadoAtendimento>;
+  readonly conversaId: string;
+  readonly rotulo: string;
+  readonly variante?: "primario";
+}) {
+  const [estado, enviar, pendente] = useActionState<EstadoAtendimento, FormData>(action, {});
+
+  return (
+    <form action={enviar} className="flex items-center gap-2">
+      <input type="hidden" name="id" value={conversaId} />
+      <button
+        type="submit"
+        disabled={pendente}
+        className={`ie-botao${variante === "primario" ? " ie-botao--primario" : ""}`}
+      >
+        {pendente ? "…" : rotulo}
+      </button>
+      {estado.erro ? (
+        <span role="alert" className="text-[11px] text-atencao">
+          {estado.erro}
+        </span>
+      ) : null}
+    </form>
+  );
+}
+
 export function BarraDaConversa({
   conversa,
   podeAssumir,
@@ -50,35 +96,35 @@ export function BarraDaConversa({
 
       <Badge tom={estado.tom}>{estado.rotulo}</Badge>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {conversa.estado === "fila_humano" && podeAssumir ? (
-          <form action={assumirConversaAction}>
-            <input type="hidden" name="id" value={conversa.id} />
-            <button type="submit" className="ie-botao ie-botao--primario">
-              Assumir
-            </button>
-          </form>
+          <AcaoComEstado
+            action={assumirConversaAction}
+            conversaId={conversa.id}
+            rotulo="Assumir"
+            variante="primario"
+          />
         ) : null}
 
         {/* Devolver só aparece para quem está atendendo: um atendente tirar a
             conversa da mão de outro é decisão de supervisão, não de inbox. */}
         {conversa.estado === "humano" && souOAtendente ? (
-          <form action={devolverConversaAction}>
-            <input type="hidden" name="id" value={conversa.id} />
-            <button type="submit" className="ie-botao">
-              Devolver à fila
-            </button>
-          </form>
+          <AcaoComEstado
+            action={devolverConversaAction}
+            conversaId={conversa.id}
+            rotulo="Devolver à fila"
+          />
         ) : null}
 
         {conversa.estado === "encerrada" ? (
-          <form action={reabrirConversaAction}>
-            <input type="hidden" name="id" value={conversa.id} />
-            <button type="submit" className="ie-botao">
-              Reabrir
-            </button>
-          </form>
+          <AcaoComEstado
+            action={reabrirConversaAction}
+            conversaId={conversa.id}
+            rotulo="Reabrir"
+          />
         ) : (
+          // Encerrar segue como action simples: não tem claim condicional, então
+          // não tem corrida a comunicar.
           <form action={encerrarConversaAction}>
             <input type="hidden" name="id" value={conversa.id} />
             <button type="submit" className="ie-botao">
