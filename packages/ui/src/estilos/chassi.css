@@ -1,5 +1,5 @@
 /* ==========================================================================
-   CHASSI DE UI DO INSTANTERP — folha única
+   CHASSI DE UI DO MENSVRA ERP — folha única
 
    POR QUE CSS PURO, E NÃO TAILWIND
    O chassi mora em packages/ui e é consumido por apps/web. As utilitárias do
@@ -34,8 +34,8 @@
    ========================================================================== */
 
 /* O padrão de FORMULÁRIO do InstantERP não veio nesta cópia. Ele depende de
-   `@instanterp/contracts/campos` — CNPJ, NCM, inscrição estadual —, domínio
-   fiscal que o Instant Channel não tem. Quando o produto precisar de formulários
+   `@mensvra-erp/contracts/campos` — CNPJ, NCM, inscrição estadual —, domínio
+   fiscal que o Mensvra Channel não tem. Quando o produto precisar de formulários
    ricos (estúdio de agentes, catálogo), portar `formulario/` SEM os campos
    fiscais e reintroduzir aqui o `@import` que existia nesta linha. A regra do
    CSS exige que todo `@import` venha antes de qualquer outra regra — ou seja,

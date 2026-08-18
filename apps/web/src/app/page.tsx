@@ -1,11 +1,12 @@
 import Link from "next/link";
 
+import { Simbolo } from "@/componentes/Marca";
 import { cadastroAberto } from "@/lib/flags";
 
 import "./globals.css";
 
 export const metadata = {
-  title: "Instant Channel",
+  title: "Mensvra Channel",
   description: "Atendimento e venda por conversa, em todos os canais.",
 };
 
@@ -22,14 +23,9 @@ export default function Home() {
     <main className="grid min-h-screen place-items-center bg-fundo p-6">
       <div className="flex w-full max-w-md flex-col items-center gap-6 text-center">
         <div className="flex items-center gap-3">
-          <span
-            aria-hidden
-            className="marca-simbolo grid h-11 w-11 place-items-center rounded-2 text-[18px] font-bold"
-          >
-            IC
-          </span>
+          <Simbolo tamanho={44} />
           <span className="text-[22px] font-semibold tracking-tight text-texto">
-            Instant Channel
+            Mensvra Channel
           </span>
         </div>
 

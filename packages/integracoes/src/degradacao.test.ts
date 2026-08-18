@@ -7,7 +7,7 @@ import {
   nomesHabilitados,
   precisaVarrerCobrancas,
 } from "./degradacao";
-import { capacidadesInstantErp } from "./instant-erp/driver";
+import { capacidadesMensvraErp } from "./mensvra-erp/driver";
 import type { CapacidadesErp, ConectorERP } from "./tipos";
 
 const nada: CapacidadesErp = {
@@ -34,8 +34,8 @@ describe("forma de cobrança", () => {
 });
 
 describe("ferramentas oferecidas ao agente", () => {
-  it("o Instant ERP habilita tudo", () => {
-    expect(nomesHabilitados(capacidadesInstantErp).sort()).toEqual([
+  it("o Mensvra ERP habilita tudo", () => {
+    expect(nomesHabilitados(capacidadesMensvraErp).sort()).toEqual([
       "erpBuscarProdutos",
       "erpCriarPedido",
       "erpGerarPix",
@@ -88,7 +88,7 @@ describe("guarda de chamada", () => {
   });
 
   it("deixa passar o que o conector suporta", () => {
-    const fake = { tipo: "instant_erp", capacidades: capacidadesInstantErp } as ConectorERP;
+    const fake = { tipo: "mensvra_erp", capacidades: capacidadesMensvraErp } as ConectorERP;
     expect(() => exigirCapacidade(fake, "pedidos")).not.toThrow();
   });
 });

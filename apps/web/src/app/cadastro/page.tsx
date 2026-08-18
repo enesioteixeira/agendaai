@@ -14,7 +14,7 @@ export default function CadastroPage() {
           As contas são criadas por convite
         </h1>
         <p className="mb-6 mt-1 text-[13px] leading-relaxed text-texto-suave">
-          O Instant Channel está sendo implantado com um grupo pequeno de distribuidores, um a um,
+          O Mensvra Channel está sendo implantado com um grupo pequeno de distribuidores, um a um,
           para que cada operação suba do jeito certo. Fale com a gente e a gente te manda o acesso.
         </p>
         <p className="text-[12px] text-texto-suave">
@@ -30,7 +30,7 @@ export default function CadastroPage() {
   return (
     <main className="mx-auto max-w-[460px] px-4 py-12">
       <h1 className="text-[24px] font-semibold tracking-tight text-texto">
-        Criar sua empresa no Instant Channel
+        Criar sua empresa no Mensvra Channel
       </h1>
       <p className="mb-6 mt-1 text-[13px] leading-relaxed text-texto-suave">
         Você sai daqui com a caixa de entrada pronta para conectar o WhatsApp.

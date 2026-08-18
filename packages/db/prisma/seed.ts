@@ -4,7 +4,7 @@
 // URL que não seja localhost, porque este arquivo cria e sobrescreve dados e
 // este projeto já teve um incidente de comando rodado no lugar errado.
 //
-//   DATABASE_URL="postgresql://instant:devlocal@localhost:55432/instant_channel" \
+//   DATABASE_URL="postgresql://mensvra:devlocal@localhost:55432/mensvra_channel" \
 //     pnpm --filter @atende/db seed
 //
 // O catálogo de planos NÃO é dado de demonstração: sem ele não existe

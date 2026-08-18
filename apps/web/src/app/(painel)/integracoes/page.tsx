@@ -124,7 +124,7 @@ export default async function IntegracoesPage() {
       <p className="rounded-2 border border-borda bg-superficie-2 p-3 text-[12px] leading-relaxed text-texto-suave">
         <strong className="font-semibold text-texto">Em construção:</strong> a conexão já é gravada
         e a credencial fica cifrada, mas a sincronização automática (buscar produtos, criar pedido,
-        gerar Pix) ainda não roda — falta ligar o worker de sincronização. O Instant ERP também
+        gerar Pix) ainda não roda — falta ligar o worker de sincronização. O Mensvra ERP também
         ainda não expõe a API deste contrato; o driver está pronto e testado contra um sandbox.
       </p>
     </div>

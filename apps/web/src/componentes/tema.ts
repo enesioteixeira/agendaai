@@ -4,14 +4,14 @@ import { useCallback, useSyncExternalStore } from 'react'
 
 export type Tema = 'claro' | 'escuro'
 
-export const CHAVE_TEMA = 'instantchannel:tema'
+export const CHAVE_TEMA = 'mensvra:tema'
 
 /**
  * Roda antes da primeira pintura, no `<head>`: sem isso o app pisca branco até
  * o React montar e aplicar a classe.
  *
  * O ESCURO É O PADRÃO, e não a preferência do sistema operacional. A identidade do
- * Instant Channel é o navy profundo com azul elétrico e roxo — é assim que o produto se
+ * Mensvra Channel é o navy profundo com azul elétrico e roxo — é assim que o produto se
  * apresenta em toda a comunicação, e entrar num tema claro por causa de um ajuste do
  * Windows faria o primeiro contato com o sistema não parecer o mesmo produto. Quem
  * prefere o claro troca no topo, e a escolha fica gravada: a partir daí é ELA que manda,

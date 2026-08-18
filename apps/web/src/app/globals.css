@@ -3,12 +3,12 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ==========================================================================
-   TOKENS VISUAIS DO INSTANT CHANNEL — a identidade do produto mora aqui.
+   TOKENS VISUAIS DO MENSVRA CHANNEL — a identidade do produto mora aqui.
 
    Este arquivo é o PORTADOR DA MARCA: navy profundo, azul elétrico e roxo.
 
-   A PALETA É COMPARTILHADA COM O INSTANT ERP, DE PROPÓSITO. Os dois são produtos
-   da mesma família ("Instant"): o Channel é a boca — atendimento e venda por
+   A PALETA É COMPARTILHADA COM O MENSVRA ERP, DE PROPÓSITO. Os dois são produtos
+   da mesma família ("Mensvra"): o Channel é a boca — atendimento e venda por
    conversa —, o ERP é a retaguarda. Um cliente que usa os dois precisa ver dois
    produtos irmãos, não dois fornecedores. O que se compartilha é a IDENTIDADE
    (estes tokens e a geometria do chassi); o CÓDIGO é cópia adaptada, nunca

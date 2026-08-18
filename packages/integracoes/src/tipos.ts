@@ -19,7 +19,7 @@ import type {
 } from "./formatos";
 
 export type TipoErp =
-  | "instant_erp"
+  | "mensvra_erp"
   | "sankhya"
   | "omie"
   | "bling"

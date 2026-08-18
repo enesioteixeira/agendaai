@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
 import { AlternadorDeTema } from "@/componentes/AlternadorDeTema";
+import { Logotipo } from "@/componentes/Marca";
 import { NavLateral, type GrupoDeNavegacao } from "@/componentes/NavLateral";
 import { empresaDaSessao } from "@atende/db";
 
@@ -9,7 +10,7 @@ import { agendaHabilitada } from "@/lib/flags";
 import { lerSessao } from "@/lib/sessao";
 import { logoutAction } from "@/modules/identidade/actions";
 
-// A navegação do produto. A ordem conta a história do Instant Channel: a conversa
+// A navegação do produto. A ordem conta a história do Mensvra Channel: a conversa
 // primeiro (é o centro de gravidade), depois quem/o que atende (agentes, catálogo),
 // depois o encanamento (canais, integrações, chaves).
 //
@@ -113,15 +114,16 @@ export default async function PainelLayout({ children }: { children: ReactNode }
 
   const grupos = agendaHabilitada() ? [...GRUPOS, GRUPO_AGENDA] : GRUPOS;
 
+  // O logotipo por extenso e o nome do produto ao lado, sem repetir "Mensvra":
+  // a marca já está desenhada, e escrevê-la de novo faria a lateral dizer
+  // "Mensvra Mensvra Channel". Quem lê com leitor de tela recebe o nome inteiro
+  // pelo `aria-label` — o SVG é decorativo e "Channel" sozinho não diz nada.
   const marca = (
-    <div className="flex items-center gap-2.5">
-      <span
-        aria-hidden
-        className="marca-simbolo grid h-8 w-8 shrink-0 place-items-center rounded-2 text-[15px] font-bold"
-      >
-        IC
+    <div className="flex items-center gap-2" aria-label="Mensvra Channel" role="img">
+      <Logotipo altura={15} className="shrink-0 text-texto" />
+      <span aria-hidden className="text-[15px] font-medium tracking-tight text-texto-suave">
+        Channel
       </span>
-      <span className="text-[15px] font-semibold tracking-tight text-texto">Instant Channel</span>
     </div>
   );
 

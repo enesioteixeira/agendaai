@@ -41,7 +41,7 @@
   "kv_namespaces": [
     { "binding": "CONFIG_KV", "id": "e1860ad085fe4e21ab85e1fa8c84530f" }
   ]
-  // R2 (bucket atende-ai-midia) só é usado a partir do Bloco 3 (mídia). Binding
+  // R2 (bucket `atende-ai-midia` hoje; local usa `mensvra-midia`) só é usado a partir do Bloco 3 (mídia). Binding
   // reativado lá — mantê-lo aqui exigiria permissão R2 no token já no 1º deploy.
   //
   // Secrets (DATABASE_URL, SESSION_SECRET, ENCRYPTION_KEY, APP_BASE_URL) NÃO

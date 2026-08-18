@@ -860,7 +860,7 @@ model IntegracaoExterna {
   id                   String              @id @default(cuid())
   empresaId            String
   categoria            CategoriaIntegracao
-  /// instant_erp | sankhya | omie | ploomes | asaas… — string livre porque o
+  /// mensvra_erp | sankhya | omie | ploomes | asaas… — string livre porque o
   /// catálogo de drivers vive em @atende/integracoes e cresce sem migration.
   tipo                 String
   nome                 String

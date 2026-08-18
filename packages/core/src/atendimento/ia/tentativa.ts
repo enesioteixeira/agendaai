@@ -15,7 +15,7 @@ export const PREFERENCIA: readonly Provedor[] = ["anthropic", "gemini", "openai"
  * Provedores que a PLATAFORMA autoriza a receber conteudo de conversa.
  *
  * Diferenca importante em relacao ao ev-tracker, onde esta lista era uma
- * constante fechada da politica da Sankhya: aqui o Instant Channel é operador de
+ * constante fechada da politica da Sankhya: aqui o Mensvra Channel é operador de
  * varios controladores, e cada tenant pode trazer a propria chave. A lista
  * continua no CODIGO — nao em tabela editavel pelo painel — porque homologar um
  * provedor é decisao de quem responde pelo DPA, e um clique de ADMIN de tenant

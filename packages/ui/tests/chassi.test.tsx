@@ -19,7 +19,7 @@ function arquivosDeCodigo(dir: string): string[] {
 /**
  * CATRACA DE RESOLUÇÃO DE MÓDULO.
  *
- * O pacote de origem (`@instanterp/ui`) usa `nodenext` e escreve `from './x.js'`.
+ * O pacote de origem (`@mensvra-erp/ui`) usa `nodenext` e escreve `from './x.js'`.
  * Este monorepo tem um regime só, `bundler`, e o webpack do Next NÃO reescreve
  * `.js` → `.ts`: um único import com extensão aqui derruba o build do `apps/web`
  * inteiro, e o Workers Builds falha de um jeito que deixa as rotas novas em 404
@@ -39,9 +39,9 @@ describe('resolução de módulo', () => {
    * compila em silêncio enquanto o pacote existir no disco da máquina de quem
    * copiou, e quebra no CI de quem clonou o repo limpo.
    */
-  it('não importa nada de @instanterp/*', () => {
+  it('não importa nada de @mensvra-erp/*', () => {
     const infratores = arquivosDeCodigo(RAIZ).filter((caminho) =>
-      /from '@instanterp\//.test(readFileSync(caminho, 'utf8')),
+      /from '@mensvra-erp\//.test(readFileSync(caminho, 'utf8')),
     )
     expect(infratores).toEqual([])
   })

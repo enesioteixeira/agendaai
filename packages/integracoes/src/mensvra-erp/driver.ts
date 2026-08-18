@@ -1,4 +1,4 @@
-// Driver do Instant ERP — a integracao NATIVA da familia Instant.
+// Driver do Mensvra ERP — a integracao NATIVA da familia Mensvra.
 //
 // ⚠️ O ERP esta na Onda 0 e ainda NAO expoe esta API. O driver e escrito contra
 // o CONTRATO (docs/contratos/erp-chanel-v1.md), que o Channel define e o ERP
@@ -27,8 +27,8 @@ import {
 } from "../formatos";
 import { ErroIntegracao, type CapacidadesErp, type ConectorERP, type FiltroDeBusca } from "../tipos";
 
-/** O Instant ERP faz tudo — é a integração nativa, não um adaptador de terceiro. */
-export const capacidadesInstantErp: CapacidadesErp = {
+/** O Mensvra ERP faz tudo — é a integração nativa, não um adaptador de terceiro. */
+export const capacidadesMensvraErp: CapacidadesErp = {
   produtos: true,
   servicos: true,
   pedidos: true,
@@ -38,7 +38,7 @@ export const capacidadesInstantErp: CapacidadesErp = {
   baixaWebhook: true,
 };
 
-export interface ConfigInstantErp {
+export interface ConfigMensvraErp {
   readonly baseUrl: string;
   /** Chave `iep_live_...` do tenant do cliente NO ERP. */
   readonly apiKey: string;
@@ -49,23 +49,23 @@ export interface ConfigInstantErp {
 /** Traduz o HTTP em causa classificada — o motor decide retry a partir disto. */
 function erroDeStatus(status: number, corpo: string): ErroIntegracao {
   if (status === 401 || status === 403) {
-    return new ErroIntegracao("credencial", "Credencial do Instant ERP recusada.", corpo);
+    return new ErroIntegracao("credencial", "Credencial do Mensvra ERP recusada.", corpo);
   }
   if (status === 429) {
-    return new ErroIntegracao("limite", "Limite de requisições do Instant ERP atingido.", corpo);
+    return new ErroIntegracao("limite", "Limite de requisições do Mensvra ERP atingido.", corpo);
   }
   if (status === 422 || status === 400) {
     // Recusa por regra de negócio do ERP: reenviar não muda nada, e insistir
     // deixaria a fila reprocessando para sempre um pedido inválido.
-    return new ErroIntegracao("recusado", "O Instant ERP recusou a operação.", corpo);
+    return new ErroIntegracao("recusado", "O Mensvra ERP recusou a operação.", corpo);
   }
   if (status >= 500) {
-    return new ErroIntegracao("indisponivel", "Instant ERP indisponível.", corpo);
+    return new ErroIntegracao("indisponivel", "Mensvra ERP indisponível.", corpo);
   }
-  return new ErroIntegracao("recusado", `Resposta inesperada do Instant ERP (${status}).`, corpo);
+  return new ErroIntegracao("recusado", `Resposta inesperada do Mensvra ERP (${status}).`, corpo);
 }
 
-export function criarDriverInstantErp(cfg: ConfigInstantErp): ConectorERP {
+export function criarDriverMensvraErp(cfg: ConfigMensvraErp): ConectorERP {
   const http = cfg.fetch ?? globalThis.fetch;
   const base = cfg.baseUrl.replace(/\/+$/, "");
 
@@ -90,7 +90,7 @@ export function criarDriverInstantErp(cfg: ConfigInstantErp): ConectorERP {
       });
     } catch (e) {
       // Falha de rede nunca é "recusado": é indisponibilidade, e vale retry.
-      throw new ErroIntegracao("indisponivel", "Não foi possível falar com o Instant ERP.", e);
+      throw new ErroIntegracao("indisponivel", "Não foi possível falar com o Mensvra ERP.", e);
     }
 
     if (!resp.ok) throw erroDeStatus(resp.status, await resp.text().catch(() => ""));
@@ -98,8 +98,8 @@ export function criarDriverInstantErp(cfg: ConfigInstantErp): ConectorERP {
   }
 
   return {
-    tipo: "instant_erp",
-    capacidades: capacidadesInstantErp,
+    tipo: "mensvra_erp",
+    capacidades: capacidadesMensvraErp,
 
     async buscarProdutos(filtro: FiltroDeBusca): Promise<ProdutoErp[]> {
       const q = new URLSearchParams();

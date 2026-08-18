@@ -135,7 +135,7 @@ export function configS3DoAmbiente(env: Record<string, string | undefined>): Con
   const endpoint = env.S3_ENDPOINT;
   const accessKeyId = env.S3_ACCESS_KEY_ID;
   const secretAccessKey = env.S3_SECRET_ACCESS_KEY;
-  const bucket = env.S3_BUCKET ?? "atende-ai-midia";
+  const bucket = env.S3_BUCKET ?? "mensvra-midia";
   if (!endpoint || !accessKeyId || !secretAccessKey) return null;
   return {
     endpoint,

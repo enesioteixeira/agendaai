@@ -1,7 +1,7 @@
-// Sandbox de contrato do Instant ERP: um `fetch` falso que responde como o ERP
+// Sandbox de contrato do Mensvra ERP: um `fetch` falso que responde como o ERP
 // vai responder quando existir.
 //
-// POR QUE ISTO EXISTE. O Instant ERP esta na Onda 0. Sem sandbox, a Fase G
+// POR QUE ISTO EXISTE. O Mensvra ERP esta na Onda 0. Sem sandbox, a Fase G
 // inteira ficaria esperando outro produto — e quando ele chegasse, a integracao
 // comecaria do zero, sem ninguem nunca ter exercitado o contrato. Aqui o driver
 // roda de verdade, contra as respostas que o contrato promete.

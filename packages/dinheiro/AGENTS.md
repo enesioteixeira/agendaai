@@ -2,7 +2,7 @@
 
 ## Propósito
 
-Aritmética de dinheiro sobre **inteiros**, com escala explícita: soma, subtração, multiplicação por quantidade, arredondamento com modo declarado e **rateio que fecha** (a sobra de centavo é distribuída, nunca perdida nem inventada). Cópia adaptada de `@instanterp/dinheiro`.
+Aritmética de dinheiro sobre **inteiros**, com escala explícita: soma, subtração, multiplicação por quantidade, arredondamento com modo declarado e **rateio que fecha** (a sobra de centavo é distribuída, nunca perdida nem inventada). Cópia adaptada de `@mensvra-erp/dinheiro`.
 
 Existe porque a **regra inviolável 16** manda guardar valor monetário em centavos (Int) — e porque `0.1 + 0.2 !== 0.3` deixa de ser curiosidade quando vira a diferença entre o pedido e o boleto.
 

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { ErroIntegracao } from "../tipos";
-import { criarDriverInstantErp } from "./driver";
+import { criarDriverMensvraErp } from "./driver";
 import { criarFetchDoSandbox, estadoInicial, pagarNoSandbox } from "./sandbox";
 
 const CHAVE = "iep_live_sandbox";
 
 function montar(estado = estadoInicial()) {
-  const driver = criarDriverInstantErp({
+  const driver = criarDriverMensvraErp({
     baseUrl: "https://erp.exemplo/api",
     apiKey: CHAVE,
     fetch: criarFetchDoSandbox(estado),
@@ -116,7 +116,7 @@ describe("classificação de erro", () => {
    * reprocessaria um que caiu por indisponibilidade momentânea.
    */
   it("credencial errada é erro de credencial, e não se repete", async () => {
-    const driver = criarDriverInstantErp({
+    const driver = criarDriverMensvraErp({
       baseUrl: "https://erp.exemplo/api",
       apiKey: "chave-errada",
       fetch: criarFetchDoSandbox(),
@@ -129,7 +129,7 @@ describe("classificação de erro", () => {
   });
 
   it("falha de rede é indisponibilidade, e vale retry", async () => {
-    const driver = criarDriverInstantErp({
+    const driver = criarDriverMensvraErp({
       baseUrl: "https://erp.exemplo/api",
       apiKey: CHAVE,
       fetch: () => Promise.reject(new Error("ECONNREFUSED")),

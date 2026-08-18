@@ -1,20 +1,20 @@
-# 12 — Instant Channel: plano de ação do pivô omnichannel
+# 12 — Mensvra Channel: plano de ação do pivô omnichannel
 
-**Sumário executivo.** Este documento redefine o produto deste repositório: o atende-ai deixa de ser um SaaS de agendamento com atendimento acoplado e passa a ser o **Instant Channel**, um SaaS **omnichannel multi-tenant** de atendimento e venda por conversa. O centro de gravidade muda de "cliente agenda pela conversa" para "cliente é atendido e **compra** pela conversa, em qualquer canal, falando com um agente de IA que a própria empresa criou e treinou". O módulo de agendamento fica **congelado** — continua funcionando para os tenants que o usam, não recebe evolução, e não entra no escopo das fases abaixo.
+**Sumário executivo.** Este documento redefine o produto deste repositório: o atende-ai deixa de ser um SaaS de agendamento com atendimento acoplado e passa a ser o **Mensvra Channel**, um SaaS **omnichannel multi-tenant** de atendimento e venda por conversa. O centro de gravidade muda de "cliente agenda pela conversa" para "cliente é atendido e **compra** pela conversa, em qualquer canal, falando com um agente de IA que a própria empresa criou e treinou". O módulo de agendamento fica **congelado** — continua funcionando para os tenants que o usam, não recebe evolução, e não entra no escopo das fases abaixo.
 
-Nada da fundação é jogado fora: a tenancy fail-closed, o RBAC por escopos, a camada de conectores, o schema de atendimento, o outbox e a receita OpenNext/Cloudflare que os Blocos 0–3 entregaram **são** a base do Instant Channel. O que falta vem por duas vias: **cópia adaptada do ev-tracker** (motor de IA de 4 provedores, API aberta, design system, robustez do worker WhatsApp — código já endurecido em produção) e **construção nova** (conector Meta unificado, agentes de IA por tenant com base de conhecimento, catálogo com venda na conversa, hub de integrações ERP/CRM).
+Nada da fundação é jogado fora: a tenancy fail-closed, o RBAC por escopos, a camada de conectores, o schema de atendimento, o outbox e a receita OpenNext/Cloudflare que os Blocos 0–3 entregaram **são** a base do Mensvra Channel. O que falta vem por duas vias: **cópia adaptada do ev-tracker** (motor de IA de 4 provedores, API aberta, design system, robustez do worker WhatsApp — código já endurecido em produção) e **construção nova** (conector Meta unificado, agentes de IA por tenant com base de conhecimento, catálogo com venda na conversa, hub de integrações ERP/CRM).
 
 As 17 regras invioláveis do `CLAUDE.md` continuam valendo integralmente — inclusive, e principalmente, as três de IA e atendimento (propose-confirm, contexto nunca vindo do modelo, proativo só pela API oficial). Este plano não afrouxa nenhuma; ele as estende para novos canais e novas tools.
 
 **Estado deste documento:** desenho aprovado; **Fase A concluída** (2026-08-16). Os docs 01–03 e 05–10 permanecem válidos como fonte de verdade das camadas que descrevem; o doc 04 (roadmap) tem seus Blocos 0–3 preservados e é substituído a partir do Bloco 4 pelas Fases A–I da seção 10 daqui.
 
-> **Divergência já registrada.** A Fase A não portou o design system do ev-tracker, como esta seção 3.2 previa: portou o **chassi do Instant ERP**, porque ele já carregava a identidade da família Instant, medida e pronta. Motivo, escopo do que veio e o que ficou de fora: doc 11, linhas 9 e 10, e `packages/ui/AGENTS.md`.
+> **Divergência já registrada.** A Fase A não portou o design system do ev-tracker, como esta seção 3.2 previa: portou o **chassi do Mensvra ERP**, porque ele já carregava a identidade da família Mensvra, medida e pronta. Motivo, escopo do que veio e o que ficou de fora: doc 11, linhas 9 e 10, e `packages/ui/AGENTS.md`.
 
 ---
 
 ## 1. Visão e posicionamento
 
-### 1.1 O que é o Instant Channel
+### 1.1 O que é o Mensvra Channel
 
 Uma empresa cliente (tenant) conecta seus canais — WhatsApp, Instagram, Messenger, webchat, Telegram, e-mail —, cria **agentes de IA** com persona e conhecimento próprios, atende tudo numa **inbox unificada** (referência visual: Neppo) e **vende dentro da conversa**: o agente consulta o catálogo, monta o pedido, o cliente confirma e recebe o Pix ou o link de pagamento na mesma janela de chat. Quando há um ERP conectado, o pedido nasce no ERP, o Pix é do ERP, e a baixa volta por webhook; quando não há, a plataforma resolve pelo gateway próprio.
 
@@ -26,11 +26,11 @@ Três coisas o definem, nesta ordem de importância:
 
 ### 1.2 Relação com o atende-ai — evolução, não fork
 
-O monorepo `atende-ai` **é** o Instant Channel. O rebrand é progressivo (nome do painel e da marca na Fase A; nome do repo e domínio quando a grafia for decidida — ver 1.5). Não há fork, não há segundo produto, não há código duplicado.
+O monorepo `atende-ai` **é** o Mensvra Channel. O rebrand é progressivo (nome do painel e da marca na Fase A; nome do repo e domínio quando a grafia for decidida — ver 1.5). Não há fork, não há segundo produto, não há código duplicado.
 
 O que muda de fato:
 
-| | Antes (atende-ai) | Depois (Instant Channel) |
+| | Antes (atende-ai) | Depois (Mensvra Channel) |
 |---|---|---|
 | Proposta | Agendamento para negócios de horário marcado, com atendimento omnichannel como canal de entrada | Atendimento e venda por conversa, multi-canal, para qualquer negócio |
 | Módulo central | `agenda` | `atendimento` + `catalogo`/`financeiro` + `integracoes` |
@@ -39,13 +39,13 @@ O que muda de fato:
 
 **"Congelado" tem significado operacional preciso:** o código de agenda (models, telas, booking pública, GCal pull) permanece no repositório e continua sendo mantido quanto a segurança, tenancy e LGPD — o que ele **não** recebe é funcionalidade nova, e nenhuma fase deste plano depende dele. Tools de IA de agenda (`consultarDisponibilidade`, `criarAgendamento`) ficam fora do registry inicial; se um tenant de horário marcado justificar comercialmente, elas voltam como extensão, não como pré-requisito.
 
-### 1.3 Relação com o Instant ERP
+### 1.3 Relação com o Mensvra ERP
 
-Família de produtos "Instant": o **Channel é a boca** (atendimento, venda, cobrança conversacional); o **ERP é a retaguarda** (estoque, fiscal, financeiro, contratos). São produtos independentes com bancos independentes.
+Família de produtos "Mensvra": o **Channel é a boca** (atendimento, venda, cobrança conversacional); o **ERP é a retaguarda** (estoque, fiscal, financeiro, contratos). São produtos independentes com bancos independentes.
 
 Regra estrutural, no mesmo espírito da regra 1 de tenancy: **a integração é contrato de API entre dois produtos — nunca acesso cruzado a banco, nunca dependência de código, nunca correlação de tenants feita pela plataforma.** O tenant do Channel informa a credencial do *seu* tenant no ERP; a plataforma não deduz nem cruza nada por conta própria.
 
-Como o Instant ERP está na Onda 0, **o Channel define o contrato primeiro** (seção 7.3) e o ERP o implementa quando chegar às suas Ondas de financeiro/vendas. Nenhuma fase deste plano bloqueia esperando o ERP: o driver nasce contra um sandbox de fixtures, e o caminho de pagamento próprio (Asaas) cobre a lacuna.
+Como o Mensvra ERP está na Onda 0, **o Channel define o contrato primeiro** (seção 7.3) e o ERP o implementa quando chegar às suas Ondas de financeiro/vendas. Nenhuma fase deste plano bloqueia esperando o ERP: o driver nasce contra um sandbox de fixtures, e o caminho de pagamento próprio (Asaas) cobre a lacuna.
 
 ### 1.4 Relação com o ev-tracker
 
@@ -53,13 +53,13 @@ Mesmo regime já decidido no doc 08: **cópia adaptada, nunca dependência compa
 
 O que o doc 08 já mapeou (crypto, session, e-mail, LGPD, base do worker, base da esteira) continua valendo. A seção 3 daqui **estende** aquela tabela com as peças que o doc 08 não cobria porque não existiam quando ele foi escrito: o motor de IA com 4 provedores e todas as suas guardas, a API aberta completa com OpenAPI, o design system, a central de conversas e a robustez do worker.
 
-### 1.5 Grafia — decidido: **Instant Channel**
+### 1.5 Grafia — decidido: **Mensvra Channel**
 
-O nome de trabalho era "Instant Chanel", mas "Chanel" é marca mundialmente registrada no setor de moda: colisão de marca e SEO ruim eram consequências previsíveis. **Decisão (2026-08-16): "Instant Channel"**, grafia correta em inglês e sem colisão.
+O nome de trabalho era "Mensvra Channel", mas "Chanel" é marca mundialmente registrada no setor de moda: colisão de marca e SEO ruim eram consequências previsíveis. **Decisão (2026-08-16): "Mensvra Channel"**, grafia correta em inglês e sem colisão.
 
 Vale para o painel, a marca e todo texto voltado ao usuário. O prefixo técnico de chaves de API continua `ichl_`, que funciona nas duas grafias. Os packages do monorepo seguem `@atende/*` por ora — dívida consciente, com gatilho registrado no doc 11 (renomeiam junto com o repositório e o domínio).
 
-O arquivo deste documento mantém o nome `12-instant-chanel.md` para não quebrar os links já espalhados pelos outros docs e pelo `CLAUDE.md`.
+O arquivo deste documento mantém o nome `12-mensvra-channel.md` para não quebrar os links já espalhados pelos outros docs e pelo `CLAUDE.md`.
 
 ---
 
@@ -95,7 +95,7 @@ Nenhuma peça nova de infraestrutura. A topologia dos Blocos 0–3 é exatamente
 
 Externos: Meta Graph API (WhatsApp oficial + Instagram + Messenger) ·
 Telegram Bot API · Brevo/Resend · provedores de IA (Anthropic, Gemini,
-OpenAI, Grok) · Asaas · Instant ERP (/v1 + webhooks) · ERPs/CRMs de mercado
+OpenAI, Grok) · Asaas · Mensvra ERP (/v1 + webhooks) · ERPs/CRMs de mercado
 ```
 
 ### 2.2 Decisão central: turnos de IA rodam no worker, como consumer pg-boss
@@ -167,7 +167,7 @@ Complementa a tabela do doc 08, que segue válida para crypto, session, e-mail, 
 | **Admissão de inbound** | `src/lib/whatsapp-inbox.ts` (`admitir()`: dedupe + lease + CAS) | absorvido pelo consumer `inbound` | O dedupe já existe aqui como `@@unique([empresaId, canalId, idExterno])`; o lease vira `FOR UPDATE SKIP LOCKED` natural do pg-boss. **Manter o teste**: reentrega 3× produz 1 efeito |
 | **Sessão com takeover** | `src/lib/whatsapp-sessao-core.ts` (modo bot/humano) | já modelado como `EstadoConversa` | A máquina de estados do doc 05 §2 é superset do takeover do ev-tracker. Portar só os testes de transição que faltarem |
 | **Central de conversas (UI)** | `src/app/(app)/whatsapp/`: `ConversasWa.tsx`, `ComposerWa.tsx`, `AudioWa.tsx`, `NovaConversaWa.tsx`, `PainelConexaoBaileys.tsx`, `ConfigCanalWa.tsx`, `useAvisoNovaMensagem.ts` | `apps/web/src/app/(painel)/inbox/` + `apps/web/src/components/inbox/` | De três abas mono-canal para inbox omnichannel de três colunas (seção 9); polling → SSE com fallback; ícone e cor por `TipoCanal`. `PainelConexaoBaileys` (QR + diagnóstico ponta a ponta) vai quase intacto para a tela de canais |
-| ~~**Design system**~~ — **substituído na execução** | ~~ev-tracker~~ → **`@instanterp/ui` (Instant ERP)** | `packages/ui` (chassi + componentes) e `apps/web/src/app/globals.css` (tokens de marca) | **Feito na Fase A.** O ERP já tinha a identidade da família Instant pronta e medida — portar do ev-tracker significaria inventar uma paleta e deixar os dois produtos visualmente desconexos. Vieram chassi, base, componentes, formato e status (+ `@atende/dinheiro`); ficaram de fora `escopo/` (seletor de empresa na UI viola a regra 3), `telas/`/`tabela/`/`consulta/`/`referencia/` (dependem dele), `formulario/` (domínio fiscal) e `graficos/` (Fase D). Detalhe em `packages/ui/AGENTS.md` e doc 11 §9–10 |
+| ~~**Design system**~~ — **substituído na execução** | ~~ev-tracker~~ → **`@mensvra-erp/ui` (Mensvra ERP)** | `packages/ui` (chassi + componentes) e `apps/web/src/app/globals.css` (tokens de marca) | **Feito na Fase A.** O ERP já tinha a identidade da família Mensvra pronta e medida — portar do ev-tracker significaria inventar uma paleta e deixar os dois produtos visualmente desconexos. Vieram chassi, base, componentes, formato e status (+ `@atende/dinheiro`); ficaram de fora `escopo/` (seletor de empresa na UI viola a regra 3), `telas/`/`tabela/`/`consulta/`/`referencia/` (dependem dele), `formulario/` (domínio fiscal) e `graficos/` (Fase D). Detalhe em `packages/ui/AGENTS.md` e doc 11 §9–10 |
 | **Processo e qualidade** | `scripts/{seguranca-guard,changelog-guard,release}.mjs`, `verify`, `handoff/` | `scripts/` na raiz do monorepo | Adaptar ao build command do Workers Builds (adaptação F) |
 | **Tenancy, conectores + degradação, schema de atendimento, outbox, gestor Baileys, RBAC de 24 escopos, receita OpenNext** | **este repo — já existe** | mantém | — |
 
@@ -378,7 +378,7 @@ model ItemCatalogo {
 
 | Caminho | Quando | Fase |
 |---|---|---|
-| **Instant ERP conectado** — o Channel chama `erpCriarPedido`/`erpGerarPix`; o ERP fatura, gera o Pix e notifica a baixa | Tenant usa o Instant ERP (pedido vive no ERP, espelho no Channel) | G |
+| **Mensvra ERP conectado** — o Channel chama `erpCriarPedido`/`erpGerarPix`; o ERP fatura, gera o Pix e notifica a baixa | Tenant usa o Mensvra ERP (pedido vive no ERP, espelho no Channel) | G |
 | **Asaas nativo** — driver de `PaymentProvider`, subconta white-label por tenant | Tenant sem ERP | F |
 | **Stripe, Mercado Pago, Itaú, Santander e outros** — drivers do mesmo `PaymentProvider` | Demanda comercial | **Fase 2 do produto** |
 
@@ -392,7 +392,7 @@ Mesmo padrão anticorrupção de `packages/canais`: **nada fora deste package im
 
 ```ts
 interface ConectorERP {
-  tipo: TipoErp; // instant_erp | sankhya | omie | bling | tiny | conta_azul | totvs
+  tipo: TipoErp; // mensvra_erp | sankhya | omie | bling | tiny | conta_azul | totvs
   capacidades: {
     produtos: boolean; servicos: boolean; pedidos: boolean; contratos: boolean;
     cobrancaPix: boolean; linkPagamento: boolean; baixaWebhook: boolean; regua: boolean;
@@ -425,7 +425,7 @@ model IntegracaoExterna {
   id                   String  @id @default(cuid())
   empresaId            String
   categoria            String  // erp | crm | pagamento
-  tipo                 String  // instant_erp | sankhya | omie | ...
+  tipo                 String  // mensvra_erp | sankhya | omie | ...
   credenciaisCifradas  String  // AES-256-GCM
   webhookSecretCifrado String? // valida o inbound do provedor
   status               String  // conectada | erro | pausada
@@ -446,9 +446,9 @@ model MapeamentoEntidade { // correlacao id local <-> id externo = idempotencia 
 
 Sincronização por fila (consumer `sync-erp`): jobs idempotentes ancorados em `MapeamentoEntidade`, retry com backoff, `SincronizacaoLog` alimentando o painel. Webhooks de ERP entram por `apps/web/src/app/api/webhooks/integracoes/[integracaoId]/route.ts` — valida HMAC com o segredo do tenant, enfileira, responde 200.
 
-### 7.3 Contrato com o Instant ERP
+### 7.3 Contrato com o Mensvra ERP
 
-Definido aqui, implementado pelo ERP nas suas Ondas de vendas e financeiro. Alinhado ao que a arquitetura do Instant ERP já prevê (API pública com chave `iep_live_` e webhooks assinados) — nada é inventado, só sequenciado.
+Definido aqui, implementado pelo ERP nas suas Ondas de vendas e financeiro. Alinhado ao que a arquitetura do Mensvra ERP já prevê (API pública com chave `iep_live_` e webhooks assinados) — nada é inventado, só sequenciado.
 
 **Do lado do ERP:**
 
@@ -457,11 +457,11 @@ Definido aqui, implementado pelo ERP nas suas Ondas de vendas e financeiro. Alin
 
 **Divisão de responsabilidade:** a **régua de cobrança é executada pelo Channel** — ele tem os canais e as regras de anti-ban; o ERP fornece os fatos (vencimentos, baixas). As etapas da régua são as `ReguaCobranca`/`EtapaReguaCobranca` do doc 02 (D-3 / D0 / D+3, com escalonamento humano).
 
-**Enquanto o ERP não chega lá:** o driver `instant_erp` nasce contra um **sandbox de contrato** (fixtures + servidor falso nos testes), e o Asaas cobre pagamento. O contrato é versionado em `docs/contratos/erp-chanel-v1.md`, espelhado nos dois repositórios.
+**Enquanto o ERP não chega lá:** o driver `mensvra_erp` nasce contra um **sandbox de contrato** (fixtures + servidor falso nos testes), e o Asaas cobre pagamento. O contrato é versionado em `docs/contratos/erp-chanel-v1.md`, espelhado nos dois repositórios.
 
 ### 7.4 Ordem dos adapters
 
-**ERPs:** `instant_erp` (define o contrato) → **`sankhya`** (domínio conhecido, vantagem competitiva real) → `omie` / `bling` / `tiny` (APIs REST públicas e maduras, mercado PME).
+**ERPs:** `mensvra_erp` (define o contrato) → **`sankhya`** (domínio conhecido, vantagem competitiva real) → `omie` / `bling` / `tiny` (APIs REST públicas e maduras, mercado PME).
 
 **CRMs:** `ploomes` (integração já conhecida) → `rd_station` → `pipedrive`.
 
@@ -481,7 +481,7 @@ Port da biblioteca do ev-tracker (mapa em 3.2), com estas especificidades:
 
 **Ponto que não é detalhe:** o POST de mensagem **passa pelo mesmo roteador de envio** do painel. Janela de 24 h e anti-ban valem para o integrador exatamente como valem para o atendente humano; tentativa de proativo por Baileys retorna erro estruturado, não uma mensagem enviada.
 
-**Webhooks de saída:** `WebhookSaida { empresaId, url, eventos[], secretCifrado }`, entregues pelo worker com HMAC, retry exponencial por 24 h e DLQ com replay — **o mesmo dialeto de webhook do Instant ERP**, de propósito: os dois produtos falam a mesma língua.
+**Webhooks de saída:** `WebhookSaida { empresaId, url, eventos[], secretCifrado }`, entregues pelo worker com HMAC, retry exponencial por 24 h e DLQ com replay — **o mesmo dialeto de webhook do Mensvra ERP**, de propósito: os dois produtos falam a mesma língua.
 
 ---
 
@@ -489,11 +489,11 @@ Port da biblioteca do ev-tracker (mapa em 3.2), com estas especificidades:
 
 ### 9.1 Fundação: o design system vem primeiro — **entregue**
 
-O `apps/web` não tinha design system: o estilo era objeto `CSSProperties` inline, divergência real frente ao doc 03. A Fase A resolveu isso com o **chassi do Instant ERP** — e não com o do ev-tracker, como este documento previa originalmente.
+O `apps/web` não tinha design system: o estilo era objeto `CSSProperties` inline, divergência real frente ao doc 03. A Fase A resolveu isso com o **chassi do Mensvra ERP** — e não com o do ev-tracker, como este documento previa originalmente.
 
 O que existe hoje:
 
-- **`packages/ui`** (`@atende/ui`) — cópia adaptada de `@instanterp/ui`: a folha `estilos/chassi.css`, os ícones (com o vocabulário de atendimento acrescentado: `conversa`, `agente`, `antena`, `livro`, `plugue`, `engrenagem`, `chave`), os componentes de apoio (Botao, Badge, Chip, BuscaLocal, Kpi, AbasInternas, Estados, Modal, Toast) e os formatadores pt-BR. Duas catracas prendem as armadilhas da cópia: nenhum import relativo com extensão `.js` (derruba o build do web inteiro — doc 11) e nenhum import remanescente de `@instanterp/*`.
+- **`packages/ui`** (`@atende/ui`) — cópia adaptada de `@mensvra-erp/ui`: a folha `estilos/chassi.css`, os ícones (com o vocabulário de atendimento acrescentado: `conversa`, `agente`, `antena`, `livro`, `plugue`, `engrenagem`, `chave`), os componentes de apoio (Botao, Badge, Chip, BuscaLocal, Kpi, AbasInternas, Estados, Modal, Toast) e os formatadores pt-BR. Duas catracas prendem as armadilhas da cópia: nenhum import relativo com extensão `.js` (derruba o build do web inteiro — doc 11) e nenhum import remanescente de `@mensvra-erp/*`.
 - **`packages/dinheiro`** (`@atende/dinheiro`) — aritmética monetária sobre inteiros, com os 58 testes do ERP. Serve à regra 16 e à Fase F.
 - **Tokens de marca** em `apps/web/src/app/globals.css`: navy, azul elétrico e roxo em oklch, com os contrastes AA anotados linha a linha. **Tema escuro é o padrão**, aplicado por script no `<head>` antes da primeira pintura.
 
@@ -535,13 +535,13 @@ Cada fase cabe em poucas sessões de desenvolvimento, termina **navegável** e t
 
 | Fase | Entrega | Pronto quando |
 |---|---|---|
-| ✅ **A — Fundação visual e rebrand** *(concluída em 2026-08-16)* | Chassi `@atende/ui` + `@atende/dinheiro` (cópia adaptada do Instant ERP) + Tailwind 4 + tokens de marca com tema escuro sem piscar; shell do painel com a marca **Instant Channel** e a navegação do produto; `/inbox` esqueleto em três colunas lendo `Conversa`/`Mensagem` reais | Feito: build de produção verde com `/inbox` gerada, typecheck limpo nos três pacotes, 92 testes novos (34 do chassi + 58 do dinheiro) e suíte do monorepo sem regressão. `design-guard` **não** entrou — as catracas equivalentes viraram teste (`packages/ui/tests/chassi.test.tsx`), que roda no mesmo portão e prende as armadilhas reais desta cópia |
+| ✅ **A — Fundação visual e rebrand** *(concluída em 2026-08-16)* | Chassi `@atende/ui` + `@atende/dinheiro` (cópia adaptada do Mensvra ERP) + Tailwind 4 + tokens de marca com tema escuro sem piscar; shell do painel com a marca **Mensvra Channel** e a navegação do produto; `/inbox` esqueleto em três colunas lendo `Conversa`/`Mensagem` reais | Feito: build de produção verde com `/inbox` gerada, typecheck limpo nos três pacotes, 92 testes novos (34 do chassi + 58 do dinheiro) e suíte do monorepo sem regressão. `design-guard` **não** entrou — as catracas equivalentes viraram teste (`packages/ui/tests/chassi.test.tsx`), que roda no mesmo portão e prende as armadilhas reais desta cópia |
 | 🟡 **B — Inbox operacional** (fecha o Bloco 3) — *em andamento* | Lista + timeline + composer + takeover; SSE com fallback; robustez do worker (acks, reenvio, mídia → R2 com ffmpeg, watchdog); mídia nos dois sentidos | **Feito:** `/inbox/[id]` com timeline (origem por mensagem: cliente/fluxo/IA/atendente), composer (Enter envia), assumir · devolver à fila · encerrar · reabrir, painel de contato com identidades por canal; polling condicional por assinatura (`pulso.ts` — só repinta quando muda, pausa em aba escondida); **recibos de entrega** ✓/✓✓/lida com regra de não-retrocesso; **correção do inbound**: status/stories deixaram de virar conversa (ver abaixo). **reenvio** com 3 tentativas (0/2s/8s) só para erro transitório; **watchdog por canal** (derruba socket travado para a reconciliação reabrir, sem matar o processo e sem derrubar os outros tenants). **Pendente:** mídia (bloqueada — sem binding R2), SSE (bloqueado — worker sem host público, doc 11) e o claim do outbox, que exige migration coordenada (ver `apps/worker/AGENTS.md`) |
 | 🟡 **C — Motor de IA e propose-confirm** — *em andamento* | Port da esteira (4 provedores, tentativa, guardas, PII, STT); models `PropostaAcao`, `FluxoArvore`, `VersaoFluxo`, `ResumoConversa`, `FeedbackIA`; consumer `ia-turno`; árvore por templates; transições completas | **Feito (1ª etapa):** `packages/core/src/atendimento/ia/` — o núcleo de decisão puro: portão de PII em três modos com validação de DV, orçamento/reserva/classificação de erro, guarda anti-injection e guarda anti-alucinação de ação, e o contrato `tipos.ts` que os adapters vão cumprir. 17 testes. **Feito (2ª etapa):** `packages/ia` — adapters dos 4 provedores + dispatcher com portão de PII, isolado do `apps/web` como `@atende/canais` (turno de IA não cabe nos 10 ms de CPU do Workers). Catraca do 400 do Gemini incluída, com meta-teste do próprio detector. **Pendente:** models de IA (**exigem migration coordenada** — o build não roda `migrate deploy`); consumer `ia-turno`; árvore; STT; **verificação contra API real** (os adapters ainda não falaram com nenhum provedor neste projeto) |
 | **D — Agentes por tenant e conhecimento** | `AgenteIA`, `VersaoAgente`, `BaseConhecimento`, `Documento`, `Chunk` + pgvector; job `ingest-rag`; tool `buscarConhecimento`; estúdio com playground; `ConfigIAEmpresa` e `UsoIA` | Tenant cria agente, treina com um PDF ou FAQ, publica, e o agente responde citando a base — no playground e num canal real; custo por tenant visível no painel |
 | **E — Conector Meta unificado** | `packages/canais/src/meta/` (oficial + Instagram + Messenger); Embedded Signup; janela de 24 h; templates; merge de identidade | Conversa completa nos três canais Meta; proativo bloqueado fora de janela sem template; E2E de merge com `AuditLog` |
 | **F — Catálogo e venda na conversa** | `ItemCatalogo` + `Pedido`/`Cobranca`; tools de catálogo; `PaymentProvider` com driver Asaas (subconta por tenant); baixa idempotente; recibo | Agente oferta item, fecha pedido via proposta, entrega Pix, baixa em < 1 min no sandbox; reentrega 3× produz 1 baixa |
-| 🟡 **G — Hub ERP/CRM e contrato Instant ERP** — *fundação pronta* | `packages/integracoes`; driver `instant_erp` contra sandbox; `docs/contratos/erp-chanel-v1.md`; cartões de contexto na inbox; régua de cobrança | **Feito:** interfaces `ConectorERP`/`ConectorCRM`, formatos canônicos em Zod, degradação por capacidade (com o motivo escrito que a tela mostra), driver `instant_erp` + **sandbox de contrato** (implementação de referência, não mock — já revelou um erro de roteamento no próprio driver) e o **contrato v1 versionado**, pronto para o ERP implementar. 18 testes. **Pendente:** models `IntegracaoExterna`/`MapeamentoEntidade` + consumer `sync-erp` (**migration**); cartões na inbox; régua; drivers de mercado (**cada um exige credencial de sandbox do fornecedor**) |
+| 🟡 **G — Hub ERP/CRM e contrato Mensvra ERP** — *fundação pronta* | `packages/integracoes`; driver `mensvra_erp` contra sandbox; `docs/contratos/erp-chanel-v1.md`; cartões de contexto na inbox; régua de cobrança | **Feito:** interfaces `ConectorERP`/`ConectorCRM`, formatos canônicos em Zod, degradação por capacidade (com o motivo escrito que a tela mostra), driver `mensvra_erp` + **sandbox de contrato** (implementação de referência, não mock — já revelou um erro de roteamento no próprio driver) e o **contrato v1 versionado**, pronto para o ERP implementar. 18 testes. **Pendente:** models `IntegracaoExterna`/`MapeamentoEntidade` + consumer `sync-erp` (**migration**); cartões na inbox; régua; drivers de mercado (**cada um exige credencial de sandbox do fornecedor**) |
 | **H — API aberta v1 e portal `/dev`** | Biblioteca portada; chaves `ichl_live_`; endpoints v1; webhooks de saída; catraca de rota | Spec sem drift no CI; chave sem escopo → 403; estouro → 429 com `Retry-After`; envio proativo via API respeita o anti-ban |
 | **I — Conectores restantes e expansão** | Webchat (widget + SSE), Telegram, e-mail inbound; gateways da Fase 2; adapters de ERP/CRM na ordem de 7.4 | Conversa completa nos canais novos; segundo gateway operando atrás do mesmo `PaymentProvider` |
 
@@ -555,7 +555,7 @@ Cada fase cabe em poucas sessões de desenvolvimento, termina **navegável** e t
 
 | # | Risco / decisão | Detalhe | Encaminhamento |
 |---|---|---|---|
-| 1 | **Nome "Instant Channel"** | Colisão com marca registrada de moda; grafia ambígua PT/EN | Decidir por "Instant Channel" **antes da Fase A**; registrar domínio junto com o do ERP. Prefixo `ichl_` serve às duas grafias |
+| 1 | **Nome "Mensvra Channel"** | Colisão com marca registrada de moda; grafia ambígua PT/EN | Decidir por "Mensvra Channel" **antes da Fase A**; registrar domínio junto com o do ERP. Prefixo `ichl_` serve às duas grafias |
 | 2 | **10 ms de CPU no Workers free** | Turnos de IA, ffmpeg e embeddings não cabem no request | Resolvido por desenho (2.2): tudo pesado no worker; webhooks apenas validam e enfileiram |
 | 3 | **Worker OCI é ponto único** | Sockets Baileys + `ia-turno` + SSE + crons na mesma VM gratuita | Auth-state no Postgres torna a VM descartável (recriação em < 1 h); watchdog e heartbeat portados; plano B (Railway/Northflank) já documentado no doc 04 §6. Se `ia-turno` competir com os sockets, separar em dois processos na mesma VM antes de pagar infra |
 | 4 | **Neon free 0,5 GB + pgvector** | Conversas e chunks com embedding (768 floats ≈ 3 KB/chunk; 10 mil chunks ≈ 30 MB — cabe; HNSW consome RAM do compute) | Arquivamento de conversas > 90 dias no R2 já planejado; teto de documentos e chunks por plano; monitorar CU-h. Degrau pago só com receita |
@@ -563,7 +563,7 @@ Cada fase cabe em poucas sessões de desenvolvimento, termina **navegável** e t
 | 6 | **Ban do Baileys** | Risco permanente de canal não oficial | Regra 12 estrutural (conector sem método proativo); **fixar a versão exata do Baileys 7** e re-testar `@lid`, nono dígito e decodificação a cada bump (doc 08 §6) |
 | 7 | **PBKDF2 em vez de argon2id** | Divergência nº 4 do doc 11 (teto do runtime CF) | Mantida; o formato versionado do hash já prevê re-hash transparente quando houver runtime sem teto |
 | 8 | **Zod v3 e v4 convivendo** | Dois dialetos no mesmo monorepo | Regra clara (3.1-D): código novo em `zod/v4` via subpath. Migração total como dívida com gatilho |
-| 9 | **Instant ERP na Onda 0** | Integração "nativa" contra produto que ainda nasce | Contrato versionado + sandbox de fixtures (7.3); Asaas cobre pagamento nesse meio-tempo. **Nenhuma fase bloqueia esperando o ERP** |
+| 9 | **Mensvra ERP na Onda 0** | Integração "nativa" contra produto que ainda nasce | Contrato versionado + sandbox de fixtures (7.3); Asaas cobre pagamento nesse meio-tempo. **Nenhuma fase bloqueia esperando o ERP** |
 | 10 | **LGPD × IA por tenant** | Dados de clientes finais indo a provedores de IA; documentos de conhecimento podem conter dados pessoais | DPA cobre operadores de IA (art. 33); PII-gate por tenant no pipeline **e na ingestão**; exportação e anonimização de titular alcançam `ChunkConhecimento` |
 | 11 | **Custo de IA da plataforma** | Tenants no fallback de chave da plataforma podem estourar custo | `UsoIA` + teto por plano fail-closed (turno recusa com mensagem de limite → `fila_humano`); excedente cobrado conforme doc 06 |
 | 12 | **Verificação Meta atrasa onboarding** | WhatsApp oficial exige negócio verificado | Vira funil comercial (doc 05 §7.4): Baileys no plano de entrada, oficial no Pro — argumento de venda, não bloqueio |

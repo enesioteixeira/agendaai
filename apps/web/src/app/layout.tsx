@@ -11,9 +11,9 @@ import "./globals.css";
 import "@atende/ui/estilos.css";
 
 export const metadata: Metadata = {
-  title: "Instant Channel",
+  title: "Mensvra Channel",
   description:
-    "Atendimento e venda por conversa: WhatsApp, Instagram, Messenger e mais, com agentes de IA e integração nativa ao Instant ERP.",
+    "Atendimento e venda por conversa: WhatsApp, Instagram, Messenger e mais, com agentes de IA e integração nativa ao Mensvra ERP.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

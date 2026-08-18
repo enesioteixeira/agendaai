@@ -69,7 +69,7 @@
 4. **Workers & Pages** → **KV** → **Create namespace**:
    - Namespace: `atende-ai-config` (guarda config resolvida de tenant por slug — doc 09).
 5. **R2** → **Create bucket**:
-   - Bucket: `atende-ai-midia` — storage de mídia inbound (WhatsApp, imagens de comprovantes, PDFs de contratos).
+   - Bucket: `mensvra-midia` — storage de mídia inbound (WhatsApp, imagens de comprovantes, PDFs de contratos).
 6. **My Profile** → **API Tokens** → **Create Token** → template **Edit Cloudflare Workers**. Copie o token — vai virar `CLOUDFLARE_API_TOKEN` no GitHub Secrets (Fase F).
 7. Anote também o **Account ID** (canto direito do dashboard) — vira `CLOUDFLARE_ACCOUNT_ID`.
 
@@ -77,7 +77,7 @@
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
 - ID do KV namespace `atende-ai-config` (vai para `wrangler.jsonc` do `apps/web` quando o adapter OpenNext for configurado — fim do Bloco 0).
-- Nome do bucket R2 `atende-ai-midia`.
+- Nome do bucket R2 `mensvra-midia`.
 
 ---
 
@@ -378,7 +378,7 @@ Se você quer avançar hoje, faça só a **Fase A**:
 1. ⏱️ **~5 min** — Cadastro no Neon → criar projeto `atende-ai` em `sa-east-1` → copiar `DATABASE_URL`.
 2. ⏱️ **~2 min** — Colar em `packages/db/.env`.
 3. ⏱️ **~1 min** — Rodar `pnpm --filter @atende/db exec prisma migrate dev --name inicial` — cria as tabelas no Neon.
-4. ⏱️ **~5 min** — Cadastro no Cloudflare → criar KV `atende-ai-config` + R2 `atende-ai-midia` → gerar API Token.
+4. ⏱️ **~5 min** — Cadastro no Cloudflare → criar KV `atende-ai-config` + R2 `mensvra-midia` → gerar API Token.
 5. ⏱️ **~2 min** — Adicionar `DATABASE_URL`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` como GitHub Secrets.
 
 Isso libera o próximo passo do MVP (Bloco 1 — auth + onboarding). Domínio pode esperar. Fases B/C/D só quando cada bloco chegar.

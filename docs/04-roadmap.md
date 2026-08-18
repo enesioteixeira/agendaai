@@ -1,6 +1,6 @@
 # 04 — Roadmap: MVP → Fase 2 → Fase 3
 
-> ⚠️ **Parcialmente substituído (2026-08-16) pelo pivô Instant Channel — `docs/12-instant-chanel.md`.**
+> ⚠️ **Parcialmente substituído (2026-08-16) pelo pivô Mensvra Channel — `docs/12-mensvra-channel.md`.**
 > **Continua válido:** a premissa de equipe (§1.1), os gates, o anti-escopo, os riscos, as métricas e os **Blocos 0–3** (fundações, identidade, agenda, canais) — todos entregues ou em andamento.
 > **Substituído:** do **Bloco 4 em diante**, o sequenciamento passa a ser o das **Fases A–I** do doc 12 §10. O módulo de agenda está congelado, então os blocos de agenda avançada saem do caminho crítico; o RLS (Bloco 7) permanece, agendado para antes da Fase H.
 

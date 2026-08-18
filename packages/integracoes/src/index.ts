@@ -57,14 +57,14 @@ export {
 } from "./degradacao";
 
 export {
-  capacidadesInstantErp,
-  criarDriverInstantErp,
-  type ConfigInstantErp,
-} from "./instant-erp/driver";
+  capacidadesMensvraErp,
+  criarDriverMensvraErp,
+  type ConfigMensvraErp,
+} from "./mensvra-erp/driver";
 
 export {
   criarFetchDoSandbox,
   estadoInicial,
   pagarNoSandbox,
   type EstadoDoSandbox,
-} from "./instant-erp/sandbox";
+} from "./mensvra-erp/sandbox";

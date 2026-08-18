@@ -1,8 +1,8 @@
-# Contrato Instant Channel ⇄ Instant ERP — v1
+# Contrato Mensvra Channel ⇄ Mensvra ERP — v1
 
-**Sumário.** Este documento define o contrato de API entre o **Instant Channel** (atendimento e venda por conversa) e o **Instant ERP** (retaguarda). O Channel é o **cliente**; o ERP é o **servidor**. O contrato é definido aqui porque o Channel precisa dele agora e o ERP ainda está na Onda 0 — quando o ERP implementar, este arquivo é a especificação, não uma sugestão.
+**Sumário.** Este documento define o contrato de API entre o **Mensvra Channel** (atendimento e venda por conversa) e o **Mensvra ERP** (retaguarda). O Channel é o **cliente**; o ERP é o **servidor**. O contrato é definido aqui porque o Channel precisa dele agora e o ERP ainda está na Onda 0 — quando o ERP implementar, este arquivo é a especificação, não uma sugestão.
 
-**Estado:** v1, definido em 2026-08-16. **O lado ERP ainda não existe.** O driver do Channel (`packages/integracoes/src/instant-erp/`) roda contra um sandbox de fixtures que implementa este contrato — ver §7.
+**Estado:** v1, definido em 2026-08-16. **O lado ERP ainda não existe.** O driver do Channel (`packages/integracoes/src/mensvra-erp/`) roda contra um sandbox de fixtures que implementa este contrato — ver §7.
 
 **Regra estrutural que governa tudo aqui:** são dois produtos independentes, com bancos independentes. Nunca acesso cruzado a banco, nunca dependência de código, e **nunca correlação de tenants feita pela plataforma** — o tenant do Channel informa a credencial do *seu* tenant no ERP, e ninguém deduz nada.
 
@@ -121,7 +121,7 @@ O ERP publica em uma URL que o tenant configura no Channel.
 **Assinatura** — HMAC-SHA256 sobre `{timestamp}.{corpo cru}`:
 
 ```
-X-Instant-Signature: t=1755360000,v1=<hex>
+X-Mensvra-Signature: t=1755360000,v1=<hex>
 ```
 
 - O Channel recusa `timestamp` com mais de **5 minutos** de diferença (anti-replay).
@@ -165,7 +165,7 @@ A régua ilustra a divisão: o ERP diz *o que* está vencendo; o Channel decide 
 
 ## 7. Sandbox de contrato
 
-Enquanto o ERP não existe, `packages/integracoes/src/instant-erp/sandbox.ts` implementa este documento: confere o `Authorization` de verdade, honra `Idempotency-Key` de verdade, e responde nos formatos acima.
+Enquanto o ERP não existe, `packages/integracoes/src/mensvra-erp/sandbox.ts` implementa este documento: confere o `Authorization` de verdade, honra `Idempotency-Key` de verdade, e responde nos formatos acima.
 
 **Não é mock de teste — é a implementação de referência do contrato.** Quando o ERP subir, o mesmo conjunto de casos (`driver.test.ts`) vira o teste de conformidade dele: se o ERP real responder diferente do sandbox, um dos dois está fora do contrato, e a conversa passa a ser sobre qual — não sobre "funciona na minha máquina".
 

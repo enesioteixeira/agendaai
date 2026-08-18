@@ -2,7 +2,7 @@
 // Prisma, sem SDK, sem rede. Port de `ev-tracker/src/lib/pii-core.ts`.
 //
 // Escopo deliberadamente estreito: CPF, CNPJ e cartao. Telefone e e-mail ficam
-// FORA, e nao por esquecimento — no Instant Channel o telefone É a identidade do
+// FORA, e nao por esquecimento — no Mensvra Channel o telefone É a identidade do
 // cliente (`IdentidadeCanal`), e as tools de catalogo e ERP buscam pessoa por
 // documento ou contato. Mascarar os dois quebraria consulta legitima, e um
 // agente que nao acha o cliente que acabou de escrever deixa de ser usado — aí o

@@ -1,12 +1,12 @@
 /**
- * CHASSI DE UI DO INSTANT CHANNEL — a superfície pública do pacote.
+ * CHASSI DE UI DO MENSVRA CHANNEL — a superfície pública do pacote.
  *
- * ORIGEM E REGIME. Este pacote é uma CÓPIA ADAPTADA de `@instanterp/ui` (o chassi do
- * Instant ERP), não uma dependência dele: os dois produtos são independentes e precisam
+ * ORIGEM E REGIME. Este pacote é uma CÓPIA ADAPTADA de `@mensvra-erp/ui` (o chassi do
+ * Mensvra ERP), não uma dependência dele: os dois produtos são independentes e precisam
  * evoluir em ritmos diferentes — é a mesma regra que o `docs/08-reuso-ev-tracker.md`
  * aplica ao ev-tracker. O que se compartilha com o ERP é a IDENTIDADE (a paleta navy /
  * azul elétrico / roxo, os tokens em oklch, a geometria), para que os dois produtos da
- * família Instant pareçam irmãos; o que NÃO se compartilha é código vivo.
+ * família Mensvra pareçam irmãos; o que NÃO se compartilha é código vivo.
  *
  * A folha de estilo é um export à parte e precisa ser importada UMA vez pelo app:
  *
@@ -20,7 +20,7 @@
  * O QUE FICOU DE FORA DA CÓPIA, E POR QUÊ — cada bloco tem um motivo, não é acaso:
  *
  * - `escopo/` (seletor de empresa/filial multiempresa) — **motivo de segurança.** No
- *   Instant Channel o tenant vem SEMPRE da sessão JWT e nunca de escolha na interface
+ *   Mensvra Channel o tenant vem SEMPRE da sessão JWT e nunca de escolha na interface
  *   (regra inviolável 3 do CLAUDE.md). Um seletor de empresa na tela seria um caminho
  *   para trocar de tenant pela UI; não existe versão "só visual" disso que seja segura.
  * - `telas/` (TelaDeLista, TelaDeDetalhe, TelaDePainel) e `tabela/` (TabelaDensa) —
@@ -29,7 +29,7 @@
  *   não tem essa forma.
  * - `referencia/` (drill-down por tipo de registro) e `componentes/Trilha` — dependem da
  *   ponte com o shell de abas do ERP, que não existe aqui.
- * - `formulario/` — depende de `@instanterp/contracts/campos` (CNPJ, NCM, inscrição
+ * - `formulario/` — depende de `@mensvra-erp/contracts/campos` (CNPJ, NCM, inscrição
  *   estadual): domínio fiscal que este produto não tem. Quando o estúdio de agentes e o
  *   catálogo precisarem de formulários ricos, portar SEM os campos fiscais e reativar o
  *   `@import` que está comentado no topo de `estilos/chassi.css`.

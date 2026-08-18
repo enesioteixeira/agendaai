@@ -15,8 +15,8 @@ import { criarArmazenamentoS3, lerDoS3, TAMANHO_MAXIMO_BYTES, type ConfigS3 } fr
 // quebrar a suíte de quem não subiu o ambiente.
 const CONFIG: ConfigS3 = {
   endpoint: process.env.S3_ENDPOINT ?? "http://localhost:9000",
-  bucket: process.env.S3_BUCKET ?? "atende-ai-midia",
-  accessKeyId: process.env.S3_ACCESS_KEY_ID ?? "instant",
+  bucket: process.env.S3_BUCKET ?? "mensvra-midia",
+  accessKeyId: process.env.S3_ACCESS_KEY_ID ?? "mensvra",
   secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? "devlocal123",
   regiao: "us-east-1",
 };

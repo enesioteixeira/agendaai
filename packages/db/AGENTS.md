@@ -57,9 +57,9 @@ EXIGIR_DB_TEST=1 pnpm --filter @atende/db test
 Use um **branch descartável do Neon**, nunca o banco principal — ou um **Postgres local em container**, que é mais barato e não depende de rede:
 
 ```bash
-docker run -d --name instant-pg-local -e POSTGRES_PASSWORD=devlocal   -e POSTGRES_USER=instant -e POSTGRES_DB=instant_channel -p 55432:5432 postgres:17-alpine
-DATABASE_URL="postgresql://instant:devlocal@localhost:55432/instant_channel" npx prisma migrate deploy
-DATABASE_URL="postgresql://instant:devlocal@localhost:55432/instant_channel" pnpm test
+docker run -d --name mensvra-pg-local -e POSTGRES_PASSWORD=devlocal   -e POSTGRES_USER=mensvra -e POSTGRES_DB=mensvra_channel -p 55432:5432 postgres:17-alpine
+DATABASE_URL="postgresql://mensvra:devlocal@localhost:55432/mensvra_channel" npx prisma migrate deploy
+DATABASE_URL="postgresql://mensvra:devlocal@localhost:55432/mensvra_channel" pnpm test
 ```
 
 A porta é 55432 de propósito, para não colidir com um Postgres de sistema em 5432. **O `.env` deste package aponta para o banco local**, então os comandos acima funcionam sem prefixo — a URL do Neon ficou guardada em `.env.neon`, fora do git, para quando alguém decidir apontar para lá de propósito. De qualquer forma, `prisma migrate status` imprime o host: confira antes de rodar qualquer coisa que escreva.

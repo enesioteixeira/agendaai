@@ -17,9 +17,9 @@ import { conectarIntegracaoAction, type EstadoIntegracao } from "./actions";
 const CATALOGO = [
   {
     categoria: "erp" as const,
-    tipo: "instant_erp",
-    rotulo: "Instant ERP",
-    nota: "Integração nativa da família Instant",
+    tipo: "mensvra_erp",
+    rotulo: "Mensvra ERP",
+    nota: "Integração nativa da família Mensvra",
     disponivel: true,
   },
   { categoria: "erp" as const, tipo: "sankhya", rotulo: "Sankhya", nota: "Driver ainda não escrito", disponivel: false },

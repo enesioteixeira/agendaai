@@ -8,7 +8,7 @@ Hub de integrações de **retaguarda**: ERP e CRM. Camada anticorrupção no mes
 
 - `src/tipos.ts` — `ConectorERP`, `ConectorCRM`, `CapacidadesErp`, `ErroIntegracao` com causa classificada.
 - `src/formatos.ts` — formatos canônicos em **Zod v4** (via subpath `zod/v4`, doc 11). Payload de ERP de terceiro é entrada **não confiável**: campo faltando, número como string e data em formato próprio são o normal, não a exceção.
-- `docs/contratos/erp-chanel-v1.md` — o contrato do Instant ERP, espelhado nos dois repositórios.
+- `docs/contratos/erp-chanel-v1.md` — o contrato do Mensvra ERP, espelhado nos dois repositórios.
 
 ## Invariantes
 
@@ -42,7 +42,7 @@ pnpm --filter @atende/integracoes test
 - [x] Interface `ConectorERP`/`ConectorCRM`, capacidades e `ErroIntegracao` classificado
 - [x] Formatos canônicos em Zod (produto, serviço, cliente, pedido, cobrança, evento de webhook, contato e oportunidade de CRM)
 - [x] `degradacao.ts` — forma de cobrança, ferramentas habilitadas com **motivo escrito** (é o texto que a tela de integrações mostra), varredura de baixa só para quem cobra e não avisa, guarda de chamada
-- [x] Driver `instant_erp` + **sandbox de contrato** (implementação de referência, não mock: já revelou um erro de roteamento no próprio driver)
+- [x] Driver `mensvra_erp` + **sandbox de contrato** (implementação de referência, não mock: já revelou um erro de roteamento no próprio driver)
 - [ ] Drivers de mercado, na ordem do doc 12 §7.4: `sankhya` → `omie`/`bling`/`tiny`. **Nenhum pode começar sem credencial de sandbox do fornecedor** — escrever contra a documentação e descobrir na integração real é o caminho caro
 - [ ] `ConectorCRM` implementado (`ploomes` → `rd_station` → `pipedrive`)
 - [ ] Models `IntegracaoExterna` / `MapeamentoEntidade` / `SincronizacaoLog` + consumer `sync-erp` — **exigem migration**, e a do propose-confirm ainda não foi aplicada
