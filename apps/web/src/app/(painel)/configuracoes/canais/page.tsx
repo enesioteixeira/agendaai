@@ -102,6 +102,14 @@ export default async function CanaisPage() {
                 qrIlegivel = true;
               }
             }
+            // O worker renova o QR a cada ~20 s. Passou de um minuto sem
+            // renovar, ou ele parou de rodar. `statusAtualizadoEm` nulo é linha
+            // antiga, de antes desta coluna existir: idade desconhecida não é
+            // idade grande, então não avisa.
+            const qrVelho =
+              qrDataUrl !== null &&
+              c.statusAtualizadoEm !== null &&
+              Date.now() - c.statusAtualizadoEm.getTime() > 60_000;
             const st = STATUS[c.statusConexao] ?? { rotulo: c.statusConexao, tom: "neutro" as const };
 
             return (
@@ -157,6 +165,29 @@ export default async function CanaisPage() {
                 ) : c.statusConexao === "pareando" ? (
                   <p className="border-t border-borda pt-3 text-[12px] text-texto-suave">
                     Gerando o QR… ele aparece aqui em alguns segundos, e troca sozinho a cada 20.
+                  </p>
+                ) : c.statusConexao === "erro" ? (
+                  <div className="border-t border-borda pt-3">
+                    <p className="text-[12px] text-perigo">
+                      O WhatsApp está recusando a conexão deste canal.
+                    </p>
+                    <p className="mt-1 text-[11px] text-texto-fraco">
+                      O socket caiu várias vezes sem chegar a gerar QR — não é lentidão, é recusa.
+                      A causa mais comum é a versão do cliente WhatsApp: sem rede, o worker não
+                      consegue buscá-la e cai numa versão velha, que o servidor rejeita. Confira a
+                      conexão da máquina e reinicie o worker.
+                    </p>
+                  </div>
+                ) : null}
+
+                {/* Um QR sem idade visível é uma armadilha: se o worker morrer
+                    logo depois de gravá-lo, a tela segue exibindo um código
+                    vencido com cara de válido, e "escaneei e não aconteceu
+                    nada" vira mistério. */}
+                {qrVelho ? (
+                  <p className="text-[11px] text-atencao">
+                    Este QR foi gerado há mais de um minuto e deveria ter se renovado. O worker
+                    provavelmente parou — confira se ele ainda está rodando antes de escanear.
                   </p>
                 ) : null}
 

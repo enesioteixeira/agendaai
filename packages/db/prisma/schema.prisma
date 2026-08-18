@@ -633,6 +633,12 @@ model Canal {
   nome           String // ex.: "WhatsApp Recepção"
   configCifrada  String? // tokens/segredos AES-256-GCM (regra 15)
   statusConexao  StatusConexaoCanal @default(desconectado)
+  /// Quando `statusConexao` mudou pela última vez.
+  ///
+  /// Existe para a tela saber a IDADE do que está mostrando. Sem isso, um QR
+  /// gravado por um worker que morreu em seguida fica na tela para sempre, com
+  /// aparência de válido — e "escaneei e não aconteceu nada" vira mistério.
+  statusAtualizadoEm DateTime?
   fluxoPadraoId  String? // FK lógica — FluxoArvore chega no Bloco 4
   /// Agente de IA que atende as conversas novas deste canal. FK LÓGICA (mesmo
   /// padrão de `fluxoPadraoId`) para não criar ciclo Canal↔AgenteIA no Prisma.

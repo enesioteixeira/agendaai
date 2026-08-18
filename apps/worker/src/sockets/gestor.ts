@@ -38,6 +38,14 @@ interface EntradaSocket {
    * tempos, aquele fica em silêncio total.
    */
   ultimoSinal: number;
+  /**
+   * O socket já chegou a emitir QR alguma vez nesta vida?
+   *
+   * Separa "não pareou ainda" de "não CONSEGUE parear". Sem QR e sem conexão
+   * depois de várias quedas, o socket não está esperando ninguém escanear — ele
+   * está sendo recusado, e a tela precisa dizer isso.
+   */
+  recebeuQr: boolean;
 }
 
 /**
@@ -63,11 +71,22 @@ async function atualizarStatusCanal(
       where: { id: canalId },
       data: {
         statusConexao: status,
+        statusAtualizadoEm: new Date(),
         configCifrada: qrDataUrl ? cifrarSegredo(JSON.stringify({ qrDataUrl })) : null,
       },
     }),
   ).catch((e) => console.error(`[gestor] status ${canalId}:`, e));
 }
+
+/**
+ * Quedas seguidas, sem nunca ter chegado ao QR, antes de chamar de erro.
+ *
+ * O número separa duas coisas que se parecem no log e não se parecem em nada na
+ * prática: a queda passageira, que reconecta na primeira ou segunda tentativa,
+ * e o socket que o servidor recusa toda vez — versão de cliente velha,
+ * bloqueio, rede filtrada. A segunda não melhora esperando.
+ */
+const QUEDAS_ATE_CHAMAR_DE_ERRO = 5;
 
 async function abrirSocket(empresaId: string, canalId: string): Promise<void> {
   const anterior = sockets.get(canalId);
@@ -83,6 +102,7 @@ async function abrirSocket(empresaId: string, canalId: string): Promise<void> {
     tentativas: 0,
     encerrado: false,
     conectado: false,
+    recebeuQr: false,
     ultimoSinal: Date.now(),
   };
   sockets.set(canalId, entrada);
@@ -90,6 +110,8 @@ async function abrirSocket(empresaId: string, canalId: string): Promise<void> {
   const socket = await criarSocketBaileys(state, salvarCreds, {
     aoQr(qr) {
       entrada.ultimoSinal = Date.now();
+      entrada.recebeuQr = true;
+      entrada.tentativas = 0;
       void QRCode.toDataURL(qr).then((dataUrl) =>
         atualizarStatusCanal(empresaId, canalId, "pareando", dataUrl),
       );
@@ -113,6 +135,24 @@ async function abrirSocket(empresaId: string, canalId: string): Promise<void> {
         return;
       }
       const espera = Math.min(2000 * ++entrada.tentativas, 30_000);
+
+      // Nunca chegou ao QR nem à conexão, e já caiu vezes demais: isto não é
+      // queda passageira, é recusa. Marcar `erro` é o que transforma um log
+      // infinito de "caiu — reconectando" numa tela que diz o que houve — a
+      // ausência disso escondeu um 405 por versão de cliente velha durante uma
+      // sessão inteira de depuração.
+      if (
+        !entrada.conectado &&
+        !entrada.recebeuQr &&
+        entrada.tentativas >= QUEDAS_ATE_CHAMAR_DE_ERRO
+      ) {
+        console.error(
+          `[gestor] canal ${canalId}: ${entrada.tentativas} quedas sem nunca emitir QR — ` +
+            `o servidor está recusando a conexão. Marcando o canal como erro.`,
+        );
+        void atualizarStatusCanal(empresaId, canalId, "erro");
+      }
+
       console.warn(`[gestor] canal ${canalId} caiu — reconectando em ${espera}ms`);
       setTimeout(() => {
         void abrirSocket(empresaId, canalId);
