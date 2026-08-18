@@ -118,7 +118,17 @@ async function executarTurno(job: JobIaTurno): Promise<void> {
     // avisa o cliente quando ele ficaria esperando: sem chave configurada, a
     // conversa está em `bot_ia` e ninguém responderia nunca.
     console.warn(`[ia-turno] sem contexto (${resultado.motivo}) — conversa ${conversaId}`);
-    if (resultado.motivo === "sem-chave-do-provedor" || resultado.motivo === "agente-sem-versao-publicada") {
+    if (resultado.motivo === "chave-do-provedor-ilegivel") {
+      console.error(
+        `[ia-turno] a chave do provedor está gravada mas não abre — a ENCRYPTION_KEY mudou ` +
+          `desde que ela foi salva. Recadastre o segredo em Integrações. Empresa ${empresaId}.`,
+      );
+    }
+    if (
+      resultado.motivo === "sem-chave-do-provedor" ||
+      resultado.motivo === "chave-do-provedor-ilegivel" ||
+      resultado.motivo === "agente-sem-versao-publicada"
+    ) {
       await runWithTenant({ empresaId }, async () => {
         const conversa = await prisma.conversa.findUnique({
           where: { id: conversaId },

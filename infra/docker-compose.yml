@@ -1,3 +1,11 @@
+# Nome do projeto compose, explícito.
+#
+# Sem ele o Docker usa o nome do DIRETÓRIO — que é `infra` nos dois repositórios
+# do ecossistema. O resultado é que subir a infra de um produto declara os
+# containers do outro como órfãos, e um `docker compose down` derruba a stack
+# alheia sem avisar.
+name: mensvra-channel
+
 # Ambiente local completo do Mensvra Channel.
 #
 # Existe porque o produto não pode depender de conta em nuvem para ser
@@ -67,5 +75,14 @@ services:
       "
 
 volumes:
+  # Nomes FIXOS, e não derivados do projeto.
+  #
+  # Por padrão o Docker prefixa o volume com o nome do projeto, então batizar o
+  # projeto criaria volumes novos e VAZIOS — banco zerado e, o que dói mais,
+  # sessão do WhatsApp perdida (ela vive em AuthStateBaileys, no Postgres).
+  # Fixando o nome, o volume que já existe continua sendo o mesmo depois de
+  # qualquer troca de nome do projeto.
   pg-dados:
+    name: infra_pg-dados
   midia-dados:
+    name: infra_midia-dados

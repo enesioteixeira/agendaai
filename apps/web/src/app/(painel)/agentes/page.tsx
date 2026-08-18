@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { temEscopo } from "@atende/core";
+import { temEscopo, crypto as cryptoCore } from "@atende/core";
 import { prisma, runWithTenant } from "@atende/db";
 import { Badge, EstadoVazio, formatarDataHora } from "@atende/ui";
 
@@ -8,6 +8,20 @@ import { FormEditarVersao, FormNovoAgente } from "@/modules/agentes/FormAgente";
 import { FormChaveIa } from "@/modules/agentes/FormChaveIa";
 import { alternarAgenteAction, publicarVersaoAction } from "@/modules/agentes/actions";
 import { lerSessao } from "@/lib/sessao";
+
+const { decifrarSegredo } = cryptoCore;
+
+const CHAVE_ILEGIVEL =
+  "A chave está gravada mas não abre — a ENCRYPTION_KEY mudou desde que ela foi salva. Cadastre a chave de novo abaixo.";
+
+/** A credencial ainda abre com a chave de cifra atual? O valor não sai daqui. */
+function chaveAbre(credenciaisCifradas: string): boolean {
+  try {
+    return Boolean((JSON.parse(decifrarSegredo(credenciaisCifradas)) as { apiKey?: string }).apiKey);
+  } catch {
+    return false;
+  }
+}
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +49,18 @@ export default async function AgentesPage() {
         orderBy: { criadoEm: "asc" },
         include: { versoes: { orderBy: { numero: "desc" } } },
       }),
-      // Só `tipo` e `ultimoErro`: a credencial cifrada não entra no select —
-      // o que não é lido não vaza por acidente num log ou erro serializado.
+      // A credencial cifrada ENTRA no select, e só aqui: é preciso tentar
+      // abri-la para saber se ela ainda serve. Uma chave gravada com uma
+      // ENCRYPTION_KEY que depois mudou continua no banco, e a tela dizia
+      // "configurada" sobre um segredo que ninguém consegue ler — o agente
+      // então respondia com a mensagem de transbordo e o dono não tinha como
+      // saber por quê. Aconteceu.
+      //
+      // O valor decifrado NÃO sai deste componente: vira um booleano. O que não
+      // atravessa a fronteira não vaza em log nem em erro serializado.
       chaves: await prisma.integracaoExterna.findMany({
         where: { categoria: "ia" },
-        select: { tipo: true, ultimoErro: true },
+        select: { tipo: true, ultimoErro: true, credenciaisCifradas: true },
       }),
     }),
   );
@@ -58,7 +79,9 @@ export default async function AgentesPage() {
 
       <FormChaveIa
         configurados={chaves.map((c) => c.tipo)}
-        erros={Object.fromEntries(chaves.map((c) => [c.tipo, c.ultimoErro]))}
+        erros={Object.fromEntries(
+          chaves.map((c) => [c.tipo, c.ultimoErro ?? (chaveAbre(c.credenciaisCifradas) ? null : CHAVE_ILEGIVEL)]),
+        )}
       />
 
       {agentes.length === 0 ? (

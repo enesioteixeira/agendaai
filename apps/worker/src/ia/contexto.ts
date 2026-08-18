@@ -42,6 +42,15 @@ export type MotivoSemContexto =
   | "canal-sem-agente"
   | "agente-sem-versao-publicada"
   | "sem-chave-do-provedor"
+  /**
+   * A chave EXISTE no banco, mas não abre.
+   *
+   * Motivo distinto de propósito: "não tem chave" manda o dono ir cadastrar
+   * uma, e ele encontra uma já cadastrada — daí some a pista. Chave que não
+   * abre significa que a ENCRYPTION_KEY mudou desde que ela foi salva, e o
+   * conserto é outro: recadastrar o segredo com a chave atual.
+   */
+  | "chave-do-provedor-ilegivel"
   | "sem-pergunta";
 
 export type ResultadoContexto =
@@ -108,7 +117,10 @@ export async function montarContexto(
       apiKey = (JSON.parse(decifrarSegredo(integracao.credenciaisCifradas)) as { apiKey?: string })
         .apiKey ?? "";
     } catch {
-      apiKey = "";
+      // Segredo gravado com OUTRA ENCRYPTION_KEY. Devolver
+      // "sem-chave-do-provedor" aqui mandava o dono cadastrar uma chave que ele
+      // já tinha cadastrado, e a pista sumia.
+      return { ok: false, motivo: "chave-do-provedor-ilegivel" };
     }
     if (!apiKey) return { ok: false, motivo: "sem-chave-do-provedor" };
 

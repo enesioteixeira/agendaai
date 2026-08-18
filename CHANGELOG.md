@@ -26,6 +26,10 @@ Nada abaixo esteve em produção sob a marca nova: o deploy segue no código ant
 - **O canal nunca conseguia dizer "erro".** O estado existia no enum e na tela, mas nenhum código o gravava: falha persistente de socket aparecia como "Aguardando o worker", indistinguível de worker parado. Foi essa lacuna que manteve o 405 invisível. Agora, cinco quedas sem nunca emitir QR marcam o canal como erro, com a explicação na tela.
 - **O QR não tinha idade.** Se o worker morresse logo depois de gravá-lo, a tela seguia exibindo um código vencido com cara de válido. `Canal.statusAtualizadoEm` (migration aditiva) permite avisar quando o QR passou de um minuto sem se renovar.
 
+- **"Chave do provedor configurada" podia ser mentira.** A tela de agentes só conferia se o registro existia. Um segredo gravado com uma `ENCRYPTION_KEY` que depois mudou continua no banco, ilegível — e o agente respondia com a mensagem de transbordo sem ninguém entender por quê. Agora a tela tenta abrir o segredo (o valor não sai do servidor) e, quando não abre, diz isso e manda recadastrar.
+- **O worker culpava o problema errado.** Falha ao decifrar a chave virava `sem-chave-do-provedor` — que manda o dono cadastrar uma chave que ele já cadastrou. Virou motivo próprio, `chave-do-provedor-ilegivel`, com a causa no log.
+- **Os dois `docker-compose.yml` do ecossistema usavam o mesmo nome de projeto.** Ambos moram em `infra/`, e o Docker deriva o nome do diretório: subir a infra de um produto declarava os containers do outro como órfãos, e um `down` derrubaria a stack alheia. Cada compose agora tem `name:` próprio, e os volumes do Channel têm nome fixo para que a troca não os recriasse vazios — o que apagaria a sessão pareada do WhatsApp.
+
 ### Testes
 
 - **A suíte passava por vacuidade.** Todo e2e de `packages/db` abre com `describe.skipIf(!DATABASE_URL_TEST)`, e `pnpm test` não define a variável: a camada de banco inteira era pulada, incluindo o teste de vazamento entre tenants, e o resultado saía verde. Com o ambiente local no ar, a variável passa a ser preenchida sozinha — e só a partir de banco em `localhost`, porque estes testes criam e apagam tenants.
