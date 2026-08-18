@@ -8,6 +8,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { criarAgendamentoBooking } from "@atende/db";
 
+import { agendaHabilitada } from "@/lib/flags";
+
 const bookingSchema = z.object({
   slug: z.string().regex(/^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])?$/),
   servicoId: z.string().min(1),
@@ -26,6 +28,14 @@ export async function agendarBookingAction(
   _prev: EstadoBooking,
   formData: FormData,
 ): Promise<EstadoBooking> {
+  // Esta action é a superfície mais exposta do produto: sem sessão, o tenant vem
+  // do slug. Enquanto a agenda estiver fora do produto, o 404 da página não
+  // protege nada — Server Action é um POST endereçável, e quem souber um slug
+  // criaria agendamento num tenant que nem exibe agenda. O portão é aqui.
+  if (!agendaHabilitada()) {
+    return { erro: "Este endereço não está disponível." };
+  }
+
   const parsed = bookingSchema.safeParse({
     slug: formData.get("slug"),
     servicoId: formData.get("servicoId"),

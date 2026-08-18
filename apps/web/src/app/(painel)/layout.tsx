@@ -6,7 +6,7 @@ import { NavLateral, type GrupoDeNavegacao } from "@/componentes/NavLateral";
 import { empresaDaSessao } from "@atende/db";
 
 import { agendaHabilitada } from "@/lib/flags";
-import { apagarSessao, lerSessao } from "@/lib/sessao";
+import { lerSessao } from "@/lib/sessao";
 import { logoutAction } from "@/modules/identidade/actions";
 
 // A navegação do produto. A ordem conta a história do Instant Channel: a conversa
@@ -101,10 +101,14 @@ export default async function PainelLayout({ children }: { children: ReactNode }
   //
   // Uma query por navegação no painel é barata perto de deixar o usuário preso
   // num app que aceita a sessão e recusa toda escrita.
+  //
+  // Quem apaga o cookie é a rota `/api/sair`, não este arquivo: o Next proíbe
+  // escrever cookie em Server Component, e a tentativa estourava ANTES do
+  // redirect — a sessão órfã virava "Algo deu errado" em vez de voltar ao
+  // login, exatamente no caso que esta checagem existe para resolver.
   const empresa = await empresaDaSessao(sessao.empresaId);
   if (!empresa) {
-    await apagarSessao();
-    redirect("/login?motivo=sessao-invalida");
+    redirect("/api/sair?motivo=sessao-invalida");
   }
 
   const grupos = agendaHabilitada() ? [...GRUPOS, GRUPO_AGENDA] : GRUPOS;

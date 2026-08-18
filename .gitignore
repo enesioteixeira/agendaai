@@ -33,7 +33,11 @@ Thumbs.db
 
 # Cloudflare / OpenNext
 .wrangler/
-.dev.vars
+.dev.vars*
+# Cópias das URLs hospedadas, guardadas ao migrar o desenvolvimento para local.
+# O padrão acima precisa do curinga: `.dev.vars` casa só com o nome exato, e
+# `.dev.vars.neon` — que carrega a credencial do Neon — passou batido por isso.
+*.neon
 .open-next/
 
 # Testes

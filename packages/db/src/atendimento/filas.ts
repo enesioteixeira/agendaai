@@ -675,6 +675,16 @@ export interface ItemInbox {
   primeiraRespostaEm: Date | null;
   prazoPrimeiraRespostaEm: Date | null;
   situacaoPrazo: SituacaoPrazo;
+  /** Início da conversa. É o carimbo a exibir quando ainda não há mensagem. */
+  criadoEm: Date;
+  /**
+   * Último toque na linha — é por ele que a inbox ORDENA, e o `inbound` toca a
+   * conversa de propósito a cada mensagem para isso funcionar.
+   *
+   * Não serve para EXIBIR: assumir a conversa ou aplicar uma etiqueta também
+   * reescreve o campo, e a linha passaria a anunciar "há 2 min" ao lado do
+   * texto de uma mensagem de ontem.
+   */
   atualizadoEm: Date;
 }
 
@@ -742,6 +752,7 @@ export async function listarInbox(filtro: FiltroInbox = {}): Promise<ItemInbox[]
     select: {
       id: true,
       estado: true,
+      criadoEm: true,
       atualizadoEm: true,
       primeiraRespostaEm: true,
       prazoPrimeiraRespostaEm: true,
@@ -827,6 +838,7 @@ export async function listarInbox(filtro: FiltroInbox = {}): Promise<ItemInbox[]
       c.primeiraRespostaEm,
       c.fila?.prazoPrimeiraRespostaMin,
     ),
+    criadoEm: c.criadoEm,
     atualizadoEm: c.atualizadoEm,
   }));
 

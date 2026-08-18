@@ -1,0 +1,10 @@
+<!-- Ícone da aba do navegador.
+
+     O caminho do M é CÓPIA INTENCIONAL de `src/componentes/Marca.tsx`: o Next
+     descobre este arquivo pela convenção de nome e serve o conteúdo dele, então
+     não há como importá-lo do componente. Ao mexer no desenho, mexa nos dois. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" rx="28" fill="#13314C"/>
+  <path transform="translate(28,36) scale(0.692)" fill="#F2F6FA"
+    d="M0,100 V0 H20 L52,58 L84,0 H104 V100 H84 V38 L58,84 H46 L20,38 V100 Z"/>
+</svg>

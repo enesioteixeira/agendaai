@@ -3,20 +3,19 @@ import { describe, expect, it } from "vitest";
 /**
  * CATRACA CONTRA A SUÍTE QUE PASSA POR VACUIDADE.
  *
- * Todos os 7 arquivos de teste deste pacote abrem com
- * `describe.skipIf(!DATABASE_URL_TEST)`. Sem essa variável, `pnpm test` reporta
- * **verde tendo pulado 100% da camada de banco** — incluindo `isolamento.test.ts`,
- * que é a prova da regra inviolável 1 (a extension que injeta `empresaId` e
- * impede um tenant de ler dados de outro).
+ * Todo e2e deste pacote abre com `describe.skipIf(!DATABASE_URL_TEST)`. Sem
+ * essa variável, a suíte reporta **verde tendo pulado a camada de banco
+ * inteira** — inclusive `isolamento.test.ts`, que é a prova da regra inviolável
+ * 1 (a extension que injeta `empresaId` e impede um tenant de ler dados de
+ * outro). Teste ausente é visível; teste pulado passa por cobertura.
  *
- * Isso é pior do que não ter teste: um teste ausente é visível, um teste pulado
- * parece cobertura. Com o CI desativado (conta billing-locked), a garantia de
- * isolamento multi-tenant passou a depender de alguém lembrar de exportar uma
- * variável de ambiente.
+ * O `vitest.setup.ts` fechou a porta comum: com o ambiente local no ar, a
+ * variável é preenchida sozinha a partir de `DATABASE_URL` e nada pula. Este
+ * arquivo cobre o que sobrou — a máquina sem banco algum, onde o silêncio
+ * verde volta a ser possível.
  *
- * Este arquivo não testa código — testa a INTENÇÃO de rodar os testes. Quando
- * `EXIGIR_DB_TEST=1`, a ausência de `DATABASE_URL_TEST` vira falha vermelha em
- * vez de silêncio verde.
+ * Ele não testa código: testa a INTENÇÃO de rodar os testes. Com
+ * `EXIGIR_DB_TEST=1`, a ausência de banco vira falha vermelha.
  *
  * Use assim antes de mexer em `client.ts`, `tenancy.ts` ou no schema:
  *

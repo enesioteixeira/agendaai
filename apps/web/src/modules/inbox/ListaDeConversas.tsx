@@ -119,8 +119,16 @@ export async function ListaDeConversas({
                           {c.naoLidas}
                         </span>
                       ) : null}
+                      {/* O horário é o da ÚLTIMA MENSAGEM, não o de
+                          `atualizadoEm`. `atualizadoEm` é `@updatedAt`: aplicar
+                          uma etiqueta, assumir a conversa ou roteá-la reescreve
+                          o campo, e a linha passava a dizer "há 2 min" sobre uma
+                          conversa parada desde ontem — logo abaixo do texto
+                          daquela mensagem antiga. Numa tela cujo trabalho é
+                          decidir quem responder primeiro, o carimbo errado não é
+                          detalhe estético. */}
                       <span className="shrink-0 text-[11px] text-texto-fraco">
-                        {formatarRelativo(c.atualizadoEm)}
+                        {formatarRelativo(c.ultimaMensagem?.criadoEm ?? c.criadoEm)}
                       </span>
                     </div>
 

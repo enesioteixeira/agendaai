@@ -20,6 +20,7 @@ import {
   type SessaoPayload,
 } from "@atende/core";
 import { prisma, runWithTenant } from "@atende/db";
+import { agendaHabilitada } from "@/lib/flags";
 import { lerSessao } from "@/lib/sessao";
 
 export interface EstadoAgendaForm {
@@ -27,8 +28,14 @@ export interface EstadoAgendaForm {
   ok?: boolean;
 }
 
-// Guard comum: sessão válida + escopo de configuração da agenda.
+// Guard comum: agenda ligada + sessão válida + escopo de configuração.
+//
+// O sinalizador entra aqui, e não só no layout: `notFound()` na página some com
+// a tela, mas Server Action continua sendo um POST endereçável por quem tem
+// sessão. Sem este teste, o módulo estaria fora do produto na navegação e
+// inteiro pela rede.
 async function exigirConfigurador(): Promise<SessaoPayload> {
+  if (!agendaHabilitada()) throw new Error("A agenda não está disponível.");
   const sessao = await lerSessao();
   if (!sessao) throw new Error("Sessão expirada — entre novamente.");
   if (!temEscopo(sessao, "agenda:configurar")) {
@@ -283,6 +290,7 @@ export async function bloqueioExcluirAction(formData: FormData): Promise<void> {
 // ── Agendamentos (B3) ────────────────────────────────────────
 
 async function exigirEscopo(escopo: string): Promise<SessaoPayload> {
+  if (!agendaHabilitada()) throw new Error("A agenda não está disponível.");
   const sessao = await lerSessao();
   if (!sessao) throw new Error("Sessão expirada — entre novamente.");
   if (!temEscopo(sessao, escopo)) {
