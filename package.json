@@ -1,5 +1,6 @@
 {
   "name": "atende-ai",
+  "version": "0.3.0",
   "private": true,
   "packageManager": "pnpm@10.12.1",
   "engines": {
