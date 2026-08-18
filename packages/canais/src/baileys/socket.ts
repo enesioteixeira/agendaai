@@ -4,6 +4,7 @@
 
 import makeWASocket, {
   DisconnectReason,
+  fetchLatestBaileysVersion,
   initAuthCreds,
   BufferJSON,
   makeCacheableSignalKeyStore,
@@ -92,19 +93,75 @@ export interface EventosSocket {
   aoRecibos(recibos: readonly { idExterno: string; codigo: number | null }[]): void;
 }
 
+export type VersaoWhatsApp = [number, number, number];
+
+/**
+ * Versão do cliente WhatsApp Web que o socket anuncia ao conectar.
+ *
+ * ISTO NÃO É OPCIONAL, e a ausência dele já custou uma sessão inteira de
+ * depuração. Sem `version`, o Baileys anuncia a constante embutida no pacote —
+ * que envelhece a cada release do WhatsApp. Quando ela fica velha, o servidor
+ * derruba a conexão com **405 Connection Failure ANTES de emitir o QR**. Como
+ * 405 não é `loggedOut`, o gestor entende "queda passageira" e reconecta para
+ * sempre: o log enche de "caiu — reconectando", o canal nunca sai de
+ * `desconectado`, e não há erro nenhum apontando para a causa.
+ *
+ * Guardado em memória porque a resposta muda a cada dias, não a cada conexão, e
+ * o worker reconcilia sockets a cada 15 segundos — buscar toda vez seria uma
+ * chamada de rede por reconexão, no caminho crítico do pareamento.
+ */
+const VALIDADE_DA_VERSAO_MS = 6 * 60 * 60 * 1000;
+let versaoEmCache: { versao: VersaoWhatsApp; buscadaEm: number } | null = null;
+
+/**
+ * A versão corrente, buscada do servidor do WhatsApp e mantida em cache.
+ *
+ * Nunca lança: se a busca falhar (máquina sem rede, servidor fora), devolve a
+ * última conhecida — e, se nem essa existir, `undefined`, deixando o Baileys
+ * usar a constante embutida. É degradação consciente: com rede caída não há
+ * pareamento de qualquer jeito, e derrubar o worker inteiro por isso pararia
+ * também os canais que já estão conectados.
+ */
+export async function obterVersaoWhatsApp(agora = Date.now()): Promise<VersaoWhatsApp | undefined> {
+  if (versaoEmCache && agora - versaoEmCache.buscadaEm < VALIDADE_DA_VERSAO_MS) {
+    return versaoEmCache.versao;
+  }
+  try {
+    const { version, isLatest } = await fetchLatestBaileysVersion();
+    if (!isLatest) {
+      console.warn(
+        "[baileys] não foi possível confirmar a versão do WhatsApp; usando a última conhecida. " +
+          "Se o pareamento falhar com 405, é isto.",
+      );
+    }
+    versaoEmCache = { versao: version as VersaoWhatsApp, buscadaEm: agora };
+    return versaoEmCache.versao;
+  } catch (e) {
+    console.warn(`[baileys] falha ao buscar a versão do WhatsApp: ${(e as Error).message}`);
+    return versaoEmCache?.versao;
+  }
+}
+
+/** Esquece a versão em cache — existe para o teste não depender de relógio. */
+export function esquecerVersaoWhatsApp(): void {
+  versaoEmCache = null;
+}
+
 /** Cria o socket Baileys já ligado nos eventos. Logger silencioso (pino). */
-export function criarSocketBaileys(
+export async function criarSocketBaileys(
   state: AuthenticationState,
   salvarCreds: () => Promise<void>,
   eventos: EventosSocket,
-): WASocket {
+): Promise<WASocket> {
   const logger = pino({ level: "silent" });
+  const version = await obterVersaoWhatsApp();
   const sock = makeWASocket({
     auth: {
       creds: state.creds,
       keys: makeCacheableSignalKeyStore(state.keys, logger),
     },
     logger,
+    ...(version ? { version } : {}),
     // Baileys imprime QR no terminal só p/ debug; o QR real vai ao painel
     printQRInTerminal: false,
     syncFullHistory: false,

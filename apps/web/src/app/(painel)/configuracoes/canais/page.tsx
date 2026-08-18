@@ -82,14 +82,24 @@ export default async function CanaisPage() {
       ) : (
         <ul className="flex flex-col gap-3">
           {canais.map((c) => {
+            // "Pareando com QR ilegível" e "pareando, QR ainda não chegou" são
+            // estados diferentes e precisam de telas diferentes. Antes, o
+            // `catch` devolvia null nos dois casos e a tela mostrava o selo
+            // "Escaneie o QR" sobre um vazio — sem QR, sem erro, sem pista.
+            //
+            // O caso real que produziu isso: o worker cifra o QR com a
+            // ENCRYPTION_KEY dele e o painel decifra com a dele. Quando as duas
+            // divergem — e `next dev` lê `.env.local`, não `.dev.vars` —, toda
+            // decifragem falha em silêncio. Custou uma sessão inteira.
             let qrDataUrl: string | null = null;
+            let qrIlegivel = false;
             if (c.statusConexao === "pareando" && c.configCifrada) {
               try {
                 qrDataUrl =
                   (JSON.parse(decifrarSegredo(c.configCifrada)) as { qrDataUrl?: string })
                     .qrDataUrl ?? null;
               } catch {
-                qrDataUrl = null;
+                qrIlegivel = true;
               }
             }
             const st = STATUS[c.statusConexao] ?? { rotulo: c.statusConexao, tom: "neutro" as const };
@@ -132,6 +142,22 @@ export default async function CanaisPage() {
                       WhatsApp → Aparelhos conectados → Conectar aparelho
                     </p>
                   </div>
+                ) : qrIlegivel ? (
+                  <div className="border-t border-borda pt-3">
+                    <p className="text-[12px] text-perigo">
+                      O QR chegou, mas este painel não conseguiu lê-lo.
+                    </p>
+                    <p className="mt-1 text-[11px] text-texto-fraco">
+                      Quem cifra o QR é o worker, e quem decifra é o painel: os dois precisam da
+                      mesma <code>ENCRYPTION_KEY</code>. Confira que ela é idêntica em{" "}
+                      <code>apps/worker/.env</code> e <code>apps/web/.env.local</code> — em
+                      desenvolvimento é este último que vale, não o <code>.dev.vars</code>.
+                    </p>
+                  </div>
+                ) : c.statusConexao === "pareando" ? (
+                  <p className="border-t border-borda pt-3 text-[12px] text-texto-suave">
+                    Gerando o QR… ele aparece aqui em alguns segundos, e troca sozinho a cada 20.
+                  </p>
                 ) : null}
 
                 <form

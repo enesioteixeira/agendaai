@@ -87,7 +87,7 @@ async function abrirSocket(empresaId: string, canalId: string): Promise<void> {
   };
   sockets.set(canalId, entrada);
 
-  const socket = criarSocketBaileys(state, salvarCreds, {
+  const socket = await criarSocketBaileys(state, salvarCreds, {
     aoQr(qr) {
       entrada.ultimoSinal = Date.now();
       void QRCode.toDataURL(qr).then((dataUrl) =>
