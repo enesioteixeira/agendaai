@@ -22,26 +22,27 @@ describe.skipIf(!url)("Bloco 1 — convites E2E", () => {
     const s = Date.now();
     const dona = await cadastroInicial({
       nome: "Dona", email: `dona-conv-${s}@teste.com`, senha: "senha-forte-123",
-      empresaNome: "Salão Convites", empresaSlug: `salao-teste-${s}`, vertical: "distribuidor_alimentos",
+      empresaNome: "Aurora Convites", empresaSlug: `aurora-teste-${s}`, vertical: "distribuidor_alimentos",
       unidadeNome: "Matriz", fusoHorario: "America/Sao_Paulo",
     });
 
-    // papel Recepcionista do tenant
+    // O papel de atendimento do tenant. O nome vem da vertical: num distribuidor,
+    // `recepcionista` se chama Televendas (packages/core/src/identidade/papeis-padrao.ts).
     const papeis = await runWithTenant({ empresaId: dona.empresaId }, () => prisma.papel.findMany());
-    const recepcionista = papeis.find((p) => p.nome === "Recepcionista");
-    expect(recepcionista).toBeDefined();
+    const televendas = papeis.find((p) => p.nome === "Televendas");
+    expect(televendas).toBeDefined();
 
     // convidar (sob o tenant)
     const emailConvidado = `recep-${s}@teste.com`;
     const convite = await runWithTenant({ empresaId: dona.empresaId }, () =>
-      criarConvite({ email: emailConvidado, papelId: recepcionista!.id, unidadesPermitidas: [] }),
+      criarConvite({ email: emailConvidado, papelId: televendas!.id, unidadesPermitidas: [] }),
     );
     expect(convite.token).toHaveLength(64); // 32 bytes hex
 
     // consultar por token (pré-tenant)
     const publico = await consultarConvite(convite.token);
-    expect(publico?.empresaNome).toBe("Salão Convites");
-    expect(publico?.papelNome).toBe("Recepcionista");
+    expect(publico?.empresaNome).toBe("Aurora Convites");
+    expect(publico?.papelNome).toBe("Televendas");
     expect(publico?.emailJaCadastrado).toBe(false);
 
     // token errado não resolve
@@ -53,7 +54,7 @@ describe.skipIf(!url)("Bloco 1 — convites E2E", () => {
     if (!aceite.ok) throw new Error("inesperado");
     expect(aceite.empresaId).toBe(dona.empresaId);
 
-    // sessão do convidado traz os 10 escopos de Recepcionista (matriz doc 02 §13)
+    // sessão do convidado traz os 10 escopos do papel de atendimento (matriz doc 02 §13)
     const sessao = await montarSessao(aceite.usuarioId, dona.empresaId);
     expect(sessao?.escopos).toHaveLength(10);
     expect(sessao?.escopos).toContain("financeiro:cobrar");

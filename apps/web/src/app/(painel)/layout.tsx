@@ -38,6 +38,28 @@ const GRUPOS: readonly GrupoDeNavegacao[] = [
       { href: "/conhecimento", rotulo: "Conhecimento", icone: "livro", ativo: false, selo: "em breve" },
     ],
   },
+  // "Atendimento" é a REGRA da operação — para onde a conversa vai, em quanto
+  // tempo, por que termina, o que o time responde pronto. Fica entre o que se
+  // faz (Atender/Vender/Automatizar) e o encanamento (Configurar) porque é isso
+  // que ele é: quem abre o painel no primeiro dia passa por aqui antes de
+  // conectar canal, e um grupo escondido dentro de "Configurar" faria a fila
+  // parecer detalhe técnico — quando é ela que decide se o cliente é respondido.
+  {
+    titulo: "Atendimento",
+    itens: [
+      { href: "/configuracoes/atendimento/filas", rotulo: "Filas", icone: "pessoas" },
+      {
+        href: "/configuracoes/atendimento/catalogos",
+        rotulo: "Motivos e etiquetas",
+        icone: "etiqueta",
+      },
+      {
+        href: "/configuracoes/atendimento/respostas",
+        rotulo: "Respostas rápidas",
+        icone: "conversa",
+      },
+    ],
+  },
   {
     titulo: "Configurar",
     itens: [

@@ -72,9 +72,12 @@ export function situacaoDoPrazo(
   const restanteMs = prazo.getTime() - agora.getTime();
   if (restanteMs <= 0) return "estourado";
 
+  // Arredondado porque 1 - 0.8 não é 0.2 em binário: sem isso, o prazo de 30 min
+  // acenderia o alerta 1 ms depois dos 80%, e o teste de fronteira passaria a
+  // depender do resto de ponto flutuante em vez da regra.
   const alertaMs =
     prazoTotalMin !== null && prazoTotalMin !== undefined && prazoTotalMin > 0
-      ? prazoTotalMin * 60_000 * (1 - FRACAO_DE_ALERTA)
+      ? Math.round(prazoTotalMin * 60_000 * (1 - FRACAO_DE_ALERTA))
       : MINUTOS_DE_ALERTA_SEM_TOTAL * 60_000;
 
   return restanteMs <= alertaMs ? "perto_do_estouro" : "no_prazo";

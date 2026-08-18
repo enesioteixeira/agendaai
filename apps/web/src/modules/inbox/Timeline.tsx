@@ -9,6 +9,15 @@ import { Icone } from "@atende/ui";
  * a mesma conversa mistura fluxo determinístico, agente de IA e humano, e o
  * operador precisa saber quem disse o quê antes de assumir. Deixar isso implícito
  * na cor da bolha faria a resposta do bot parecer resposta do colega.
+ *
+ * AS NOTAS INTERNAS ENTRAM NA MESMA LINHA DO TEMPO, e não numa aba separada:
+ * "o cliente xingou, o vendedor anotou o combinado, o cliente aceitou" só faz
+ * sentido em ordem. O preço disso é que uma nota passa a conviver com as
+ * mensagens — e é por isso que ela não é desenhada como bolha nenhuma: ocupa a
+ * largura toda, tem moldura tracejada âmbar e diz por extenso quem a vê. Uma
+ * nota que possa ser confundida com mensagem enviada é um vazamento esperando
+ * acontecer, e a única defesa aqui é a nota não se parecer com nada mais na tela
+ * (a mesma moldura aparece no campo onde ela foi escrita — ver `Composer.tsx`).
  */
 
 const ENTREGA: Record<string, { readonly rotulo: string; readonly marca: string }> = {
@@ -38,8 +47,30 @@ export interface MensagemDaTimeline {
   readonly autor: { readonly nome: string } | null;
 }
 
-export function Timeline({ mensagens }: { readonly mensagens: readonly MensagemDaTimeline[] }) {
-  if (mensagens.length === 0) {
+export interface NotaDaTimeline {
+  readonly id: string;
+  readonly texto: string;
+  readonly autorNome: string;
+  readonly criadoEm: Date;
+}
+
+/** Mensagens e notas numa lista só, em ordem cronológica. */
+type ItemDaTimeline =
+  | { readonly tipo: "mensagem"; readonly quando: Date; readonly mensagem: MensagemDaTimeline }
+  | { readonly tipo: "nota"; readonly quando: Date; readonly nota: NotaDaTimeline };
+
+function horaCurta(quando: Date): string {
+  return quando.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+export function Timeline({
+  mensagens,
+  notas = [],
+}: {
+  readonly mensagens: readonly MensagemDaTimeline[];
+  readonly notas?: readonly NotaDaTimeline[];
+}) {
+  if (mensagens.length === 0 && notas.length === 0) {
     return (
       <p className="m-auto max-w-[46ch] text-center text-[13px] text-texto-suave">
         Nenhuma mensagem nesta conversa ainda.
@@ -47,16 +78,44 @@ export function Timeline({ mensagens }: { readonly mensagens: readonly MensagemD
     );
   }
 
+  const itens: ItemDaTimeline[] = [
+    ...mensagens.map((m) => ({ tipo: "mensagem" as const, quando: m.criadoEm, mensagem: m })),
+    ...notas.map((n) => ({ tipo: "nota" as const, quando: n.criadoEm, nota: n })),
+  ].sort((a, b) => a.quando.getTime() - b.quando.getTime());
+
   return (
     <ol className="flex flex-col gap-2">
-      {mensagens.map((m) => {
+      {itens.map((item) => {
+        if (item.tipo === "nota") {
+          const n = item.nota;
+          return (
+            <li
+              key={`nota-${n.id}`}
+              // Largura total e nunca alinhada a um dos lados: "encostada na
+              // direita" é a gramática de mensagem enviada nesta tela, e é
+              // exatamente a leitura que uma nota não pode sugerir.
+              className="flex w-full flex-col gap-0.5 rounded-2 border border-dashed border-atencao bg-atencao-fraco px-3 py-2"
+            >
+              <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.05em] text-atencao">
+                <Icone nome="escudo" aria-hidden />
+                Nota interna · o cliente não vê
+              </span>
+              <p className="whitespace-pre-wrap break-words text-[13px] leading-snug">{n.texto}</p>
+              <span className="text-right text-[10px] text-texto-fraco">
+                {n.autorNome} · {horaCurta(n.criadoEm)}
+              </span>
+            </li>
+          );
+        }
+
+        const m = item.mensagem;
         const saida = m.direcao === "saida";
         const entrega = ENTREGA[m.statusEntrega];
         const falhou = m.statusEntrega === "falhou";
 
         return (
           <li
-            key={m.id}
+            key={`msg-${m.id}`}
             className={`flex max-w-[78%] flex-col gap-0.5 rounded-2 px-3 py-2 ${
               saida
                 ? "self-end bg-acento text-acento-texto"
@@ -90,7 +149,7 @@ export function Timeline({ mensagens }: { readonly mensagens: readonly MensagemD
                 saida ? "opacity-75" : "text-texto-fraco"
               }`}
             >
-              {m.criadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              {horaCurta(m.criadoEm)}
               {saida && entrega ? (
                 <span title={entrega.rotulo} aria-label={entrega.rotulo}>
                   {entrega.marca}

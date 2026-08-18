@@ -4,7 +4,12 @@ import { useActionState } from "react";
 
 import { Campo, Entrada, ErroDoFormulario, Selecao } from "@/componentes/Campo";
 
-import { ROTULO_VERTICAL, verticalEmpresaSchema } from "@atende/core";
+// Subcaminho, e NÃO o barril do core: `@atende/core` reexporta o módulo de
+// cripto, que abre com `import crypto from "node:crypto"`, e este arquivo é
+// `"use client"` — importar do barril arrasta node:crypto para o bundle do
+// navegador e o build morre com UnhandledSchemeError. O package expõe
+// `"./*"`, então o subcaminho traz só o schema, que depende apenas de Zod.
+import { ROTULO_VERTICAL, verticalEmpresaSchema } from "@atende/core/identidade/schemas";
 
 import { cadastrarAction, type EstadoForm } from "./actions";
 

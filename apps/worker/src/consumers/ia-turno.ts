@@ -18,8 +18,9 @@ import {
   guardarNumeroSemFerramenta,
   textoFalhaIA,
 } from "@atende/core";
-import { prisma, runWithTenant } from "@atende/db";
+import { podeUsarIA, prisma, registrarUsoDeIA, runWithTenant } from "@atende/db";
 import { responder } from "@atende/ia";
+import type { RespostaAgente } from "@atende/core";
 import type PgBoss from "pg-boss";
 
 import { FILAS, obterFila } from "../fila.js";
@@ -81,6 +82,33 @@ async function entregarAoHumano(
   });
 }
 
+/**
+ * Mede o que a execução consumiu — trilha de auditoria + agregado do mês.
+ *
+ * Falha de medição NÃO custa a resposta ao cliente: os tokens já foram gastos
+ * quando o provedor respondeu, e abortar aqui faria o retry pagar o mesmo turno
+ * de novo (e arriscar mandar duas respostas). O erro vai para o log em voz alta
+ * porque consumo não medido é dinheiro que ninguém cobra — e a trilha pode ser
+ * reconstruída, a resposta perdida não.
+ */
+async function medirConsumo(
+  conversaId: string,
+  versaoAgenteId: string,
+  resposta: RespostaAgente,
+): Promise<void> {
+  try {
+    await registrarUsoDeIA({
+      conversaId,
+      agenteVersaoId: versaoAgenteId,
+      provedor: resposta.provedor,
+      modelo: resposta.modelo,
+      uso: resposta.uso,
+    });
+  } catch (e) {
+    console.error(`[ia-turno] FALHA AO MEDIR CONSUMO da conversa ${conversaId}:`, e);
+  }
+}
+
 async function executarTurno(job: JobIaTurno): Promise<void> {
   const { empresaId, conversaId, mensagemId } = jobIaTurnoSchema.parse(job);
 
@@ -116,6 +144,32 @@ async function executarTurno(job: JobIaTurno): Promise<void> {
       return;
     }
 
+    // TETO DO PLANO, antes de qualquer token ser gasto. Recusado, o provedor
+    // NÃO é chamado — é essa a diferença entre teto e relatório: medir depois de
+    // gastar conta a história, não a muda.
+    //
+    // A degradação é para fluxo determinístico + fila humana (doc 06 §1,
+    // doc 12 §5.6): o atendimento não para, o que para é a IA. E o `motivo` da
+    // decisão fica no LOG, não na mensagem: ele fala do plano e do limite do
+    // TENANT, e o cliente do outro lado não tem nada a ver com o contrato do
+    // distribuidor — ele recebe o mesmo aviso neutro de quando falta chave.
+    const teto = await podeUsarIA();
+    if (!teto.permite) {
+      console.warn(`[ia-turno] teto do plano recusou a conversa ${conversaId}: ${teto.motivo}`);
+      await entregarAoHumano(
+        conversaId,
+        ctx.canalId,
+        "Recebi sua mensagem! Um atendente vai continuar com você em instantes.",
+      );
+      return;
+    }
+    if (teto.avisar) {
+      console.warn(
+        `[ia-turno] empresa ${empresaId} passou de 80% da franquia de IA do mês ` +
+          `(restam ${teto.restante} conversas)`,
+      );
+    }
+
     try {
       const resposta = await responder(ctx.pergunta, {
         provedor: ctx.provedor as never,
@@ -132,6 +186,12 @@ async function executarTurno(job: JobIaTurno): Promise<void> {
         orcamentoMs: ORCAMENTO_IA_MS,
         modoPii: "mascarar",
       });
+
+      // Medir ANTES de qualquer decisão sobre o texto: o gasto aconteceu na
+      // chamada acima, e turno que vira handoff (resposta vazia, guarda que
+      // trocou o texto) consumiu token igual. Medir só o caminho feliz mediria
+      // menos do que a fatura do provedor vai mostrar.
+      await medirConsumo(conversaId, ctx.versaoAgenteId, resposta);
 
       const texto = resposta.texto.trim();
       if (!texto) {

@@ -70,18 +70,14 @@ export async function assumirConversaAction(
   });
 }
 
-export async function encerrarConversaAction(formData: FormData): Promise<void> {
-  const sessao = await exigir("atendimento:responder");
-  const conversaId = String(formData.get("id") ?? "");
-  await runWithTenant(contexto(sessao), async () => {
-    await prisma.conversa.update({
-      where: { id: conversaId },
-      data: { estado: "encerrada", encerradaEm: new Date() },
-    });
-  });
-  revalidatePath("/inbox");
-  revalidatePath(`/inbox/${conversaId}`);
-}
+// ENCERRAR MORA EM `modules/inbox/actions.ts` (`encerrarComMotivoAction`), e não
+// mais aqui. O que existia neste ponto gravava `estado: "encerrada"` sem
+// `motivoEncerramentoId`, e foi removido em vez de mantido por compatibilidade:
+// `"use server"` publica cada export como ENDPOINT, então deixar a versão sem
+// motivo no ar seria manter aberto exatamente o caminho que a regra nova fecha —
+// bastaria um POST montado à mão para encerrar sem motivo e cegar o relatório do
+// mês. A versão nova delega a `encerrarConversa` de `@atende/db`, que exige
+// motivo ATIVO e DO TENANT, recusa reencerramento e preserva `encerradaEm`.
 
 /**
  * Devolve a conversa — ao agente de IA se o canal tiver um publicado, senão à
