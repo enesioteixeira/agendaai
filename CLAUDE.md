@@ -40,7 +40,11 @@ export DATABASE_URL="postgresql://instant:devlocal@localhost:55432/instant_chann
 pnpm --filter @atende/db exec prisma migrate deploy
 pnpm --filter @atende/db seed      # catálogo de planos + cenário de distribuidor
 pnpm test                          # com banco, os e2e de isolamento rodam de verdade
+
+pnpm --filter @atende/web dev       # painel em http://localhost:3000
 ```
+
+O seed cria o tenant de demonstração pelo mesmo caminho de um cliente real, então ele já vem com usuário, papéis e escopos: entre em `/login` com **ana@aurora.com.br** / **aurora-local-123**. Credencial escrita de propósito — é ambiente local e descartável, e o valor de estar aqui é ninguém precisar perguntar a senha.
 
 Duas armadilhas que já custaram tempo:
 

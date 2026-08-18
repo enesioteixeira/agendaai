@@ -15,6 +15,8 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
+import { cadastroInicial } from "../src/identidade/onboarding";
+
 const url = process.env.DATABASE_URL ?? "";
 if (!/localhost|127\.0\.0\.1/.test(url)) {
   console.error(
@@ -28,6 +30,15 @@ if (!/localhost|127\.0\.0\.1/.test(url)) {
 // exigência do Cloudflare Workers), e nesse modo ele SÓ funciona com driver
 // adapter — sem ele o Prisma devolve P2038. Mesmo padrão de packages/db/src/unsafe.ts.
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
+
+/**
+ * Credenciais da demonstração local. Ficam no código de propósito: é ambiente
+ * local, descartável, e o valor de estarem escritas é que qualquer pessoa da
+ * equipe abre o painel sem perguntar a senha para ninguém.
+ */
+const SLUG_DEMO = "aurora-distribuidora";
+const EMAIL_DEMO = "ana@aurora.com.br";
+const SENHA_DEMO = "aurora-local-123";
 
 /**
  * Os planos da Onda 1, com os valores da tabela do acervo de empresa
@@ -100,15 +111,30 @@ async function semearPlanos(): Promise<void> {
  * centro de distribuição, carteira de varejista, item de curva A em ruptura.
  */
 async function semearDemonstracao(): Promise<void> {
-  const empresa = await prisma.empresa.upsert({
-    where: { slug: "aurora-distribuidora" },
-    create: {
-      slug: "aurora-distribuidora",
-      nome: "Aurora Distribuidora de Alimentos",
-      cnpj: "12345678000190",
-      vertical: "distribuidor_alimentos",
-    },
-    update: { vertical: "distribuidor_alimentos" },
+  // Cria pelo MESMO caminho que um cliente real usaria (cadastroInicial), e não
+  // por insert direto. A diferença não é purismo: o caminho real cria também o
+  // usuário dono, os quatro papéis com os nomes da vertical e os escopos. Um
+  // seed que insere a empresa na mão produz um tenant no qual ninguém consegue
+  // entrar — foi o que aconteceu na primeira versão deste arquivo.
+  const existente = await prisma.empresa.findUnique({ where: { slug: SLUG_DEMO } });
+  const empresaId = existente
+    ? existente.id
+    : (
+        await cadastroInicial({
+          nome: "Ana Prado",
+          email: EMAIL_DEMO,
+          senha: SENHA_DEMO,
+          empresaNome: "Aurora Distribuidora de Alimentos",
+          empresaSlug: SLUG_DEMO,
+          vertical: "distribuidor_alimentos",
+          unidadeNome: "CD Matriz",
+          fusoHorario: "America/Sao_Paulo",
+        })
+      ).empresaId;
+
+  const empresa = await prisma.empresa.update({
+    where: { id: empresaId },
+    data: { vertical: "distribuidor_alimentos", cnpj: "12345678000190" },
   });
 
   const plano = await prisma.planoLicenca.findUniqueOrThrow({ where: { chave: "crescimento" } });
@@ -243,6 +269,7 @@ async function semearDemonstracao(): Promise<void> {
     `demonstração: ${empresa.nome} — ${filas.length} filas, ${motivos.length} motivos, ` +
       `${etiquetas.length} etiquetas, ${respostas.length} respostas rápidas`,
   );
+  console.log(`entre em http://localhost:3000/login com ${EMAIL_DEMO} / ${SENHA_DEMO}`);
 }
 
 async function main(): Promise<void> {
