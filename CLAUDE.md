@@ -44,7 +44,7 @@ pnpm test                          # com banco, os e2e de isolamento rodam de ve
 
 Duas armadilhas que já custaram tempo:
 
-- **`packages/db/.env` aponta para o Neon.** Variável de ambiente tem precedência sobre `.env`, mas confira com `prisma migrate status` — ele imprime o host — antes de qualquer comando que escreva.
+- **Os `.env` locais apontam para o Postgres local**, inclusive o do worker. As URLs do Neon ficaram guardadas em `.env.neon` ao lado de cada um (também fora do git). Mesmo assim, confira com `prisma migrate status` — ele imprime o host — antes de qualquer comando que escreva.
 - **O build do Workers Builds não roda `migrate deploy`.** Migration é aplicada à mão contra o destino. Subir código que depende de coluna nova antes de aplicá-la quebra produção; a ordem é migration → conferir → código.
 
 ## Regras invioláveis

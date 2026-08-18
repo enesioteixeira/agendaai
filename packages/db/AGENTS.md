@@ -62,7 +62,7 @@ DATABASE_URL="postgresql://instant:devlocal@localhost:55432/instant_channel" npx
 DATABASE_URL="postgresql://instant:devlocal@localhost:55432/instant_channel" pnpm test
 ```
 
-A porta é 55432 de propósito, para não colidir com um Postgres de sistema em 5432. E a variável vai **explícita na linha**: o `.env` deste package aponta para o Neon, e o Prisma só a ignora porque variável de ambiente tem precedência sobre `.env` — confira com `prisma migrate status`, que imprime o host, antes de rodar qualquer coisa que escreva.
+A porta é 55432 de propósito, para não colidir com um Postgres de sistema em 5432. **O `.env` deste package aponta para o banco local**, então os comandos acima funcionam sem prefixo — a URL do Neon ficou guardada em `.env.neon`, fora do git, para quando alguém decidir apontar para lá de propósito. De qualquer forma, `prisma migrate status` imprime o host: confira antes de rodar qualquer coisa que escreva.
 
 ## ⚠️ Migration pendente de aplicação no Neon
 
