@@ -6,7 +6,7 @@
 // fila_humano; árvore/IA chegam no Bloco 4.
 
 import type { MensagemInboundNormalizada } from "@atende/core";
-import { prisma, runWithTenant } from "@atende/db";
+import { prisma, rotearConversa, runWithTenant } from "@atende/db";
 
 import { enfileirarTurnoIA } from "../ia/enfileirar.js";
 
@@ -73,6 +73,24 @@ export async function processarInbound(m: MensagemInboundNormalizada): Promise<v
           estado: estadoInicial,
         } as never,
       });
+
+      // Fila, dono e prazo — só para conversa NOVA.
+      //
+      // É aqui que a operação de atendimento começa a existir: sem esta
+      // chamada, filas e prazos ficam configurados no painel e nenhuma
+      // conversa entra neles, o que é pior que não ter a funcionalidade —
+      // o gerente configura o prazo de 15 minutos do televendas e o número
+      // nunca sai do zero.
+      //
+      // Falha aqui NÃO derruba a mensagem: a conversa sem fila continua
+      // visível na inbox e alguém assume. Perder a mensagem do cliente por
+      // causa de roteamento seria trocar um problema de organização por um
+      // de negócio.
+      try {
+        await rotearConversa(conversa.id, m.timestamp);
+      } catch (e) {
+        console.error(`[inbound] roteamento falhou na conversa ${conversa.id}:`, e);
+      }
     }
 
     // 3. mensagem — dedup: reentrega morre no unique (P2002), silenciosamente

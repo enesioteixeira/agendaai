@@ -18,7 +18,7 @@
 // Enquanto isso, o retry abaixo cobre o caso comum de verdade — oscilação de
 // rede durante o envio, que antes matava a mensagem na primeira exceção.
 
-import { prisma, runWithTenant } from "@atende/db";
+import { prisma, registrarPrimeiraResposta, runWithTenant } from "@atende/db";
 import { conectorDoCanal } from "../sockets/gestor.js";
 import { listarMensagensPendentesBaileys } from "./plataforma.js";
 import { MAX_TENTATIVAS, deveTentarDeNovo, esperaDaTentativa } from "./reenvio.js";
@@ -64,6 +64,19 @@ async function enviarUma(m: {
         // O idExterno é o que amarra o recibo de entrega (✓✓ / lida) a esta
         // linha — sem ele a mensagem sai, mas nunca sai do primeiro check.
         await prisma.mensagem.update({ where: { id: m.id }, data: { idExterno } });
+
+        // O prazo de primeira resposta fecha AQUI, quando a mensagem
+        // efetivamente saiu — não quando o atendente apertou enviar. É o
+        // instante que o cliente viveu, e é ele que o relatório precisa
+        // defender numa conversa sobre SLA.
+        //
+        // A função é idempotente e não retrocede: reenvio, recibo atrasado ou
+        // segunda mensagem do mesmo atendente não reescrevem o instante.
+        try {
+          await registrarPrimeiraResposta(m.conversaId, new Date());
+        } catch (e) {
+          console.error(`[outbox] primeira resposta não registrada (${m.conversaId}):`, e);
+        }
         return;
       } catch (e) {
         ultimoErro = e;
