@@ -45,4 +45,7 @@ pnpm --filter @atende/integracoes test
 - [x] Driver `mensvra_erp` + **sandbox de contrato** (implementação de referência, não mock: já revelou um erro de roteamento no próprio driver)
 - [ ] Drivers de mercado, na ordem do doc 12 §7.4: `sankhya` → `omie`/`bling`/`tiny`. **Nenhum pode começar sem credencial de sandbox do fornecedor** — escrever contra a documentação e descobrir na integração real é o caminho caro
 - [ ] `ConectorCRM` implementado (`ploomes` → `rd_station` → `pipedrive`)
-- [ ] Models `IntegracaoExterna` / `MapeamentoEntidade` / `SincronizacaoLog` + consumer `sync-erp` — **exigem migration**, e a do propose-confirm ainda não foi aplicada
+- [x] Models `IntegracaoExterna` e `MapeamentoEntidade` — migrados em `20260817030000_agentes_e_integracoes`
+- [ ] `SincronizacaoLog` — **nunca foi criado**. Aparece neste arquivo e no doc 12 como se existisse; não existe no schema (auditoria de 2026-08-18)
+- [ ] Consumer `sync-erp` — e, com ele, **ligar este pacote na tomada**. Hoje `@atende/integracoes` é órfão: 1.041 linhas e 18 testes que nenhum app importa. Não está no `package.json` de `apps/web` nem de `apps/worker`, e o driver `mensvra_erp` só é alcançado pelo próprio teste. Enquanto isso durar, a metade "conexão nativa" do produto tem zero superfície em execução
+- [ ] Fazer alguém LER `IntegracaoExterna` de categoria `erp`: o painel grava a credencial cifrada do ERP do cliente e nenhum caminho de execução a consulta — o único leitor filtra categoria `ia`
