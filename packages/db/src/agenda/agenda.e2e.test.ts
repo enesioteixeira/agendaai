@@ -19,7 +19,7 @@ async function montarCadeia(sufixo: string) {
   const { prismaSemTenant } = await import("../unsafe");
 
   const empresa = await prismaSemTenant.empresa.create({
-    data: { slug: `agenda-teste-${sufixo}`, nome: `Agenda ${sufixo}`, vertical: "salao" },
+    data: { slug: `agenda-teste-${sufixo}`, nome: `Agenda ${sufixo}`, vertical: "distribuidor_alimentos" },
   });
 
   return runWithTenant({ empresaId: empresa.id }, async () => {
@@ -50,7 +50,7 @@ describe.skipIf(!url)("Bloco 2 — agenda E2E", () => {
     const s = Date.now();
     const a = await montarCadeia(`a-${s}`);
     const b = await prismaSemTenant.empresa.create({
-      data: { slug: `agenda-teste-b-${s}`, nome: "Tenant B", vertical: "barbearia" },
+      data: { slug: `agenda-teste-b-${s}`, nome: "Tenant B", vertical: "distribuidor_geral" },
     });
 
     await runWithTenant({ empresaId: a.empresa.id }, async () => {

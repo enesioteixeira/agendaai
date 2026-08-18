@@ -49,25 +49,21 @@ export const ESCOPOS_POR_PAPEL: Record<PapelCanonico, string[]> = {
 const NOMES: Record<PapelCanonico, Partial<Record<VerticalEmpresa, string>> & { padrao: string }> = {
   administrador: {
     padrao: "Administrador",
-    advocacia: "Sócio Administrador",
   },
   gerente_unidade: {
     padrao: "Gerente de Unidade",
-    clinica_estetica: "Coordenador de Clínica",
-    clinica_medica: "Coordenador de Clínica",
-    advocacia: "Coordenador de Escritório",
+    distribuidor_alimentos: "Gerente Comercial",
+    distribuidor_geral: "Gerente Comercial",
   },
   recepcionista: {
-    padrao: "Recepcionista",
-    clinica_estetica: "Atendente",
-    clinica_medica: "Atendente",
-    advocacia: "Secretário Jurídico",
+    padrao: "Atendimento",
+    distribuidor_alimentos: "Televendas",
+    distribuidor_geral: "Televendas",
   },
   profissional: {
-    padrao: "Profissional",
-    clinica_estetica: "Profissional de Saúde",
-    clinica_medica: "Profissional de Saúde",
-    advocacia: "Advogado",
+    padrao: "Vendedor",
+    distribuidor_alimentos: "Vendedor",
+    distribuidor_geral: "Vendedor",
   },
 };
 

@@ -28,13 +28,23 @@ datasource db {
 // {usuarioId, empresaId, unidadeId, papelId, escopos[]}.
 // ─────────────────────────────────────────────────────────────
 
+// A vertical do tenant. Os valores mudaram junto com o perfil de cliente: o
+// comprador é distribuidor com entrega, e o enum anterior (salao, barbearia,
+// clinica_estetica, clinica_medica, advocacia) era, valor por valor, a lista de
+// segmentos que o posicionamento manda recusar — um distribuidor só cabia como
+// "outro". O produto precisa saber nomear o próprio cliente-alvo.
 enum VerticalEmpresa {
-  salao
-  barbearia
-  clinica_estetica
-  clinica_medica
-  advocacia
+  distribuidor_alimentos
+  distribuidor_geral
   outro
+}
+
+// No atacado o contato é uma empresa: tem CNPJ, comprador, condição comercial e
+// vendedor responsável. O modelo nasceu pessoa física com CPF, que é a forma
+// certa para o público antigo e a errada para este.
+enum TipoPessoa {
+  fisica
+  juridica
 }
 
 enum StatusConvite {
@@ -133,6 +143,7 @@ model Usuario {
   notasAutoradas      NotaCliente[]
   conversasAtendidas  Conversa[]
   mensagensAutoradas  Mensagem[]
+  carteira            Cliente[]     @relation("CarteiraDoVendedor")
 }
 
 model VinculoUsuarioEmpresa {
@@ -236,6 +247,14 @@ model Cliente {
   telefone       String? // E.164
   email          String?
   cpf            String?
+  // Identidade de pessoa jurídica — o caso normal no atacado.
+  tipoPessoa     TipoPessoa @default(juridica)
+  cnpj           String?
+  razaoSocial    String?
+  // Carteira: quem responde comercialmente por este cliente. Sem isto não há
+  // como distribuir conversa por carteira do vendedor, que é requisito de MVP
+  // do atendimento (P1-ATD-003).
+  vendedorId     String?
   dataNascimento DateTime?
   endereco       Json?
   observacoes    String?
@@ -243,6 +262,7 @@ model Cliente {
   deletedAt      DateTime? // soft-delete LGPD (regra inviolável 9)
 
   empresa      Empresa       @relation(fields: [empresaId], references: [id])
+  vendedor     Usuario?      @relation("CarteiraDoVendedor", fields: [vendedorId], references: [id])
   agendamentos Agendamento[]
 
   // Bloco 3 — omnichannel
@@ -251,8 +271,10 @@ model Cliente {
   tags        TagCliente[]
   conversas   Conversa[]
 
-  // Postgres não iguala NULLs em unique — clientes sem CPF coexistem (doc 02 §4)
+  // Postgres não iguala NULLs em unique — clientes sem CPF coexistem (doc 02 §4).
+  // Mesma lógica vale para o CNPJ.
   @@unique([empresaId, cpf])
+  @@unique([empresaId, cnpj])
   // Índice de busca do painel (empresaId, nome) é PARCIAL (deletedAt IS NULL,
   // doc 02 §14.1) — vive em migration SQL manual.
   @@index([empresaId])

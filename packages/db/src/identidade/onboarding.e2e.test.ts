@@ -24,7 +24,7 @@ describe.skipIf(!url)("Bloco 1 — identidade E2E", () => {
       senha: "senha-forte-123",
       empresaNome: "Salão Teste",
       empresaSlug: `salao-teste-${sufixo}`,
-      vertical: "salao",
+      vertical: "distribuidor_alimentos",
       unidadeNome: "Matriz",
       fusoHorario: "America/Sao_Paulo",
     });
@@ -52,12 +52,12 @@ describe.skipIf(!url)("Bloco 1 — identidade E2E", () => {
     const s = Date.now();
     const a = await cadastroInicial({
       nome: "A", email: `a-${s}@t.com`, senha: "senha-forte-123",
-      empresaNome: "Empresa A", empresaSlug: `emp-a-${s}`, vertical: "barbearia",
+      empresaNome: "Empresa A", empresaSlug: `emp-a-${s}`, vertical: "distribuidor_geral",
       unidadeNome: "Matriz", fusoHorario: "America/Sao_Paulo",
     });
     const b = await cadastroInicial({
       nome: "B", email: `b-${s}@t.com`, senha: "senha-forte-123",
-      empresaNome: "Empresa B", empresaSlug: `emp-b-${s}`, vertical: "advocacia",
+      empresaNome: "Empresa B", empresaSlug: `emp-b-${s}`, vertical: "outro",
       unidadeNome: "Sede", fusoHorario: "America/Sao_Paulo",
     });
 
@@ -66,9 +66,12 @@ describe.skipIf(!url)("Bloco 1 — identidade E2E", () => {
     expect(papeisA).toHaveLength(4);
     expect(papeisA.every((p) => p.empresaId === a.empresaId)).toBe(true);
 
-    // O papel "Advogado" (só da vertical advocacia, tenant B) não vaza para A
-    expect(papeisA.some((p) => p.nome === "Advogado")).toBe(false);
+    // O nome do papel muda com a vertical, e é isso que prova o isolamento aqui:
+    // "Televendas" é o nome de `recepcionista` num distribuidor (tenant A) e não
+    // existe no tenant B, que caiu no nome padrão.
+    expect(papeisA.some((p) => p.nome === "Televendas")).toBe(true);
     const papeisB = await runWithTenant({ empresaId: b.empresaId }, () => prisma.papel.findMany());
-    expect(papeisB.some((p) => p.nome === "Advogado")).toBe(true);
+    expect(papeisB.some((p) => p.nome === "Televendas")).toBe(false);
+    expect(papeisB.some((p) => p.nome === "Atendimento")).toBe(true);
   });
 });

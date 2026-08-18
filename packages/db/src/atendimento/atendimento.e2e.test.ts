@@ -14,7 +14,7 @@ async function montarCadeiaAtendimento(sufixo: string) {
   const { prismaSemTenant } = await import("../unsafe");
 
   const empresa = await prismaSemTenant.empresa.create({
-    data: { slug: `atend-teste-${sufixo}`, nome: `Atend ${sufixo}`, vertical: "salao" },
+    data: { slug: `atend-teste-${sufixo}`, nome: `Atend ${sufixo}`, vertical: "distribuidor_alimentos" },
   });
   return runWithTenant({ empresaId: empresa.id }, async () => {
     const canal = await prisma.canal.create({
@@ -51,7 +51,7 @@ describe.skipIf(!url)("Bloco 3.1 — atendimento E2E", () => {
     const s = Date.now();
     const a = await montarCadeiaAtendimento(`a-${s}`);
     const b = await prismaSemTenant.empresa.create({
-      data: { slug: `atend-teste-b-${s}`, nome: "Atend B", vertical: "barbearia" },
+      data: { slug: `atend-teste-b-${s}`, nome: "Atend B", vertical: "distribuidor_geral" },
     });
 
     await runWithTenant({ empresaId: a.empresa.id }, async () => {

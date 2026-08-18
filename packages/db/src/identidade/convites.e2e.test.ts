@@ -22,7 +22,7 @@ describe.skipIf(!url)("Bloco 1 — convites E2E", () => {
     const s = Date.now();
     const dona = await cadastroInicial({
       nome: "Dona", email: `dona-conv-${s}@teste.com`, senha: "senha-forte-123",
-      empresaNome: "Salão Convites", empresaSlug: `salao-teste-${s}`, vertical: "salao",
+      empresaNome: "Salão Convites", empresaSlug: `salao-teste-${s}`, vertical: "distribuidor_alimentos",
       unidadeNome: "Matriz", fusoHorario: "America/Sao_Paulo",
     });
 
@@ -75,13 +75,13 @@ describe.skipIf(!url)("Bloco 1 — convites E2E", () => {
     // vítima tem conta própria (tenant A)
     const vitima = await cadastroInicial({
       nome: "Vitima", email: `vitima-${s}@teste.com`, senha: "senha-da-vitima-1",
-      empresaNome: "Tenant Vitima", empresaSlug: `salao-teste-v${s}`, vertical: "salao",
+      empresaNome: "Tenant Vitima", empresaSlug: `salao-teste-v${s}`, vertical: "distribuidor_alimentos",
       unidadeNome: "Matriz", fusoHorario: "America/Sao_Paulo",
     });
     // atacante (tenant B) convida o e-mail da vítima
     const atacante = await cadastroInicial({
       nome: "Atacante", email: `atacante-${s}@teste.com`, senha: "senha-do-atacante-1",
-      empresaNome: "Tenant Atacante", empresaSlug: `salao-teste-a${s}`, vertical: "barbearia",
+      empresaNome: "Tenant Atacante", empresaSlug: `salao-teste-a${s}`, vertical: "distribuidor_geral",
       unidadeNome: "Matriz", fusoHorario: "America/Sao_Paulo",
     });
     const papeisB = await runWithTenant({ empresaId: atacante.empresaId }, () => prisma.papel.findMany());
@@ -113,12 +113,12 @@ describe.skipIf(!url)("Bloco 1 — convites E2E", () => {
     const s = Date.now();
     const a = await cadastroInicial({
       nome: "AdminA", email: `admina-${s}@teste.com`, senha: "senha-forte-123",
-      empresaNome: "Tenant A", empresaSlug: `emp-a-g${s}`, vertical: "salao",
+      empresaNome: "Tenant A", empresaSlug: `emp-a-g${s}`, vertical: "distribuidor_alimentos",
       unidadeNome: "Matriz", fusoHorario: "America/Sao_Paulo",
     });
     const b = await cadastroInicial({
       nome: "AdminB", email: `adminb-${s}@teste.com`, senha: "senha-forte-123",
-      empresaNome: "Tenant B", empresaSlug: `emp-b-g${s}`, vertical: "advocacia",
+      empresaNome: "Tenant B", empresaSlug: `emp-b-g${s}`, vertical: "outro",
       unidadeNome: "Sede", fusoHorario: "America/Sao_Paulo",
     });
 
@@ -146,7 +146,7 @@ describe.skipIf(!url)("Bloco 1 — convites E2E", () => {
     const s = Date.now();
     const r = await cadastroInicial({
       nome: "D2", email: `dona2-${s}@teste.com`, senha: "senha-forte-123",
-      empresaNome: "Emp Reenvio", empresaSlug: `emp-a-${s}`, vertical: "barbearia",
+      empresaNome: "Emp Reenvio", empresaSlug: `emp-a-${s}`, vertical: "distribuidor_geral",
       unidadeNome: "Matriz", fusoHorario: "America/Sao_Paulo",
     });
 

@@ -18,10 +18,10 @@ describe.skipIf(!urlTeste)("isolamento de tenant (extension de tenancy)", () => 
     const { prismaSemTenant } = await import("./unsafe");
 
     const a = await prismaSemTenant.empresa.create({
-      data: { slug: `iso-a-${Date.now()}`, nome: "Tenant A", vertical: "salao" },
+      data: { slug: `iso-a-${Date.now()}`, nome: "Tenant A", vertical: "distribuidor_alimentos" },
     });
     const b = await prismaSemTenant.empresa.create({
-      data: { slug: `iso-b-${Date.now()}`, nome: "Tenant B", vertical: "barbearia" },
+      data: { slug: `iso-b-${Date.now()}`, nome: "Tenant B", vertical: "distribuidor_geral" },
     });
 
     await runWithTenant({ empresaId: a.id }, async () => {

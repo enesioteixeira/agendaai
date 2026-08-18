@@ -13,7 +13,7 @@ async function montarTenantBooking(sufixo: string) {
   const { prismaSemTenant } = await import("../unsafe");
 
   const empresa = await prismaSemTenant.empresa.create({
-    data: { slug: `booking-teste-${sufixo}`, nome: `Booking ${sufixo}`, vertical: "salao" },
+    data: { slug: `booking-teste-${sufixo}`, nome: `Booking ${sufixo}`, vertical: "distribuidor_alimentos" },
   });
   return runWithTenant({ empresaId: empresa.id }, async () => {
     const unidade = await prisma.unidade.create({ data: { nome: "Matriz" } as never });

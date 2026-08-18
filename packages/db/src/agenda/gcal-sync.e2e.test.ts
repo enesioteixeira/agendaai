@@ -26,7 +26,7 @@ describe.skipIf(!url)("B5 — GCal pull (aplicarJanelasGcal)", () => {
 
     const s = Date.now();
     const empresa = await prismaSemTenant.empresa.create({
-      data: { slug: `gcal-teste-${s}`, nome: "GCal Teste", vertical: "salao" },
+      data: { slug: `gcal-teste-${s}`, nome: "GCal Teste", vertical: "distribuidor_alimentos" },
     });
     const { profissional, servico, manual } = await runWithTenant(
       { empresaId: empresa.id },

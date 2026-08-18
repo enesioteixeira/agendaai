@@ -4,14 +4,26 @@
 
 import { z } from "zod";
 
+// A vertical do tenant. Os valores acompanham o perfil de cliente do produto:
+// distribuidor com entrega. O enum anterior — salao, barbearia,
+// clinica_estetica, clinica_medica, advocacia — era, valor por valor, a lista
+// de segmentos que o posicionamento manda recusar, e um distribuidor só cabia
+// como "outro".
 export const verticalEmpresaSchema = z.enum([
-  "salao",
-  "barbearia",
-  "clinica_estetica",
-  "clinica_medica",
-  "advocacia",
+  "distribuidor_alimentos",
+  "distribuidor_geral",
   "outro",
 ]);
+
+/** Rótulo de cada vertical na interface. */
+export const ROTULO_VERTICAL: Record<
+  (typeof verticalEmpresaSchema.options)[number],
+  string
+> = {
+  distribuidor_alimentos: "Distribuidor de alimentos",
+  distribuidor_geral: "Distribuidor (outros ramos)",
+  outro: "Outro",
+};
 
 // Payload da sessão JWT (doc 01 §5.3): a identidade do tenant vem SEMPRE
 // daqui — nunca de input do cliente, URL ou saída de IA (regra inviolável 3).

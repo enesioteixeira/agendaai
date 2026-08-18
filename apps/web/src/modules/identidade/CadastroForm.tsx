@@ -4,16 +4,17 @@ import { useActionState } from "react";
 
 import { Campo, Entrada, ErroDoFormulario, Selecao } from "@/componentes/Campo";
 
+import { ROTULO_VERTICAL, verticalEmpresaSchema } from "@atende/core";
+
 import { cadastrarAction, type EstadoForm } from "./actions";
 
-const VERTICAIS = [
-  { valor: "salao", rotulo: "Salão de beleza" },
-  { valor: "barbearia", rotulo: "Barbearia" },
-  { valor: "clinica_estetica", rotulo: "Clínica de estética" },
-  { valor: "clinica_medica", rotulo: "Clínica médica" },
-  { valor: "advocacia", rotulo: "Escritório de advocacia" },
-  { valor: "outro", rotulo: "Outro" },
-];
+// A lista vem do contrato, e não de uma cópia local: a vertical vai para o
+// banco como enum e para os nomes de papel, então uma opção que só exista aqui
+// vira erro de escrita no cadastro.
+const VERTICAIS = verticalEmpresaSchema.options.map((valor) => ({
+  valor,
+  rotulo: ROTULO_VERTICAL[valor],
+}));
 
 export function CadastroForm() {
   const [estado, action, pending] = useActionState<EstadoForm, FormData>(cadastrarAction, {});
@@ -64,7 +65,7 @@ export function CadastroForm() {
         </Campo>
 
         <Campo rotulo="Ramo">
-          <Selecao name="vertical" required defaultValue={estado.valores?.vertical || "salao"}>
+          <Selecao name="vertical" required defaultValue={estado.valores?.vertical || "distribuidor_alimentos"}>
             {VERTICAIS.map((v) => (
               <option key={v.valor} value={v.valor}>
                 {v.rotulo}

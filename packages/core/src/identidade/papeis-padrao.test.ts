@@ -4,15 +4,22 @@ import { CHAVES_ESCOPO } from "./escopos";
 
 describe("papéis padrão por vertical", () => {
   it("cria 4 papéis canônicos", () => {
-    expect(papeisPadrao("salao")).toHaveLength(4);
+    expect(papeisPadrao("distribuidor_alimentos")).toHaveLength(4);
   });
 
+  // O nome do papel é a primeira coisa que o cliente lê ao abrir Usuários. Para
+  // um distribuidor, "Recepcionista" e "Profissional" descrevem outra empresa —
+  // a dele tem televendas e vendedor.
   it("adapta nomes por vertical (doc 02 §12)", () => {
-    expect(nomePapel("administrador", "salao")).toBe("Administrador");
-    expect(nomePapel("administrador", "advocacia")).toBe("Sócio Administrador");
-    expect(nomePapel("profissional", "advocacia")).toBe("Advogado");
-    expect(nomePapel("recepcionista", "clinica_medica")).toBe("Atendente");
-    expect(nomePapel("gerente_unidade", "advocacia")).toBe("Coordenador de Escritório");
+    expect(nomePapel("administrador", "distribuidor_alimentos")).toBe("Administrador");
+    expect(nomePapel("gerente_unidade", "distribuidor_alimentos")).toBe("Gerente Comercial");
+    expect(nomePapel("recepcionista", "distribuidor_geral")).toBe("Televendas");
+    expect(nomePapel("profissional", "distribuidor_alimentos")).toBe("Vendedor");
+  });
+
+  it("cai no padrão quando a vertical não tem nome próprio", () => {
+    expect(nomePapel("gerente_unidade", "outro")).toBe("Gerente de Unidade");
+    expect(nomePapel("recepcionista", "outro")).toBe("Atendimento");
   });
 
   it("admin tem todos os escopos do catálogo", () => {

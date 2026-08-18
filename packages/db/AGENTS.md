@@ -54,7 +54,26 @@ EXIGIR_DB_TEST=1 pnpm --filter @atende/db test
 
 `src/exigencia.test.ts` transforma a ausência da variável em falha vermelha, e recusa `DATABASE_URL_TEST` apontando para o banco de desenvolvimento — os testes criam e apagam tenants, e este projeto já teve um incidente de banco resetado por comando rodado no lugar errado.
 
-Use um **branch descartável do Neon**, nunca o banco principal.
+Use um **branch descartável do Neon**, nunca o banco principal — ou um **Postgres local em container**, que é mais barato e não depende de rede:
+
+```bash
+docker run -d --name instant-pg-local -e POSTGRES_PASSWORD=devlocal   -e POSTGRES_USER=instant -e POSTGRES_DB=instant_channel -p 55432:5432 postgres:17-alpine
+DATABASE_URL="postgresql://instant:devlocal@localhost:55432/instant_channel" npx prisma migrate deploy
+DATABASE_URL="postgresql://instant:devlocal@localhost:55432/instant_channel" pnpm test
+```
+
+A porta é 55432 de propósito, para não colidir com um Postgres de sistema em 5432. E a variável vai **explícita na linha**: o `.env` deste package aponta para o Neon, e o Prisma só a ignora porque variável de ambiente tem precedência sobre `.env` — confira com `prisma migrate status`, que imprime o host, antes de rodar qualquer coisa que escreva.
+
+## ⚠️ Migration pendente de aplicação no Neon
+
+`20260817210000_icp_distribuidor` está **no repositório e aplicada só no banco local**. O build do Workers Builds **não roda `migrate deploy`**, então subir o código que depende dela antes de aplicá-la quebra o cadastro e a leitura de clientes em produção.
+
+**Ordem obrigatória:** aplicar a migration no Neon → conferir → só então subir o código.
+
+O que ela faz, e por que o SQL é manual:
+- troca os valores de `VerticalEmpresa` (`salao`, `barbearia`, `clinica_estetica`, `clinica_medica`, `advocacia` → `distribuidor_alimentos`, `distribuidor_geral`, `outro`). O SQL que o Prisma gera converte com `USING vertical::text::novo_tipo`, que **estoura** em qualquer linha com valor removido — e existem tenants de desenvolvimento com esses valores. A migration mapeia explicitamente: o que não for distribuidor vira `outro`;
+- acrescenta ao `Cliente` a identidade de pessoa jurídica (`cnpj`, `razaoSocial`, `tipoPessoa` com default `juridica`) e a carteira (`vendedorId` → `Usuario`), porque no atacado o contato é uma empresa com comprador e vendedor responsável — e `vendedorId` é o que permite distribuir conversa por carteira, requisito de MVP do atendimento;
+- marca como `fisica` quem já tinha CPF preenchido, para o default não reescrever o passado.
 
 ## Estado atual
 
