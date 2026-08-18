@@ -1,33 +1,17 @@
-// Faz a camada de banco rodar por padrão quando o banco é local.
+// Diz a cada worker onde os testes de banco escrevem.
 //
-// O problema que isto resolve: os e2e deste pacote abrem com
-// `describe.skipIf(!DATABASE_URL_TEST)`, e `pnpm test` na raiz não define essa
-// variável. O resultado era a suíte inteira fechar VERDE tendo pulado a camada
-// de banco — inclusive `isolamento.test.ts`, que é a prova da regra inviolável
-// 1. Teste ausente é visível; teste pulado passa por cobertura.
+// A criação do banco e as migrations acontecem uma vez só, no
+// `vitest.global-setup.ts`. Aqui é apenas o cálculo da URL — barato e
+// determinístico — porque `setupFiles` roda em processo separado por worker e
+// a variável definida no global setup não atravessa essa fronteira.
 //
-// Por que exigir localhost em vez de simplesmente copiar `DATABASE_URL`: estes
-// testes criam e apagam tenants. Contra um banco hospedado isso destrói dado
-// real — já aconteceu neste projeto. O ambiente local é container descartável
-// (`docker compose down -v` recria do zero), então ali o risco não existe e a
-// segurança não custa cobertura.
-//
-// Apontar para outro destino continua possível, e continua sendo decisão
-// explícita: `DATABASE_URL_TEST` definida à mão sempre vence.
+// Precisa ser em `setupFiles`, e não dentro dos testes, porque o
+// `describe.skipIf(!DATABASE_URL_TEST)` de cada e2e é avaliado na IMPORTAÇÃO
+// do módulo — depois disso já é tarde.
 
-const HOSTS_LOCAIS = new Set(["localhost", "127.0.0.1", "[::1]", "host.docker.internal"]);
-
-function ehLocal(url: string): boolean {
-  try {
-    return HOSTS_LOCAIS.has(new URL(url).hostname);
-  } catch {
-    return false;
-  }
-}
+import { urlDoBancoDeTeste } from "./vitest.banco-de-teste";
 
 if (!process.env.DATABASE_URL_TEST) {
-  const url = process.env.DATABASE_URL;
-  if (url && ehLocal(url)) {
-    process.env.DATABASE_URL_TEST = url;
-  }
+  const url = urlDoBancoDeTeste(process.env.DATABASE_URL);
+  if (url) process.env.DATABASE_URL_TEST = url;
 }

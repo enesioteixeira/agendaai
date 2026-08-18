@@ -39,12 +39,14 @@ docker compose -f infra/docker-compose.yml up -d
 export DATABASE_URL="postgresql://mensvra:devlocal@localhost:55432/mensvra_channel"
 pnpm --filter @atende/db exec prisma migrate deploy
 pnpm --filter @atende/db seed      # catálogo de planos + cenário de distribuidor
-pnpm test                          # com banco, os e2e de isolamento rodam de verdade
+pnpm test                          # os e2e de isolamento rodam de verdade, num banco só deles
 
 pnpm --filter @atende/web dev       # painel em http://localhost:3000
 ```
 
 O seed cria o tenant de demonstração pelo mesmo caminho de um cliente real, então ele já vem com usuário, papéis e escopos: entre em `/login` com **ana@aurora.com.br** / **aurora-local-123**. Credencial escrita de propósito — é ambiente local e descartável, e o valor de estar aqui é ninguém precisar perguntar a senha.
+
+Os testes de banco **não** escrevem no banco de desenvolvimento: eles usam o irmão `mensvra_channel_test`, criado e migrado sozinho na primeira rodada. Sem essa separação, cada `pnpm test` deixava dezenas de tenants no banco do painel e o worker passava a abrir um socket Baileys para cada canal de teste.
 
 Duas armadilhas que já custaram tempo:
 

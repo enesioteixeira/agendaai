@@ -23,6 +23,7 @@ Nada abaixo esteve em produção sob a marca nova: o deploy segue no código ant
 ### Testes
 
 - **A suíte passava por vacuidade.** Todo e2e de `packages/db` abre com `describe.skipIf(!DATABASE_URL_TEST)`, e `pnpm test` não define a variável: a camada de banco inteira era pulada, incluindo o teste de vazamento entre tenants, e o resultado saía verde. Com o ambiente local no ar, a variável passa a ser preenchida sozinha — e só a partir de banco em `localhost`, porque estes testes criam e apagam tenants.
+- **Os testes ganham banco próprio.** Apontá-los para o banco de desenvolvimento resolvia o pulo silencioso e criava outro problema, observado na prática: cada rodada deixava dezenas de tenants e canais no banco do painel, e o worker passava a abrir um socket Baileys para cada canal de teste. Agora usam o irmão `<banco>_test`, criado e migrado sozinho na primeira rodada.
 - `agendarBookingAction` ganha teste que prova que o banco **não é tocado** com a agenda desligada, mais o contrapositivo — sem ele, um `return` no topo da função passaria e a agenda nunca mais voltaria ao ar.
 
 ### Adicionado
