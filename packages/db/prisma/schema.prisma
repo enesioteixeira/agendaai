@@ -72,35 +72,43 @@ model Empresa {
   convites ConviteUsuario[]
 
   // Bloco 2 — agenda + clientes
-  clientes          Cliente[]
-  profissionais     Profissional[]
-  servicos          Servico[]
-  recursos          Recurso[]
-  horariosTrabalho  HorarioTrabalho[]
-  bloqueios         Bloqueio[]
-  agendamentos      Agendamento[]
+  clientes           Cliente[]
+  profissionais      Profissional[]
+  servicos           Servico[]
+  recursos           Recurso[]
+  horariosTrabalho   HorarioTrabalho[]
+  bloqueios          Bloqueio[]
+  agendamentos       Agendamento[]
   sincronizacoesGcal SincronizacaoGcal[]
 
   // Bloco 3 — atendimento + clientes completo
-  identidadesCanal IdentidadeCanal[]
-  notasCliente     NotaCliente[]
-  tags             Tag[]
-  tagsCliente      TagCliente[]
-  canais           Canal[]
-  conversas        Conversa[]
-  mensagens        Mensagem[]
+  identidadesCanal  IdentidadeCanal[]
+  notasCliente      NotaCliente[]
+  tags              Tag[]
+  tagsCliente       TagCliente[]
+  canais            Canal[]
+  conversas         Conversa[]
+  mensagens         Mensagem[]
   authStatesBaileys AuthStateBaileys[]
 
   // Fase C — motor de IA
-  propostas        PropostaAcao[]
-  resumosConversa  ResumoConversa[]
-  feedbacksIA      FeedbackIA[]
+  propostas       PropostaAcao[]
+  resumosConversa ResumoConversa[]
+  feedbacksIA     FeedbackIA[]
 
   // Fase D — agentes por tenant · Fase G — integrações de retaguarda
-  agentesIA        AgenteIA[]
-  versoesAgente    VersaoAgente[]
-  integracoes      IntegracaoExterna[]
-  mapeamentos      MapeamentoEntidade[]
+  agentesIA           AgenteIA[]
+  versoesAgente       VersaoAgente[]
+  integracoes         IntegracaoExterna[]
+  mapeamentos         MapeamentoEntidade[]
+  // Operação de atendimento e plataforma (E1)
+  filas               Fila[]
+  motivosEncerramento MotivoEncerramento[]
+  etiquetas           EtiquetaConversa[]
+  respostasRapidas    RespostaRapida[]
+  assinaturas         AssinaturaPlataforma[]
+  usoMensal           UsoMensal[]
+  usoIA               UsoIA[]
 }
 
 model Unidade {
@@ -140,10 +148,12 @@ model Usuario {
   profissionais Profissional[] // opcional — nem todo profissional loga (doc 02 §3)
 
   // Bloco 3 — atendimento
-  notasAutoradas      NotaCliente[]
-  conversasAtendidas  Conversa[]
-  mensagensAutoradas  Mensagem[]
-  carteira            Cliente[]     @relation("CarteiraDoVendedor")
+  notasAutoradas     NotaCliente[]
+  conversasAtendidas Conversa[]
+  mensagensAutoradas Mensagem[]
+  carteira           Cliente[]      @relation("CarteiraDoVendedor")
+  filas              MembroFila[]
+  notasDeConversa    NotaConversa[] @relation("NotasDeConversa")
 }
 
 model VinculoUsuarioEmpresa {
@@ -189,9 +199,9 @@ model Escopo {
 }
 
 model PapelEscopo {
-  id         String @id @default(cuid())
-  empresaId  String
-  papelId    String
+  id          String @id @default(cuid())
+  empresaId   String
+  papelId     String
   escopoChave String
 
   papel  Papel  @relation(fields: [papelId], references: [id])
@@ -241,7 +251,7 @@ model ConviteUsuario {
 // ─────────────────────────────────────────────────────────────
 
 model Cliente {
-  id             String    @id @default(cuid())
+  id             String     @id @default(cuid())
   empresaId      String
   nome           String
   telefone       String? // E.164
@@ -258,7 +268,7 @@ model Cliente {
   dataNascimento DateTime?
   endereco       Json?
   observacoes    String?
-  provisorio     Boolean   @default(false) // criado por inbound/booking sem cadastro completo
+  provisorio     Boolean    @default(false) // criado por inbound/booking sem cadastro completo
   deletedAt      DateTime? // soft-delete LGPD (regra inviolável 9)
 
   empresa      Empresa       @relation(fields: [empresaId], references: [id])
@@ -426,7 +436,7 @@ model Bloqueio {
 }
 
 model Agendamento {
-  id                 String             @id @default(cuid())
+  id                 String            @id @default(cuid())
   empresaId          String
   unidadeId          String
   clienteId          String
@@ -434,9 +444,9 @@ model Agendamento {
   servicoId          String
   recursoId          String?
   // Timestamptz: a exclusion constraint usa tstzrange(inicio, fim) (doc 02 §3.1)
-  inicio             DateTime           @db.Timestamptz(3)
-  fim                DateTime           @db.Timestamptz(3)
-  status             StatusAgendamento  @default(agendado)
+  inicio             DateTime          @db.Timestamptz(3)
+  fim                DateTime          @db.Timestamptz(3)
+  status             StatusAgendamento @default(agendado)
   origem             OrigemAgendamento
   observacoes        String?
   canceladoEm        DateTime?
@@ -527,7 +537,7 @@ model NotaCliente {
 }
 
 model Tag {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid())
   empresaId String
   nome      String
   cor       String?
@@ -616,20 +626,20 @@ enum StatusEntrega {
 }
 
 model Canal {
-  id            String             @id @default(cuid())
-  empresaId     String
-  unidadeId     String?
-  tipo          TipoCanal
-  nome          String // ex.: "WhatsApp Recepção"
-  configCifrada String? // tokens/segredos AES-256-GCM (regra 15)
-  statusConexao StatusConexaoCanal @default(desconectado)
-  fluxoPadraoId String? // FK lógica — FluxoArvore chega no Bloco 4
+  id             String             @id @default(cuid())
+  empresaId      String
+  unidadeId      String?
+  tipo           TipoCanal
+  nome           String // ex.: "WhatsApp Recepção"
+  configCifrada  String? // tokens/segredos AES-256-GCM (regra 15)
+  statusConexao  StatusConexaoCanal @default(desconectado)
+  fluxoPadraoId  String? // FK lógica — FluxoArvore chega no Bloco 4
   /// Agente de IA que atende as conversas novas deste canal. FK LÓGICA (mesmo
   /// padrão de `fluxoPadraoId`) para não criar ciclo Canal↔AgenteIA no Prisma.
   /// `NULL` = sem IA neste canal: é o desligado, sem coluna booleana extra.
   agentePadraoId String?
-  ativo         Boolean            @default(true)
-  criadoEm      DateTime           @default(now())
+  ativo          Boolean            @default(true)
+  criadoEm       DateTime           @default(now())
 
   empresa    Empresa            @relation(fields: [empresaId], references: [id])
   unidade    Unidade?           @relation(fields: [unidadeId], references: [id])
@@ -658,17 +668,36 @@ model Conversa {
   encerradaEm        DateTime?
   deletedAt          DateTime?
 
-  empresa    Empresa         @relation(fields: [empresaId], references: [id])
-  canal      Canal           @relation(fields: [canalId], references: [id])
-  cliente    Cliente         @relation(fields: [clienteId], references: [id])
-  identidade IdentidadeCanal @relation(fields: [identidadeCanalId], references: [id])
-  atendente  Usuario?        @relation(fields: [atendenteUsuarioId], references: [id])
-  mensagens  Mensagem[]
-  propostas  PropostaAcao[]
-  resumos    ResumoConversa[]
+  // Operação de atendimento (E1)
+  filaId                  String?
+  motivoEncerramentoId    String?
+  /// Quando a primeira resposta humana ou de IA saiu. Nulo = ninguém respondeu
+  /// ainda, e é essa a conversa que o painel precisa mostrar primeiro.
+  primeiraRespostaEm      DateTime?
+  /// Prazo calculado na entrada, a partir da fila. Guardado e não derivado:
+  /// mudar o prazo da fila não pode reescrever o compromisso de conversas que
+  /// já estavam em andamento.
+  prazoPrimeiraRespostaEm DateTime?
+
+  empresa            Empresa             @relation(fields: [empresaId], references: [id])
+  canal              Canal               @relation(fields: [canalId], references: [id])
+  cliente            Cliente             @relation(fields: [clienteId], references: [id])
+  identidade         IdentidadeCanal     @relation(fields: [identidadeCanalId], references: [id])
+  atendente          Usuario?            @relation(fields: [atendenteUsuarioId], references: [id])
+  mensagens          Mensagem[]
+  propostas          PropostaAcao[]
+  resumos            ResumoConversa[]
+  fila               Fila?               @relation(fields: [filaId], references: [id], onDelete: SetNull)
+  motivoEncerramento MotivoEncerramento? @relation(fields: [motivoEncerramentoId], references: [id], onDelete: SetNull)
+  etiquetas          ConversaEtiqueta[]
+  notasInternas      NotaConversa[]
 
   // Fila de atendimento e inbox por estado (doc 02 §14.1)
   @@index([empresaId, estado, atualizadoEm])
+  // O painel de prazo pergunta "quem está para estourar": conversa sem primeira
+  // resposta, ordenada pelo prazo. Sem este índice é varredura da inbox toda.
+  @@index([empresaId, prazoPrimeiraRespostaEm])
+  @@index([empresaId, filaId, estado])
 }
 
 /// Propose-confirm (regra inviolável 10): NENHUMA escrita disparada por IA
@@ -710,13 +739,13 @@ model PropostaAcao {
 /// Resumo gerado por IA no handoff e no encerramento. Existe para o atendente
 /// humano não precisar ler cinquenta mensagens antes de assumir.
 model ResumoConversa {
-  id              String      @id @default(cuid())
+  id              String     @id @default(cuid())
   empresaId       String
   conversaId      String
   tipo            TipoResumo
   texto           String
   geradoPorModelo String
-  criadoEm        DateTime    @default(now())
+  criadoEm        DateTime   @default(now())
 
   empresa  Empresa  @relation(fields: [empresaId], references: [id])
   conversa Conversa @relation(fields: [conversaId], references: [id])
@@ -727,13 +756,13 @@ model ResumoConversa {
 /// 👍/👎 numa resposta da IA. Alimenta a medição de qualidade do agente
 /// (Fase D) — sem isto, "o bot está ruim" continua sendo impressão.
 model FeedbackIA {
-  id         String        @id @default(cuid())
+  id         String         @id @default(cuid())
   empresaId  String
   mensagemId String
   util       Boolean
   comentario String?
   origem     OrigemFeedback
-  criadoEm   DateTime      @default(now())
+  criadoEm   DateTime       @default(now())
 
   empresa Empresa @relation(fields: [empresaId], references: [id])
 
@@ -793,7 +822,7 @@ model AgenteIA {
 /// andamento termina na versão em que começou. Editar um agente enquanto ele
 /// atende trocaria a persona no meio da frase.
 model VersaoAgente {
-  id               String            @id @default(cuid())
+  id               String             @id @default(cuid())
   empresaId        String
   agenteId         String
   numero           Int
@@ -801,15 +830,15 @@ model VersaoAgente {
   /// System prompt escrito pelo tenant. Entra no turno dentro de moldura
   /// anti-injection — ver MOLDURA_DE_DADOS_NO_SYSTEM em @atende/core.
   persona          String
-  provedor         String            @default("anthropic")
+  provedor         String             @default("anthropic")
   modelo           String?
   /// string[] validada contra o registry — nunca aceita cega.
-  toolsHabilitadas Json              @default("[]")
+  toolsHabilitadas Json               @default("[]")
   /// Janelas de atendimento por dia da semana, no fuso da Unidade.
   horarioAtuacao   Json?
   /// Gatilhos de palavra, limite de falhas, fila destino.
   handoffConfig    Json?
-  criadoEm         DateTime          @default(now())
+  criadoEm         DateTime           @default(now())
   publicadaEm      DateTime?
 
   empresa Empresa  @relation(fields: [empresaId], references: [id])
@@ -828,7 +857,7 @@ enum StatusVersaoAgente {
 /// Credencial de sistema externo (ERP, CRM, gateway), por tenant.
 /// As credenciais são cifradas AES-256-GCM (regra 15) e NUNCA saem em DTO.
 model IntegracaoExterna {
-  id                   String            @id @default(cuid())
+  id                   String              @id @default(cuid())
   empresaId            String
   categoria            CategoriaIntegracao
   /// instant_erp | sankhya | omie | ploomes | asaas… — string livre porque o
@@ -838,11 +867,11 @@ model IntegracaoExterna {
   credenciaisCifradas  String
   /// Segredo do HMAC do webhook do provedor. Dois ativos durante rotação.
   webhookSecretCifrado String?
-  status               StatusIntegracao  @default(conectada)
+  status               StatusIntegracao    @default(conectada)
   ultimoErro           String?
   ultimaSincronizacao  DateTime?
-  criadoEm             DateTime          @default(now())
-  atualizadoEm         DateTime          @updatedAt
+  criadoEm             DateTime            @default(now())
+  atualizadoEm         DateTime            @updatedAt
 
   empresa     Empresa              @relation(fields: [empresaId], references: [id])
   mapeamentos MapeamentoEntidade[]
@@ -931,10 +960,10 @@ model Mensagem {
 // Sessão WhatsApp (Baileys) persistida — a máquina do worker é descartável;
 // a credencial vive aqui, cifrada (doc 01: "worker é gado, não estimação").
 model AuthStateBaileys {
-  id          String @id @default(cuid())
-  empresaId   String
-  canalId     String
-  chave       String // nome da credencial Baileys (creds, app-state-sync-key-*, ...)
+  id           String @id @default(cuid())
+  empresaId    String
+  canalId      String
+  chave        String // nome da credencial Baileys (creds, app-state-sync-key-*, ...)
   valorCifrado String // AES-256-GCM (regra 15)
 
   empresa Empresa @relation(fields: [empresaId], references: [id])
@@ -966,16 +995,16 @@ enum StatusSolicitacaoLGPD {
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
-  empresaId  String
-  usuarioId  String? // String pura — SEM relation (regra inviolável 6)
-  acao       String
-  entidade   String
-  entidadeId String?
-  dadosAntes Json?
+  id          String   @id @default(cuid())
+  empresaId   String
+  usuarioId   String? // String pura — SEM relation (regra inviolável 6)
+  acao        String
+  entidade    String
+  entidadeId  String?
+  dadosAntes  Json?
   dadosDepois Json?
-  ip         String?
-  criadoEm   DateTime @default(now())
+  ip          String?
+  criadoEm    DateTime @default(now())
 
   @@index([empresaId, criadoEm]) // painel LGPD e cron de retenção (doc 02 §14.1)
 }
@@ -1031,4 +1060,260 @@ model ConfigLgpd {
   textoConsentimento    String?
   dpoNome               String?
   dpoEmail              String?
+}
+
+// ─────────────────────────────────────────────────────────────
+// ATENDIMENTO — a operação que o comprador exige (E1 do plano)
+//
+// Até aqui "fila" era um valor de estado (`fila_humano`): a conversa esperava
+// alguém, e não havia quem, nem prazo, nem escalonamento. Para o gerente
+// comercial de uma distribuidora, isso é o produto inteiro — é onde ele enxerga
+// produtividade pela primeira vez.
+// ─────────────────────────────────────────────────────────────
+
+/// Como a fila escolhe o atendente de uma conversa nova.
+enum DistribuicaoFila {
+  /// Rodízio simples entre os membros ativos.
+  rodizio
+  /// Quem tem menos conversa aberta recebe.
+  carga
+  /// Vai para o vendedor responsável pelo cliente; sem carteira, cai no rodízio.
+  carteira
+  /// Ninguém recebe automaticamente — a fila fica visível e alguém assume.
+  manual
+}
+
+model Fila {
+  id        String  @id @default(cuid())
+  empresaId String
+  nome      String
+  descricao String?
+
+  /// Prazo de primeira resposta, em minutos. É o número que o painel cobra e o
+  /// que dispara alerta ANTES do estouro — não depois, que é quando o cliente
+  /// já desistiu.
+  prazoPrimeiraRespostaMin Int?
+  /// Prazo de resolução, em minutos.
+  prazoResolucaoMin        Int?
+
+  distribuicao DistribuicaoFila @default(manual)
+
+  /// Expediente da fila: `{ dias: { seg: [["08:00","18:00"]] }, fuso }`.
+  /// Json e não colunas porque a forma varia (turno partido, sábado meio
+  /// período) e nenhuma consulta filtra por isso — quem lê é o roteador.
+  horarioJson         Json?
+  mensagemForaHorario String?
+
+  ativa    Boolean  @default(true)
+  ordem    Int      @default(0)
+  criadoEm DateTime @default(now())
+
+  empresa   Empresa          @relation(fields: [empresaId], references: [id])
+  membros   MembroFila[]
+  conversas Conversa[]
+  respostas RespostaRapida[]
+
+  @@unique([empresaId, nome])
+  @@index([empresaId, ativa, ordem])
+}
+
+/// Quem pode receber conversa desta fila.
+model MembroFila {
+  id        String  @id @default(cuid())
+  empresaId String
+  filaId    String
+  usuarioId String
+  ativo     Boolean @default(true)
+
+  fila    Fila    @relation(fields: [filaId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([filaId, usuarioId])
+  @@index([empresaId, usuarioId])
+}
+
+/// Motivo de encerramento — taxonomia do tenant, obrigatória no fechamento.
+/// É o que transforma a inbox em relatório de demanda: sem motivo, no mês
+/// seguinte ninguém sabe por que as conversas terminaram.
+model MotivoEncerramento {
+  id        String  @id @default(cuid())
+  empresaId String
+  nome      String
+  ativo     Boolean @default(true)
+  ordem     Int     @default(0)
+
+  empresa   Empresa    @relation(fields: [empresaId], references: [id])
+  conversas Conversa[]
+
+  @@unique([empresaId, nome])
+  @@index([empresaId, ativo])
+}
+
+/// Etiqueta de conversa — corte livre do tenant, para filtro e relatório.
+model EtiquetaConversa {
+  id        String  @id @default(cuid())
+  empresaId String
+  nome      String
+  cor       String? // token de cor da interface, não hex cru
+  ativa     Boolean @default(true)
+
+  empresa   Empresa            @relation(fields: [empresaId], references: [id])
+  conversas ConversaEtiqueta[]
+
+  @@unique([empresaId, nome])
+}
+
+model ConversaEtiqueta {
+  id         String   @id @default(cuid())
+  empresaId  String
+  conversaId String
+  etiquetaId String
+  criadoEm   DateTime @default(now())
+
+  conversa Conversa         @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+  etiqueta EtiquetaConversa @relation(fields: [etiquetaId], references: [id], onDelete: Cascade)
+
+  @@unique([conversaId, etiquetaId])
+  @@index([empresaId, etiquetaId])
+}
+
+/// Resposta pronta, chamada por atalho no composer.
+model RespostaRapida {
+  id        String  @id @default(cuid())
+  empresaId String
+  atalho    String // sem a barra: "prazo" vira "/prazo" na digitação
+  titulo    String
+  texto     String
+  /// Restrita a uma fila, ou de toda a empresa quando nulo.
+  filaId    String?
+  ativa     Boolean @default(true)
+
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+  fila    Fila?   @relation(fields: [filaId], references: [id], onDelete: SetNull)
+
+  @@unique([empresaId, atalho])
+  @@index([empresaId, ativa])
+}
+
+/// Nota interna da conversa — visível só para a equipe, nunca para o cliente.
+/// Separada de `NotaCliente`: aquela é sobre a pessoa e vive para sempre; esta
+/// é sobre o atendimento, e é onde o atendente escreve o que não pode ser dito.
+model NotaConversa {
+  id             String   @id @default(cuid())
+  empresaId      String
+  conversaId     String
+  autorUsuarioId String
+  texto          String
+  criadoEm       DateTime @default(now())
+
+  conversa Conversa @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+  autor    Usuario  @relation("NotasDeConversa", fields: [autorUsuarioId], references: [id])
+
+  @@index([empresaId, conversaId, criadoEm])
+}
+
+// ─────────────────────────────────────────────────────────────
+// PLATAFORMA — o billing do NOSSO SaaS (doc 02 §10)
+//
+// Exceção às convenções de tenancy: `PlanoLicenca` é catálogo global; os demais
+// referenciam `empresaId` como DADO e são operados por jobs de plataforma
+// auditados, porque aqui o operador é a plataforma e não o tenant.
+//
+// Sem estes models não existe cobrança — e sem cobrança o produto não é
+// vendável, por mais funcionalidade que tenha.
+// ─────────────────────────────────────────────────────────────
+
+enum StatusAssinaturaPlataforma {
+  trial
+  ativa
+  inadimplente
+  cancelada
+}
+
+model PlanoLicenca {
+  id                   String  @id @default(cuid())
+  chave                String  @unique // catálogo global — exceção prevista (doc 02 §2)
+  nome                 String
+  precoMensalCentavos  Int
+  limiteUsuarios       Int
+  limiteCanais         Int
+  limiteConversasIaMes Int
+  /// Excedente por conversa de IA acima do limite, em centavos.
+  excedenteIaCentavos  Int     @default(49)
+  permiteApi           Boolean @default(false)
+  apiRateLimitRpm      Int     @default(60)
+  ordem                Int     @default(0)
+  ativo                Boolean @default(true)
+
+  assinaturas AssinaturaPlataforma[]
+}
+
+model AssinaturaPlataforma {
+  id                String                     @id @default(cuid())
+  empresaId         String
+  planoId           String
+  status            StatusAssinaturaPlataforma @default(trial)
+  trialAte          DateTime?
+  iniciadaEm        DateTime                   @default(now())
+  canceladaEm       DateTime?
+  /// Id da cobrança no provedor de pagamento, quando houver.
+  idExternoCobranca String?
+
+  empresa Empresa      @relation(fields: [empresaId], references: [id])
+  plano   PlanoLicenca @relation(fields: [planoId], references: [id])
+
+  @@index([empresaId, status])
+}
+
+/// Consumo medido por mês. É a fonte da fatura.
+///
+/// O painel exige teto de custo de IA por plano com degradação — e teto sem
+/// medição é promessa. Os contadores sobem no fechamento do turno, nunca por
+/// gatilho de banco: assim o número que cobra é o mesmo que o produto viu.
+model UsoMensal {
+  id              String   @id @default(cuid())
+  empresaId       String
+  mesReferencia   String // "2026-08"
+  conversasIa     Int      @default(0)
+  mensagens       Int      @default(0)
+  tokensEntrada   Int      @default(0)
+  tokensSaida     Int      @default(0)
+  custoIaCentavos Int      @default(0)
+  atualizadoEm    DateTime @updatedAt
+
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+
+  @@unique([empresaId, mesReferencia])
+}
+
+/// Uma execução de modelo, para auditar a fatura linha a linha.
+model UsoIA {
+  id                    String   @id @default(cuid())
+  empresaId             String
+  conversaId            String?
+  agenteVersaoId        String?
+  provedor              String
+  modelo                String
+  tokensEntrada         Int
+  tokensSaida           Int
+  custoEstimadoCentavos Int      @default(0)
+  criadoEm              DateTime @default(now())
+
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+
+  @@index([empresaId, criadoEm])
+}
+
+/// Aceite do DPA — insert-only, como consentimento LGPD.
+/// `aceitoPorUsuarioId` é String pura, sem relation: trilha jurídica não pode
+/// sumir em cascade (mesma regra dos models LGPD).
+model DpaAceite {
+  id                 String   @id @default(cuid())
+  empresaId          String
+  versaoDpa          String
+  aceitoPorUsuarioId String
+  ipAceite           String?
+  aceitoEm           DateTime @default(now())
+
+  @@index([empresaId, aceitoEm])
 }

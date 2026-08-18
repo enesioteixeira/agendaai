@@ -11,7 +11,8 @@
     "generate": "prisma generate && node scripts/patch-prisma-workerd.mjs",
     "migrate": "prisma migrate dev",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@atende/core": "workspace:*",
@@ -23,6 +24,7 @@
     "@types/node": "^22.0.0",
     "@types/pg": "^8.15.0",
     "prisma": "^6.11.0",
+    "tsx": "^4.23.0",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"
   }

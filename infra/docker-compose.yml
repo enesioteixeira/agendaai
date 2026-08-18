@@ -1,0 +1,71 @@
+# Ambiente local completo do Instant Channel.
+#
+# Existe porque o produto não pode depender de conta em nuvem para ser
+# desenvolvido: banco, fila e armazenamento de mídia rodam aqui, e a troca para
+# Neon e R2 na hora de comercializar é de endereço e credencial, não de código.
+#
+#   docker compose -f infra/docker-compose.yml up -d
+#   DATABASE_URL="postgresql://instant:devlocal@localhost:55432/instant_channel" \
+#     pnpm --filter @atende/db exec prisma migrate deploy
+#   DATABASE_URL="postgresql://instant:devlocal@localhost:55432/instant_channel" \
+#     pnpm --filter @atende/db seed
+#
+# As portas são deslocadas de propósito (55432, e não 5432) para não colidir com
+# um Postgres de sistema nem com o compose de outro projeto na mesma máquina.
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: instant-pg-local
+    environment:
+      POSTGRES_USER: instant
+      POSTGRES_PASSWORD: devlocal
+      POSTGRES_DB: instant_channel
+    ports:
+      - "55432:5432"
+    volumes:
+      - pg-dados:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U instant -d instant_channel"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO fala o mesmo protocolo do R2 (S3). É o que permite desenvolver a mídia
+  # de conversa — imagem, áudio, documento — sem depender da permissão de bucket
+  # no token do Cloudflare.
+  midia:
+    image: minio/minio
+    container_name: instant-minio-local
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: instant
+      MINIO_ROOT_PASSWORD: devlocal123
+    ports:
+      - "9000:9000" # API S3
+      - "9001:9001" # console web
+    volumes:
+      - midia-dados:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Cria o bucket na subida e sai. O nome é o MESMO do bucket de produção, para
+  # que a promoção do ambiente não mexa em caminho de arquivo.
+  midia-bucket:
+    image: minio/mc
+    depends_on:
+      midia:
+        condition: service_started
+    entrypoint: >
+      sh -c "
+      until mc alias set local http://midia:9000 instant devlocal123; do sleep 1; done &&
+      mc mb --ignore-existing local/atende-ai-midia &&
+      echo 'bucket atende-ai-midia pronto'
+      "
+
+volumes:
+  pg-dados:
+  midia-dados:

@@ -30,6 +30,23 @@ Status: **Fase 1 concluída** · **Blocos 0, 1 e 2 do MVP concluídos e em produ
 
 `apps/web` (Next.js via OpenNext em **Cloudflare Workers**) + **Neon Postgres** (adapter `pg` via pooler, com transação; filas via **pg-boss**) + `apps/worker` (Node sempre-ativo em **Oracle Cloud Always Free**: sockets Baileys multi-tenant, consumidores pg-boss, hub SSE).
 
+## Ambiente local — o produto roda inteiro sem nuvem
+
+Banco, fila e armazenamento de mídia sobem em container. A troca para Neon e R2 na hora de comercializar é de endereço e credencial, não de código.
+
+```bash
+docker compose -f infra/docker-compose.yml up -d
+export DATABASE_URL="postgresql://instant:devlocal@localhost:55432/instant_channel"
+pnpm --filter @atende/db exec prisma migrate deploy
+pnpm --filter @atende/db seed      # catálogo de planos + cenário de distribuidor
+pnpm test                          # com banco, os e2e de isolamento rodam de verdade
+```
+
+Duas armadilhas que já custaram tempo:
+
+- **`packages/db/.env` aponta para o Neon.** Variável de ambiente tem precedência sobre `.env`, mas confira com `prisma migrate status` — ele imprime o host — antes de qualquer comando que escreva.
+- **O build do Workers Builds não roda `migrate deploy`.** Migration é aplicada à mão contra o destino. Subir código que depende de coluna nova antes de aplicá-la quebra produção; a ordem é migration → conferir → código.
+
 ## Regras invioláveis
 
 Estas regras valem para TODO código deste repositório. Nenhuma "otimização" ou refatoração pode violá-las.
