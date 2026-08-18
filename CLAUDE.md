@@ -82,6 +82,14 @@ Estas regras valem para TODO código deste repositório. Nenhuma "otimização" 
 16. Valores monetários em **centavos (Int)**; datas em UTC no banco, fuso da `Unidade` na apresentação.
 17. Nomes de domínio em PT-BR **sem acentos** (`Agendamento`, `Cobranca`, `criarAgendamento`); infraestrutura em EN (`db`, `queue`, `connectors`).
 
+### Fronteira entre produtos (regra da empresa — `instant-empresa/adr/0002`)
+
+> Numeradas a partir de 18 de propósito: as regras 1–17 são citadas por número em dezenas de comentários e documentos, e renumerá-las quebraria todas as referências.
+
+18. **Este produto é vendável SOZINHO.** Ele funciona ao lado do ERP que o cliente já tem — Winthor, Protheus, Sankhya — e nunca pressupõe o Mensvra ERP. Nenhum caminho de código pode assumir que o ERP conectado é o nosso: é essa neutralidade que abre a base instalada do concorrente, que é a estratégia comercial de entrada.
+19. **A integração com outro produto Mensvra é contrato de API versionado.** Nunca acesso cruzado a banco, nunca dependência de código entre produtos, nunca correlação de tenants feita pela plataforma. O Mensvra ERP não é exceção — ele é o conector de **maior privilégio** (bidirecional, mesma região, reserva firme de estoque, margem em tempo real), e a vantagem do pacote é latência e uma tela só, não tabela compartilhada.
+20. **Toda solução nova nasce respondendo a duas perguntas:** funciona sem as outras? conversa nativamente com as outras? Se qualquer resposta for não, o desenho está errado. Vale para módulo e feature, não só para produto.
+
 ## Convenções para agentes de IA
 
 - Cada package/app tem um `AGENTS.md` com propósito, contratos (apontando para schemas Zod), invariantes, o-que-nunca-fazer e comandos de teste. **Leia o AGENTS.md do módulo antes de editar o módulo.**
