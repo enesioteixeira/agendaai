@@ -8,12 +8,14 @@
 // devolve o identificador externo. Antes havia um estado só para as duas
 // coisas: a mensagem era marcada `enviada` ANTES do envio, e morrer no meio
 // deixava ✓ na tela do atendente sem nada ter saído. A reserva órfã — worker
-// que não voltou — é varrida por `lease.ts` e vira `falhou` visível.
+// que não voltou — é fechada pela fila agendada `expirar-envios`, não por esta
+// varredura: ela roda a cada 3 segundos porque o cliente espera resposta, e
+// conferir um teto de dois minutos quarenta vezes por minuto seria consulta ao
+// banco para nada.
 
 import { prisma, registrarPrimeiraResposta, runWithTenant } from "@atende/db";
 import { conectorDoCanal } from "../sockets/gestor.js";
-import { listarEnviosExpirados, listarMensagensPendentesBaileys } from "./plataforma.js";
-import { LEASE_ENVIO_MS } from "./lease.js";
+import { listarMensagensPendentesBaileys } from "./plataforma.js";
 import { MAX_TENTATIVAS, deveTentarDeNovo, esperaDaTentativa } from "./reenvio.js";
 
 const dormir = (ms: number): Promise<void> =>
@@ -99,48 +101,13 @@ async function enviarUma(m: {
   });
 }
 
-/**
- * Fecha reservas órfãs — `enviando` de um worker que não voltou.
- *
- * A marcação é condicional e repete o filtro da leitura: se a mensagem terminou
- * de sair entre uma coisa e outra, o `updateMany` não encontra nada e o envio
- * bem-sucedido fica de pé. Ela vira `falhou`, e não `pendente`, porque reenviar
- * sozinho poderia duplicar mensagem já entregue — o raciocínio inteiro está em
- * `lease.ts`.
- */
-async function fecharReservasOrfas(agora = new Date()): Promise<void> {
-  const limite = new Date(agora.getTime() - LEASE_ENVIO_MS);
-  const orfas = await listarEnviosExpirados(limite);
-  if (orfas.length === 0) return;
-
-  for (const o of orfas) {
-    await runWithTenant({ empresaId: o.empresaId }, async () => {
-      const fechada = await prisma.mensagem.updateMany({
-        where: {
-          id: o.id,
-          statusEntrega: "enviando",
-          OR: [{ envioReservadoEm: null }, { envioReservadoEm: { lt: limite } }],
-        },
-        data: { statusEntrega: "falhou" },
-      });
-      if (fechada.count > 0) {
-        console.error(
-          `[outbox] reserva órfã fechada (mensagem ${o.id}): o envio não confirmou em ${LEASE_ENVIO_MS}ms`,
-        );
-      }
-    });
-  }
-}
-
 /** Devolve a função de parada — o bootstrap a usa no encerramento gracioso. */
 export function iniciarOutboxEnvio(intervaloMs = 3_000): () => void {
   let rodando = false;
   const id = setInterval(() => {
     if (rodando) return; // sem sobreposição de varreduras
     rodando = true;
-    fecharReservasOrfas()
-      .catch((e) => console.error("[outbox] varredura de reservas órfãs falhou:", e))
-      .then(() => listarMensagensPendentesBaileys())
+    listarMensagensPendentesBaileys()
       .then(async (pendentes) => {
         for (const m of pendentes) await enviarUma(m);
       })

@@ -51,6 +51,8 @@ O monorepo usa resolução `bundler` em todo lugar (tsconfig.base), porque o `ap
 - [ ] Consumers dos motores: lembretes, régua, e-mail, IA (pg-boss — Blocos 4–5); retenção LGPD (Bloco 6)
 - [x] **Mídia de entrada** (2026-08-21): o gestor entrega ao `processarInbound` uma FUNÇÃO de download, não os bytes — ela só é chamada depois de o `create` passar pelo unique de dedupe, porque o WhatsApp reentrega e baixar em cada reentrega seria rede e memória gastas para nada. `baixarMidiaBaileys` confere o teto **antes** de baixar (pelo `fileLength` declarado) e de novo **depois** (sobre os bytes reais, porque o declarado é do remetente). O arquivo vai para o bucket em `chaveDeMidia(empresaId, conversaId, mensagemId)` — tenant no prefixo — e a mensagem guarda `ponteiroR2` + `midia`. Falha de download não derruba nada: a mensagem entra com o texto e o tipo.
 
+  A reserva órfã do outbox é fechada pela fila agendada **`expirar-envios`** (`consumers/expirar-envios.ts`, a cada minuto) — o nome já existia em `fila.ts` desde a Fase C, declarado e sem consumidor. Não fica na varredura do outbox porque ela roda a cada 3 segundos, e conferir um teto de dois minutos quarenta vezes por minuto é consulta ao banco para nada; e porque, com dois workers, o poller faria os dois varrerem as mesmas linhas.
+
   **Não era o binding do R2 que bloqueava.** `packages/armazenamento` é um driver S3 com `fetch` e SigV4 à mão, e o R2 tem endpoint S3 — o que faltava era credencial em variável de ambiente, não permissão de binding. Local: `S3_ENDPOINT=http://localhost:9000`, `S3_ACCESS_KEY_ID=mensvra`, `S3_SECRET_ACCESS_KEY=devlocal123`, `S3_BUCKET=mensvra-midia`. Sem elas o worker avisa uma vez e segue sem guardar mídia
 
 ## O claim do outbox — dívida paga em 2026-08-21

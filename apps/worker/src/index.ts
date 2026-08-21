@@ -24,6 +24,7 @@ const { iniciarHealthServer } = await import("./health.js");
 const { iniciarGestorSockets } = await import("./sockets/gestor.js");
 const { iniciarOutboxEnvio } = await import("./consumers/outbox-envio.js");
 const { iniciarConsumerIaTurno } = await import("./consumers/ia-turno.js");
+const { iniciarConsumerExpirarEnvios } = await import("./consumers/expirar-envios.js");
 
 const PORTA_HEALTH = Number(process.env.PORT ?? 8080);
 
@@ -56,6 +57,7 @@ async function main(): Promise<void> {
   console.log("[worker] outbox de envio ativo (varredura a cada 3s)");
 
   await iniciarConsumerIaTurno();
+  await iniciarConsumerExpirarEnvios();
 }
 
 // Baileys engole rejections internas (fix herdado do ev-tracker, doc 08 §3.2):
