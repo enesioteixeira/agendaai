@@ -1,5 +1,7 @@
 import { Icone } from "@atende/ui";
 
+import { formaDoAnexo, lerAnexos, rotuloDoAnexo, type AnexoDaMensagem } from "./midia";
+
 /**
  * A timeline da conversa. Cada bolha carrega três informações além do texto:
  * de que lado veio, QUEM a escreveu (cliente, atendente, fluxo, agente de IA,
@@ -46,6 +48,11 @@ export interface MensagemDaTimeline {
   readonly tipo: string;
   readonly origemMotor: string;
   readonly texto: string | null;
+  /**
+   * Coluna JSON — `unknown` de propósito. Quem lhe dá forma é `lerAnexos`, que
+   * descarta o que não reconhece em vez de confiar no que veio do banco.
+   */
+  readonly midia?: unknown;
   readonly statusEntrega: string;
   readonly criadoEm: Date;
   readonly autor: { readonly nome: string } | null;
@@ -113,6 +120,7 @@ export function Timeline({
         }
 
         const m = item.mensagem;
+        const anexos = lerAnexos(m.midia);
         const saida = m.direcao === "saida";
         const entrega = ENTREGA[m.statusEntrega];
         const falhou = m.statusEntrega === "falhou";
@@ -135,18 +143,23 @@ export function Timeline({
               {m.autor ? ` · ${m.autor.nome}` : ""}
             </span>
 
+            {anexos.map((anexo) => (
+              <Anexo key={anexo.url} anexo={anexo} />
+            ))}
+
             {m.texto ? (
               // `whitespace-pre-wrap`: o cliente escreve com quebras de linha, e
               // colapsá-las transforma uma lista de itens num parágrafo confuso.
               <p className="whitespace-pre-wrap break-words text-[13px] leading-snug">{m.texto}</p>
-            ) : (
+            ) : anexos.length === 0 ? (
               <p className="inline-flex items-center gap-1 text-[13px] italic opacity-80">
                 <Icone nome="caixa" aria-hidden />
-                {/* Mídia chega na parte de mídia da Fase B; até lá, dizer o tipo
-                    é mais honesto do que uma bolha vazia. */}
+                {/* Sem anexo lido: ou o download falhou, ou o armazenamento não
+                    está configurado. Dizer o tipo é mais honesto do que uma
+                    bolha vazia — e mais honesto do que fingir que não veio nada. */}
                 Mensagem de {m.tipo}
               </p>
-            )}
+            ) : null}
 
             <span
               className={`flex items-center justify-end gap-1 text-[10px] ${
@@ -164,5 +177,55 @@ export function Timeline({
         );
       })}
     </ol>
+  );
+}
+
+/**
+ * Um anexo dentro da bolha.
+ *
+ * Imagem, áudio e vídeo aparecem; o resto vira link de download com nome e
+ * tamanho. A decisão é a mesma que a rota `/api/midia` toma nos cabeçalhos — e
+ * as duas precisam concordar, porque uma bolha que promete pré-visualizar o que
+ * o servidor manda baixar deixa um quadrado quebrado na tela.
+ *
+ * `preload="metadata"` no áudio e no vídeo: pré-carregar o arquivo inteiro de
+ * cada mensagem de uma conversa longa gastaria banda do operador para mídia que
+ * ele talvez nem abra.
+ */
+function Anexo({ anexo }: { readonly anexo: AnexoDaMensagem }) {
+  const forma = formaDoAnexo(anexo.mimeType);
+
+  if (forma === "imagem") {
+    return (
+      <a href={anexo.url} target="_blank" rel="noreferrer" className="block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={anexo.url}
+          alt={anexo.nomeArquivo ?? "Imagem enviada na conversa"}
+          className="max-h-72 w-auto max-w-full rounded-1 object-contain"
+        />
+      </a>
+    );
+  }
+
+  if (forma === "audio") {
+    return <audio src={anexo.url} controls preload="metadata" className="w-full max-w-[18rem]" />;
+  }
+
+  if (forma === "video") {
+    return (
+      <video src={anexo.url} controls preload="metadata" className="max-h-72 w-auto max-w-full rounded-1" />
+    );
+  }
+
+  return (
+    <a
+      href={anexo.url}
+      download
+      className="inline-flex items-center gap-1 text-[13px] underline underline-offset-2"
+    >
+      <Icone nome="caixa" aria-hidden />
+      {rotuloDoAnexo(anexo)}
+    </a>
   );
 }

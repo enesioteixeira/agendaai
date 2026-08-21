@@ -20,6 +20,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@atende/armazenamento':
+        specifier: workspace:*
+        version: link:../../packages/armazenamento
       '@atende/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -75,6 +78,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@atende/armazenamento':
+        specifier: workspace:*
+        version: link:../../packages/armazenamento
       '@atende/canais':
         specifier: workspace:*
         version: link:../../packages/canais

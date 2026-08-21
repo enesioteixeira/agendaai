@@ -5,10 +5,21 @@
 // morre em silêncio. Bloco 3: sem motores — conversa nova nasce em
 // fila_humano; árvore/IA chegam no Bloco 4.
 
-import type { MensagemInboundNormalizada } from "@atende/core";
+import type { ResultadoDeMidia } from "@atende/canais";
+import { chaveDeMidia, type MensagemInboundNormalizada } from "@atende/core";
 import { prisma, rotearConversa, runWithTenant } from "@atende/db";
 
 import { enfileirarTurnoIA } from "../ia/enfileirar.js";
+import { armazenamentoDeMidia } from "../midia/armazenamento.js";
+
+/**
+ * Como o painel busca o arquivo depois.
+ *
+ * Sem base pública configurada — o caso correto para mídia de conversa —, a
+ * leitura sai pela rota do próprio produto e a validade não é usada: quem
+ * autoriza é a sessão, a cada requisição, e não um link que expira sozinho.
+ */
+const VALIDADE_DE_LEITURA_SEGUNDOS = 3600;
 
 // Tabela canônica identidade externa → TipoIdentidade (doc 02 §4)
 const TIPO_IDENTIDADE: Record<string, "whatsapp" | "instagram" | "messenger" | "telegram" | "email" | "webchat"> = {
@@ -20,7 +31,18 @@ const TIPO_IDENTIDADE: Record<string, "whatsapp" | "instagram" | "messenger" | "
   webchat_visitor: "webchat",
 };
 
-export async function processarInbound(m: MensagemInboundNormalizada): Promise<void> {
+/**
+ * `obterMidia` é preguiçoso de propósito.
+ *
+ * O WhatsApp reentrega com frequência, e baixar o arquivo antes de saber se a
+ * mensagem é nova gastaria rede e memória em toda reentrega — a mesma razão
+ * pela qual o turno de IA só é enfileirado no ramo de sucesso. Aqui a função só
+ * é chamada depois de o `create` passar pelo unique de dedupe.
+ */
+export async function processarInbound(
+  m: MensagemInboundNormalizada,
+  obterMidia?: () => Promise<ResultadoDeMidia>,
+): Promise<void> {
   await runWithTenant({ empresaId: m.empresaId }, async () => {
     // 1. identidade → cliente (cria provisório na primeira mensagem)
     const tipo = TIPO_IDENTIDADE[m.identidadeExterna.tipo] ?? "whatsapp";
@@ -112,7 +134,16 @@ export async function processarInbound(m: MensagemInboundNormalizada): Promise<v
       // toque na conversa p/ ordenação da fila (updatedAt)
       await prisma.conversa.update({ where: { id: conversa.id }, data: { estado: conversa.estado } });
 
-      // 4. turno de IA — SÓ no ramo de sucesso.
+      // 4. mídia — também só no ramo de sucesso, e depois do create porque a
+      // chave do arquivo carrega o id da mensagem. Falha aqui não derruba nada:
+      // a conversa já está na inbox e o operador responde sem o anexo.
+      if (obterMidia) {
+        await guardarMidia(m.empresaId, conversa.id, criada.id, obterMidia).catch((e) =>
+          console.error(`[inbound] mídia falhou (mensagem ${criada.id}):`, e),
+        );
+      }
+
+      // 5. turno de IA — SÓ no ramo de sucesso.
       //
       // Enfileirar no `catch` de dedupe faria toda reentrega do provedor gerar
       // um segundo turno: o WhatsApp reentrega com frequência, turno custa
@@ -155,4 +186,50 @@ async function canalTemAgentePublicado(canalId: string): Promise<boolean> {
     select: { versaoAtivaId: true },
   });
   return Boolean(agente?.versaoAtivaId);
+}
+
+/**
+ * Baixa, guarda e aponta a mídia da mensagem.
+ *
+ * Roda dentro do contexto de tenant do inbound. A chave vem de `chaveDeMidia`,
+ * nunca montada aqui — é ela que garante o tenant no prefixo do bucket, e
+ * política de acesso por prefixo só funciona se o prefixo for o tenant.
+ */
+async function guardarMidia(
+  empresaId: string,
+  conversaId: string,
+  mensagemId: string,
+  obterMidia: () => Promise<ResultadoDeMidia>,
+): Promise<void> {
+  const armazenamento = armazenamentoDeMidia();
+  if (!armazenamento) return;
+
+  const resultado = await obterMidia();
+  if (!resultado.ok) {
+    console.warn(`[inbound] mídia não guardada (mensagem ${mensagemId}): ${resultado.motivo}`);
+    return;
+  }
+
+  const chave = chaveDeMidia(empresaId, conversaId, mensagemId);
+  const guardado = await armazenamento.guardar(chave, {
+    conteudo: resultado.conteudo,
+    tipoMime: resultado.tipoMime,
+    nomeOriginal: resultado.nomeOriginal,
+  });
+  const url = await armazenamento.urlDeLeitura(chave, VALIDADE_DE_LEITURA_SEGUNDOS);
+
+  await prisma.mensagem.update({
+    where: { id: mensagemId },
+    data: {
+      ponteiroR2: chave,
+      midia: [
+        {
+          url,
+          mimeType: guardado.tipoMime,
+          tamanhoBytes: guardado.tamanhoBytes,
+          ...(resultado.nomeOriginal ? { nomeArquivo: resultado.nomeOriginal } : {}),
+        },
+      ],
+    },
+  });
 }

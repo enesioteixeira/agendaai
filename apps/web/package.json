@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@atende/armazenamento": "workspace:*",
     "@atende/core": "workspace:*",
     "@atende/db": "workspace:*",
     "@atende/dinheiro": "workspace:*",

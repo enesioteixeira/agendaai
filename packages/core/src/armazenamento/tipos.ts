@@ -69,3 +69,49 @@ export function chaveDeMidia(
 ): string {
   return `${empresaId}/conversas/${conversaId}/${idMensagem}`;
 }
+
+export type LeituraDeMidia =
+  | { readonly ok: true; readonly chave: string }
+  | { readonly ok: false; readonly motivo: "caminho-invalido" | "outro-tenant" };
+
+/**
+ * A chave pedida pode ser lida por este tenant?
+ *
+ * A resposta inteira está no prefixo — é para isto que `chaveDeMidia` põe o
+ * tenant na frente. Mas prefixo se compara por SEGMENTO, nunca por
+ * `startsWith`: "emp_1/" também é começo de "emp_10/...", e uma comparação
+ * ingênua entregaria a mídia de um tenant vizinho a quem soubesse o formato do
+ * id.
+ *
+ * Segmento vazio, "." e ".." são recusados porque a chave chega da URL: no S3
+ * eles não navegam, mas normalizações no caminho até lá — proxy, runtime,
+ * cliente HTTP — já transformaram isso em travessia em produtos de verdade.
+ */
+export function autorizarLeituraDeMidia(
+  segmentos: readonly string[],
+  empresaId: string,
+): LeituraDeMidia {
+  if (segmentos.length < 2) return { ok: false, motivo: "caminho-invalido" };
+  for (const s of segmentos) {
+    if (!s || s === "." || s === "..") return { ok: false, motivo: "caminho-invalido" };
+  }
+  if (segmentos[0] !== empresaId) return { ok: false, motivo: "outro-tenant" };
+  return { ok: true, chave: segmentos.join("/") };
+}
+
+/**
+ * O arquivo pode ser exibido no navegador, ou tem de ser baixado?
+ *
+ * Mídia de conversa é conteúdo que o cliente do nosso cliente enviou, servido
+ * do NOSSO domínio, onde vive a sessão do painel. Um arquivo que o navegador
+ * decida renderizar como HTML ou SVG executa script na nossa origem — é XSS
+ * armazenado, com o anexo como vetor.
+ *
+ * Só imagem, áudio e vídeo são exibidos, e nem toda imagem: SVG é documento com
+ * script, não figura. O resto desce como anexo.
+ */
+export function podeExibirNoNavegador(tipoMime: string): boolean {
+  const tipo = tipoMime.split(";")[0]?.trim().toLowerCase() ?? "";
+  if (tipo === "image/svg+xml") return false;
+  return tipo.startsWith("image/") || tipo.startsWith("audio/") || tipo.startsWith("video/");
+}

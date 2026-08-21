@@ -9,8 +9,10 @@ import { crypto as cryptoCore, type MensagemOutbound } from "@atende/core";
 import { prisma, runWithTenant } from "@atende/db";
 import {
   montarAuthState,
+  baixarMidiaBaileys,
   criarSocketBaileys,
   criarConectorBaileys,
+  descreverMidiaBaileys,
   normalizarInboundBaileys,
   type WASocket,
   type Conector,
@@ -21,6 +23,7 @@ import { listarCanaisBaileys } from "../consumers/plataforma.js";
 import { processarInbound } from "../consumers/inbound.js";
 import { aplicarRecibos } from "../consumers/recibos.js";
 import { ehZumbi } from "./vigia.js";
+import { TAMANHO_MAXIMO_BYTES } from "../midia/armazenamento.js";
 
 const { cifrarSegredo } = cryptoCore;
 
@@ -162,11 +165,28 @@ async function abrirSocket(empresaId: string, canalId: string): Promise<void> {
       entrada.ultimoSinal = Date.now();
       for (const msg of mensagens) {
         const normalizada = normalizarInboundBaileys(empresaId, canalId, msg);
-        if (normalizada) {
-          processarInbound(normalizada).catch((e) =>
-            console.error(`[gestor] inbound ${canalId}:`, e),
-          );
-        }
+        if (!normalizada) continue;
+
+        // O download é passado como função, não executado aqui: o inbound só o
+        // chama depois de saber que a mensagem é nova. Reentrega do WhatsApp
+        // é rotineira, e baixar o arquivo em cada uma seria rede e memória
+        // gastas para nada.
+        //
+        // `updateMediaMessage` do socket entra como reenvio: mensagem cujo
+        // arquivo já saiu dos servidores do WhatsApp é recuperada em vez de
+        // falhar.
+        const temMidia = descreverMidiaBaileys(msg) !== null;
+        const obterMidia = temMidia
+          ? () =>
+              baixarMidiaBaileys(msg, {
+                tetoBytes: TAMANHO_MAXIMO_BYTES,
+                reuploadRequest: entrada.socket.updateMediaMessage.bind(entrada.socket),
+              })
+          : undefined;
+
+        processarInbound(normalizada, obterMidia).catch((e) =>
+          console.error(`[gestor] inbound ${canalId}:`, e),
+        );
       }
     },
     aoRecibos(recibos) {

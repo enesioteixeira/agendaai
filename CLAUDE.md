@@ -43,6 +43,19 @@ Banco, fila e armazenamento de mídia sobem em container. A troca para Neon e R2
 ```bash
 docker compose -f infra/docker-compose.yml up -d
 export DATABASE_URL="postgresql://mensvra:devlocal@localhost:55432/mensvra_channel"
+
+# Mídia de conversa. As MESMAS variáveis servem ao R2 (que fala S3) — a
+# promoção do ambiente é de endereço e credencial, não de código.
+#
+# Estas valem para o WORKER, que é Node puro e lê o ambiente do shell. O PAINEL
+# não as enxerga daqui: ele carrega `.env.local` (em `next dev`) e `.dev.vars`
+# (no runtime do Workers), e sem as quatro linhas lá a rota `/api/midia`
+# responde 503 enquanto a imagem já está guardada no bucket.
+export S3_ENDPOINT="http://localhost:9000"
+export S3_ACCESS_KEY_ID="mensvra"
+export S3_SECRET_ACCESS_KEY="devlocal123"
+export S3_BUCKET="mensvra-midia"
+
 pnpm --filter @atende/db exec prisma migrate deploy
 pnpm --filter @atende/db seed      # catálogo de planos + cenário de distribuidor
 pnpm test                          # os e2e de isolamento rodam de verdade, num banco só deles
