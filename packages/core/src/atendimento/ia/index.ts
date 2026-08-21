@@ -57,6 +57,14 @@ export {
 } from "./guardas";
 
 export {
+  versaoAusente,
+  versaoQueAtende,
+  type DecisaoDaVersao,
+  type MotivoDaVersao,
+  type VersaoParaCongelar,
+} from "./congelamento";
+
+export {
   REGRA_UMA_PENDENTE,
   TTL_PROPOSTA_MS,
   expiraEmA_partirDe,

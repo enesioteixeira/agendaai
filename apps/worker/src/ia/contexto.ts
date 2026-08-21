@@ -9,6 +9,8 @@ import {
   ASSUNTOS_QUE_VAO_PARA_HUMANO,
   crypto as cryptoCore,
   MOLDURA_DE_DADOS_NO_SYSTEM,
+  versaoAusente,
+  versaoQueAtende,
   type MensagemHistorico,
 } from "@atende/core";
 import { prisma, runWithTenant } from "@atende/db";
@@ -102,9 +104,43 @@ export async function montarContexto(
     });
     if (!agente?.versaoAtivaId) return { ok: false, motivo: "agente-sem-versao-publicada" };
 
-    const versao = await prisma.versaoAgente.findUnique({ where: { id: agente.versaoAtivaId } });
-    if (!versao || versao.status !== "publicada") {
+    const ativa = await prisma.versaoAgente.findUnique({ where: { id: agente.versaoAtivaId } });
+    if (!ativa || ativa.status !== "publicada") {
       return { ok: false, motivo: "agente-sem-versao-publicada" };
+    }
+
+    // PUBLICAR É CONGELAR: a conversa termina na versão em que começou. Sem
+    // isto, publicar uma persona nova trocava o interlocutor no meio da frase.
+    // A regra inteira, com as três exceções que recongelam, está em
+    // `versaoQueAtende` — aqui só se busca a versão congelada e se grava o
+    // resultado.
+    const congelada = conversa.agenteVersaoId
+      ? await prisma.versaoAgente.findUnique({ where: { id: conversa.agenteVersaoId } })
+      : null;
+
+    const decisao =
+      conversa.agenteVersaoId && !congelada
+        ? versaoAusente(ativa)
+        : versaoQueAtende(congelada, ativa);
+
+    const versao =
+      decisao.versaoId === ativa.id
+        ? ativa
+        : (congelada ?? ativa);
+
+    if (decisao.gravar) {
+      // Condicional no valor que lemos: dois turnos da mesma conversa são
+      // serializados pelo singletonKey da fila, mas o congelamento é decisão
+      // que não pode ser sobrescrita por corrida futura.
+      await prisma.conversa.updateMany({
+        where: { id: conversaId, agenteVersaoId: conversa.agenteVersaoId },
+        data: { agenteVersaoId: decisao.versaoId },
+      });
+      if (decisao.motivo !== "congelada-agora") {
+        console.warn(
+          `[ia] versão do agente recongelada na conversa ${conversaId}: ${decisao.motivo}`,
+        );
+      }
     }
 
     const integracao = await prisma.integracaoExterna.findFirst({

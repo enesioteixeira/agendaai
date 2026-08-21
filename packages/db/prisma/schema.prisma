@@ -671,6 +671,11 @@ model Conversa {
   estado             EstadoConversa
   atendenteUsuarioId String? // dono atual quando estado=humano
   fluxoVersaoId      String? // FK lógica — versão congelada (Bloco 4)
+  /// FK lógica para VersaoAgente — a versão de IA em que esta conversa começou.
+  /// "Publicar é congelar" (comentário do AgenteIA) só é verdade porque isto
+  /// existe: sem a coluna, o contexto resolvia a versão ativa a cada turno e
+  /// publicar trocava a persona no meio da conversa.
+  agenteVersaoId     String?
   noAtualId          String? // posição na árvore (Bloco 4)
   variaveis          Json? // coletadas pela árvore (Bloco 4)
   contextoJson       Json? // resumo vivo p/ a IA (Bloco 4)
