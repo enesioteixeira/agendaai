@@ -17,15 +17,25 @@ export const STATUS_WA = {
   PLAYED: 5,
 } as const;
 
-export type StatusEntrega = "pendente" | "enviada" | "entregue" | "lida" | "falhou";
+export type StatusEntrega =
+  | "pendente"
+  | "enviando"
+  | "enviada"
+  | "entregue"
+  | "lida"
+  | "falhou";
 
 /**
  * A escala de progresso. `falhou` e `pendente` ficam fora de propósito: um é
  * terminal por erro, o outro é o ponto de partida — nenhum dos dois participa
  * da comparação de "avançou ou retrocedeu".
+ *
+ * `enviando` empata com `pendente`: é reserva, não progresso. A mensagem ainda
+ * não saiu, e qualquer recibo real que chegue precisa poder passar por cima.
  */
 const PROGRESSO: Record<StatusEntrega, number> = {
   pendente: 0,
+  enviando: 0,
   enviada: 1,
   entregue: 2,
   lida: 3,

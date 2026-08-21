@@ -40,7 +40,7 @@ describe("ordem dos recibos", () => {
   });
 
   it("não faz escrita à toa quando o status repete", () => {
-    for (const s of ["pendente", "enviada", "entregue", "lida", "falhou"] as StatusEntrega[]) {
+    for (const s of ["pendente", "enviando", "enviada", "entregue", "lida", "falhou"] as StatusEntrega[]) {
       expect(deveAtualizarAck(s, s), s).toBe(false);
     }
   });

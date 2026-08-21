@@ -22,6 +22,10 @@ import { Icone } from "@atende/ui";
 
 const ENTREGA: Record<string, { readonly rotulo: string; readonly marca: string }> = {
   pendente: { rotulo: "Aguardando envio", marca: "🕓" },
+  // Reservada por um worker e ainda sem confirmação. O ✓ é reservado para o que
+  // saiu de verdade: mostrá-lo aqui foi exatamente o defeito que o estado novo
+  // veio consertar.
+  enviando: { rotulo: "Enviando", marca: "🕓" },
   enviada: { rotulo: "Enviada", marca: "✓" },
   entregue: { rotulo: "Entregue", marca: "✓✓" },
   lida: { rotulo: "Lida", marca: "✓✓" },

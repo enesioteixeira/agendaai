@@ -4,23 +4,16 @@
 // CLAIM atômico por tenant e envia pelo conector do socket vivo. pg-boss segue
 // reservado aos jobs dos motores (Bloco 4) — o caminho humano não precisa de fila.
 //
-// ⚠️ LIMITAÇÃO CONHECIDA DO CLAIM. O claim marca `enviada` ANTES do envio, e o
-// enum `StatusEntrega` não tem um estado intermediário. Se o processo morrer
-// entre o claim e o `conector.enviar`, a mensagem fica `enviada` sem ter saído —
-// perda silenciosa, com ✓ na tela do atendente.
-//
-// Consertar exige `enviando` no enum + lease (o padrão do inbox do ev-tracker),
-// ou seja, uma MIGRATION — e o build do Workers Builds NÃO roda `migrate deploy`
-// (as migrations são aplicadas à mão contra o Neon). Subir o código antes da
-// coluna existir quebraria o envio inteiro em produção, então isto fica como
-// dívida coordenada: aplicar a migration primeiro, depois o código.
-//
-// Enquanto isso, o retry abaixo cobre o caso comum de verdade — oscilação de
-// rede durante o envio, que antes matava a mensagem na primeira exceção.
+// O claim reserva em `enviando` e só promove a `enviada` quando o conector
+// devolve o identificador externo. Antes havia um estado só para as duas
+// coisas: a mensagem era marcada `enviada` ANTES do envio, e morrer no meio
+// deixava ✓ na tela do atendente sem nada ter saído. A reserva órfã — worker
+// que não voltou — é varrida por `lease.ts` e vira `falhou` visível.
 
 import { prisma, registrarPrimeiraResposta, runWithTenant } from "@atende/db";
 import { conectorDoCanal } from "../sockets/gestor.js";
-import { listarMensagensPendentesBaileys } from "./plataforma.js";
+import { listarEnviosExpirados, listarMensagensPendentesBaileys } from "./plataforma.js";
+import { LEASE_ENVIO_MS } from "./lease.js";
 import { MAX_TENTATIVAS, deveTentarDeNovo, esperaDaTentativa } from "./reenvio.js";
 
 const dormir = (ms: number): Promise<void> =>
@@ -34,10 +27,11 @@ async function enviarUma(m: {
   texto: string | null;
 }): Promise<void> {
   await runWithTenant({ empresaId: m.empresaId }, async () => {
-    // claim atômico: só um worker ganha a mensagem
+    // Claim atômico: só um worker ganha a mensagem. O carimbo da reserva sai
+    // junto, na mesma escrita — reserva sem carimbo é órfã que ninguém acha.
     const claim = await prisma.mensagem.updateMany({
       where: { id: m.id, statusEntrega: "pendente" },
-      data: { statusEntrega: "enviada" }, // otimista; falha reverte p/ falhou
+      data: { statusEntrega: "enviando", envioReservadoEm: new Date() },
     });
     if (claim.count === 0) return;
 
@@ -61,9 +55,18 @@ async function enviarUma(m: {
           conversaId: m.conversaId,
           texto: m.texto ?? "",
         });
+
+        // Status e identificador externo entram na MESMA escrita.
+        //
         // O idExterno é o que amarra o recibo de entrega (✓✓ / lida) a esta
-        // linha — sem ele a mensagem sai, mas nunca sai do primeiro check.
-        await prisma.mensagem.update({ where: { id: m.id }, data: { idExterno } });
+        // linha. Gravá-lo depois de a mensagem já constar como `enviada` abria
+        // uma janela em que o recibo chegava e não encontrava a quem pertencia
+        // — o ack era descartado e a mensagem parava no primeiro check para
+        // sempre.
+        await prisma.mensagem.update({
+          where: { id: m.id },
+          data: { statusEntrega: "enviada", idExterno },
+        });
 
         // O prazo de primeira resposta fecha AQUI, quando a mensagem
         // efetivamente saiu — não quando o atendente apertou enviar. É o
@@ -96,13 +99,48 @@ async function enviarUma(m: {
   });
 }
 
+/**
+ * Fecha reservas órfãs — `enviando` de um worker que não voltou.
+ *
+ * A marcação é condicional e repete o filtro da leitura: se a mensagem terminou
+ * de sair entre uma coisa e outra, o `updateMany` não encontra nada e o envio
+ * bem-sucedido fica de pé. Ela vira `falhou`, e não `pendente`, porque reenviar
+ * sozinho poderia duplicar mensagem já entregue — o raciocínio inteiro está em
+ * `lease.ts`.
+ */
+async function fecharReservasOrfas(agora = new Date()): Promise<void> {
+  const limite = new Date(agora.getTime() - LEASE_ENVIO_MS);
+  const orfas = await listarEnviosExpirados(limite);
+  if (orfas.length === 0) return;
+
+  for (const o of orfas) {
+    await runWithTenant({ empresaId: o.empresaId }, async () => {
+      const fechada = await prisma.mensagem.updateMany({
+        where: {
+          id: o.id,
+          statusEntrega: "enviando",
+          OR: [{ envioReservadoEm: null }, { envioReservadoEm: { lt: limite } }],
+        },
+        data: { statusEntrega: "falhou" },
+      });
+      if (fechada.count > 0) {
+        console.error(
+          `[outbox] reserva órfã fechada (mensagem ${o.id}): o envio não confirmou em ${LEASE_ENVIO_MS}ms`,
+        );
+      }
+    });
+  }
+}
+
 /** Devolve a função de parada — o bootstrap a usa no encerramento gracioso. */
 export function iniciarOutboxEnvio(intervaloMs = 3_000): () => void {
   let rodando = false;
   const id = setInterval(() => {
     if (rodando) return; // sem sobreposição de varreduras
     rodando = true;
-    listarMensagensPendentesBaileys()
+    fecharReservasOrfas()
+      .catch((e) => console.error("[outbox] varredura de reservas órfãs falhou:", e))
+      .then(() => listarMensagensPendentesBaileys())
       .then(async (pendentes) => {
         for (const m of pendentes) await enviarUma(m);
       })

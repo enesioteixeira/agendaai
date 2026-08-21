@@ -45,3 +45,29 @@ export async function listarMensagensPendentesBaileys(): Promise<MensagemPendent
     take: 50,
   });
 }
+
+export interface EnvioReservado {
+  id: string;
+  empresaId: string;
+}
+
+// Justificativa: o varredor de reservas órfãs precisa enxergar `enviando`
+// parada em TODOS os tenants — de novo só ids/rota. A marcação como `falhou`
+// não acontece aqui: ela roda por tenant, sob runWithTenant, e é condicional
+// (o `updateMany` repete o filtro), então uma mensagem que terminou de sair
+// entre a leitura e a escrita não é atropelada.
+//
+// `envioReservadoEm` nulo entra na lista de propósito: é linha anterior à
+// migration que criou o carimbo, e presa em `enviando` ela seria invisível.
+export async function listarEnviosExpirados(limite: Date): Promise<EnvioReservado[]> {
+  return prismaSemTenant.mensagem.findMany({
+    where: {
+      direcao: "saida",
+      statusEntrega: "enviando",
+      OR: [{ envioReservadoEm: null }, { envioReservadoEm: { lt: limite } }],
+    },
+    select: { id: true, empresaId: true },
+    orderBy: { criadoEm: "asc" },
+    take: 50,
+  });
+}

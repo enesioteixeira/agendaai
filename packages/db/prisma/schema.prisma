@@ -619,6 +619,11 @@ enum OrigemMensagem {
 
 enum StatusEntrega {
   pendente
+  // Reservada por um worker, resultado ainda desconhecido. Existe para que
+  // "o atendente apertou enviar" e "a mensagem saiu" deixem de ser o mesmo
+  // estado — antes disto, morrer entre o claim e o envio deixava a mensagem
+  // marcada como enviada, com ✓ na tela, sem ter saído.
+  enviando
   enviada
   entregue
   lida
@@ -943,6 +948,10 @@ model Mensagem {
   respostaA      String? // idExterno citado (propose-confirm, Bloco 4)
   autorUsuarioId String? // quando origemMotor=humano
   statusEntrega  StatusEntrega   @default(pendente)
+  // Instante do claim. É o que permite descobrir reserva órfã: `enviando` com
+  // carimbo velho é worker que morreu no meio, e vira `falhou` visível em vez
+  // de mensagem perdida em silêncio.
+  envioReservadoEm DateTime?
   criadoEm       DateTime        @default(now())
   arquivadaEm    DateTime? // arquivamento >90d em R2 (doc 02 §14.2)
   ponteiroR2     String?

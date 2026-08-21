@@ -51,13 +51,15 @@ O monorepo usa resolução `bundler` em todo lugar (tsconfig.base), porque o `ap
 - [ ] Consumers dos motores: lembretes, régua, e-mail, IA (pg-boss — Blocos 4–5); retenção LGPD (Bloco 6)
 - [ ] **Fase B pendente**: mídia (download → R2) está **bloqueada por infra** — o binding R2 não existe no `wrangler.jsonc` (comentado desde o Bloco 0: exigiria permissão R2 no token). Sem o bucket, `normalizarInboundBaileys` continua devolvendo `midia: []` e a timeline mostra "Mensagem de imagem" em vez do arquivo
 
-## Dívida coordenada — o claim do outbox marca `enviada` antes de enviar
+## O claim do outbox — dívida paga em 2026-08-21
 
-`consumers/outbox-envio.ts` faz o claim atômico com `data: { statusEntrega: "enviada" }`, e o enum `StatusEntrega` **não tem** um estado intermediário (o comentário antigo do arquivo dizia `pendente→enviando`, um estado que nunca existiu). Se o processo morrer entre o claim e o `conector.enviar`, a mensagem fica `enviada` sem ter saído — perda silenciosa, com ✓ na tela do atendente.
+Era assim: o claim marcava `enviada` **antes** de o conector enviar, e o enum não tinha estado intermediário. Morrer entre o claim e o envio deixava a mensagem `enviada` sem ter saído — perda silenciosa, com ✓ na tela do atendente.
 
-O conserto é o padrão do inbox do ev-tracker: `enviando` no enum + lease com prazo. Isso é **migration**, e o build do Workers Builds **não roda `migrate deploy`** — as migrations são aplicadas à mão contra o Neon. Subir o código antes da coluna existir quebraria o envio inteiro em produção.
+Agora o claim reserva em **`enviando`** com carimbo (`Mensagem.envioReservadoEm`), e só o sucesso do conector promove a `enviada` — na **mesma escrita** que grava o `idExterno`, o que de quebra fechou a janela em que um recibo chegava antes de existir a quem pertencer.
 
-**Ordem obrigatória quando for feito:** aplicar a migration primeiro, confirmar no banco, só então subir o código.
+Reserva órfã — worker que não voltou — é varrida a cada ciclo e vira **`falhou`**, não `pendente`. Reenviar sozinho poderia duplicar mensagem já entregue, porque o identificador externo só existe depois da entrega: trocaríamos uma perda silenciosa por uma duplicação silenciosa. O ⚠ na timeline devolve a decisão a quem tem contexto. O raciocínio inteiro e o teto da reserva estão em `consumers/lease.ts`.
+
+⚠️ **Ordem obrigatória para levar isto a um banco hospedado:** aplicar `20260821120000_outbox_estado_enviando` primeiro, conferir, só então subir o código. O build do Workers Builds **não roda `migrate deploy`**.
 
 ## Rodar local (Bloco 3)
 
