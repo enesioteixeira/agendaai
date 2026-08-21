@@ -1,0 +1,45 @@
+# O que NÃO entra no contexto de build da imagem do worker.
+#
+# Este arquivo não existia, e a ausência dele é a razão pela qual a imagem do
+# worker nunca foi construída: sem ele o contexto arrasta os `node_modules` do
+# pnpm, que são uma floresta de symlinks para o store, e o `docker build` morre
+# em `archive/tar: unknown file mode` antes mesmo do primeiro RUN.
+#
+# O Dockerfile instala as dependências dentro da imagem (`pnpm install
+# --frozen-lockfile`), então mandar `node_modules` daqui nunca serviu para nada
+# além de tornar o contexto grande e quebrado.
+
+**/node_modules
+.pnpm-store
+
+# Saídas de build. A do worker é refeita na imagem; as do painel não têm nada
+# que ver com ela.
+**/dist
+**/build
+apps/web/.next
+apps/web/.open-next
+**/.wrangler
+**/*.tsbuildinfo
+
+# Segredo nunca entra em camada de imagem — nem o exemplo, para não haver dúvida
+# sobre qual arquivo é qual.
+**/.env
+**/.env.*
+**/.dev.vars*
+**/*.neon
+
+# Nada disso muda o que o worker faz em runtime, e tudo isso invalida cache de
+# camada a cada commit.
+.git
+.github
+docs
+infra
+**/*.md
+**/*.test.ts
+**/*.e2e.test.ts
+
+# O Dockerfile do worker copia só `packages` e `apps/worker` — o painel inteiro
+# é peso morto no contexto. O `package.json` dele é a exceção: sem ele o
+# workspace não bate com o lockfile e `--frozen-lockfile` recusa a instalação.
+apps/web
+!apps/web/package.json
