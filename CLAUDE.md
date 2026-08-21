@@ -7,7 +7,13 @@ SaaS **multi-tenant** de **atendimento e venda por conversa** (omnichannel: What
 > **O módulo `agenda` está CONGELADO**: continua funcionando e é mantido quanto a segurança/tenancy/LGPD, mas não recebe funcionalidade nova, não entra no caminho crítico e **não expõe tools de IA** no escopo inicial.
 > Blocos 0–3 do `docs/04-roadmap.md` seguem válidos; do Bloco 4 em diante o roadmap é o das **Fases A–I** do doc 12 §10.
 
-Status: **Fase 1 concluída** · **Blocos 0, 1 e 2 do MVP concluídos e em produção** (`atende-ai-web.atende-ai.workers.dev`, deploy automático via Cloudflare Workers Builds a cada push na `main`): tenancy fail-closed, identidade/RBAC/convites, agenda completa (CRUD, grade dia/semana, exclusion constraints, booking pública `/agendar/{slug}`, GCal pull via Cron Trigger). Divergências de implementação vs. desenho: `docs/11-adaptacoes-implementacao.md`. Próximo: Bloco 3 (canais). Antes de editar um módulo, leia o `AGENTS.md` dele.
+**Status (2026-08-21) — leia isto antes de acreditar em qualquer outra afirmação de progresso.**
+
+O que está **em produção** (`atende-ai-web.atende-ai.workers.dev`) é o código da `main`: tenancy fail-closed, identidade/RBAC/convites e a agenda completa. É o produto anterior ao pivô.
+
+O que está **construído e não publicado** vive na branch `mensvra`: a inbox operacional inteira (filas com quatro distribuições, prazo de primeira resposta, transferência, etiquetas, motivos de encerramento, notas, respostas rápidas), o motor de IA com guardas e medição de consumo, os agentes por tenant, e o pacote de integrações. Não foi publicado porque **o banco hospedado ainda não recebeu as migrations** e o build do Workers Builds não roda `migrate deploy`. A ordem é migration → conferir → código.
+
+Estágio corrente pela régua da empresa: **E1 — cobrável e vendável** (`instant-empresa/09-plano/estagios.md`). Divergências de implementação vs. desenho: `docs/11-adaptacoes-implementacao.md`. Antes de editar um módulo, leia o `AGENTS.md` dele.
 
 ## Mapa de documentação (ler antes de qualquer tarefa)
 

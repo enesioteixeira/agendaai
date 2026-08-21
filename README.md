@@ -1,12 +1,16 @@
-# atende-ai (agendaai)
+# Mensvra Channel
 
-SaaS **multi-tenant** de agendamento e gestão para negócios de horário marcado — salões de beleza, barbearias, clínicas de estética, clínicas médicas, escritórios de advocacia e segmentos similares.
+> O diretório e o repositório ainda se chamam `atende-ai` / `agendaai`. É de propósito: renomear arrasta Cloudflare Workers Builds junto, e a troca acontece quando o código sair da conta pessoal para a organização da empresa (`instant-empresa/adr/0011`).
 
-Carro-chefe: **agendamento + atendimento omnichannel** (WhatsApp primeiro), operado por dois motores combináveis — **árvore de decisão** determinística e **IA conversacional** — com handoff humano sem perda de contexto.
+SaaS **multi-tenant** de **atendimento e venda por conversa** — WhatsApp, Instagram, Messenger, webchat, Telegram e e-mail numa caixa só, com agente de IA que atende, qualifica e entrega o lead pronto.
+
+O comprador é o **distribuidor com entrega** (`instant-empresa/adr/0001`). O público antigo de horário marcado — salão, barbearia, clínica, advocacia — foi descartado junto com a precificação que o atendia; o módulo de agenda continua no código, **desligado por sinalizador**.
 
 ## Status
 
-**Fase 1 — Planejamento** concluída nos documentos em [`docs/`](docs/). A Fase 2 (protótipo end-to-end) inicia após validação dos documentos.
+O que está no ar é o produto **anterior** ao pivô. A inbox operacional, o motor de IA e os agentes estão construídos na branch `mensvra` e **não publicados**, porque o banco hospedado ainda não recebeu as migrations — ver [`CLAUDE.md`](CLAUDE.md).
+
+Estágio corrente: **E1 — cobrável e vendável**. Nada é cobrável ainda: não há plano aplicado, assinatura, período de teste nem porta de pagamento. Régua completa em `instant-empresa/09-plano/estagios.md`; o que dá para demonstrar hoje, sem pedir licença, está em `instant-empresa/03-portfolio/estoque-vendavel.md`.
 
 ## Documentação
 

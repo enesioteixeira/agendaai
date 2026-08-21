@@ -6,6 +6,19 @@ O plano do produto exige este arquivo desde o começo (`docs/12-mensvra-channel.
 
 Nada abaixo esteve em produção sob a marca nova: o deploy segue no código anterior, porque o banco hospedado ainda não recebeu as duas migrations do E1.
 
+## [Não lançado]
+
+Estágio E1. Nada aqui foi publicado: as migrations abaixo existem só no banco local, e a ordem para qualquer destino hospedado é migration → conferir → código.
+
+### Corrigido
+
+- **O outbox marcava a mensagem como enviada antes de enviá-la.** O claim gravava `enviada` e só então chamava o conector; morrer entre uma coisa e outra deixava a mensagem com ✓ na tela do atendente sem nada ter saído. Agora o claim reserva em **`enviando`** com carimbo, e só a confirmação do conector promove a `enviada` — na mesma escrita que grava o `idExterno`, o que também fechou a janela em que um recibo de entrega chegava antes de existir a quem pertencer. Reserva órfã vira **`falhou`** visível, e não `pendente`: o identificador externo só existe depois da entrega, então reenviar sozinho trocaria uma perda silenciosa por uma duplicação silenciosa. Migration `20260821120000_outbox_estado_enviando`.
+- **Publicar uma versão de agente trocava a persona no meio da conversa.** O comentário do `AgenteIA` no schema já dizia "conversa em andamento termina na versão em que começou", e o `VersaoFluxo` já fazia isso pela árvore — mas o contexto do turno de IA resolvia a versão **ativa** a cada turno, então não havia congelamento nenhum. `Conversa.agenteVersaoId` passa a existir e a regra, com as três exceções que recongelam (versão sumiu, foi despublicada, ou é de outro agente), mora pura e testada em `packages/core/src/atendimento/ia/congelamento.ts`. Migration `20260821130000_conversa_congela_versao_do_agente`.
+
+### Adicionado
+
+- **Portão de lint, que não existia.** O `CLAUDE.md` e o doc 09 afirmavam que o import de `prismaSemTenant` era "lint-gated", e não havia ESLint no repositório: a regra em `packages/config/eslint/index.mjs` nunca rodou, e a única defesa automatizada da fronteira de tenancy era o teste de isolamento. Agora `pnpm lint` roda de verdade, com a allowlist expressa por caminho, e foi verificado que ele reprova um import fora dela. Quatro pacotes declaravam `"lint": "eslint ."` apontando para um binário ausente — os scripts mortos saíram. A escolha de uma configuração única na raiz, em vez de uma por workspace, está registrada como divergência 13 no doc 11.
+
 ## [0.3.0] — 2026-08-17
 
 ### Marca
