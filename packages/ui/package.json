@@ -8,7 +8,6 @@
     "./estilos.css": "./src/estilos/chassi.css"
   },
   "scripts": {
-    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
